@@ -9,8 +9,8 @@ load_dotenv()
 mcp_server_url = os.getenv("MCP_SERVER_URL")
 
 adapter = FastMCPFastAPIAdapter(
-    title="Humcp FastAPI server",
-    description="Humcp FastAPI server",
+    title="HuMCP FastAPI server",
+    description="HuMCP FastAPI server",
     mcp_url=mcp_server_url,
 )
 

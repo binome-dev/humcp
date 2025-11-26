@@ -1,6 +1,6 @@
-# Humcp
+# HuMCP
 
-Humcp is a [FastMCP](https://github.com/modelcontextprotocol/fastmcp) server with a FastAPI adapter that exposes MCP tools as REST endpoints with auto-generated Swagger documentation. It provides a curated set of local utility and data manipulation tools.
+HuMCP is a [FastMCP](https://github.com/modelcontextprotocol/fastmcp) server with a FastAPI adapter that exposes MCP tools as REST endpoints with auto-generated Swagger documentation. It provides a curated set of local utility and data manipulation tools.
 
 ## Services
 

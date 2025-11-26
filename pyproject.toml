@@ -1,7 +1,7 @@
 [project]
-name = "Humcp"
+name = "HuMCP"
 version = "0.1.0"
-description = "Humcp Server"
+description = "HuMCP Server"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
