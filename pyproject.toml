@@ -1,0 +1,30 @@
+[project]
+name = "HuMCP"
+version = "0.1.0"
+description = "HuMCP Server"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.104.0",
+    "pydantic>=2.0.0",
+    "uvicorn>=0.24.0",
+    "fastmcp>=2.13.0.2",
+    "pytest>=9.0.1",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.8.0",
+    "pandas>=2.3.3",
+    "duckdb>=1.4.2",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501", "E402"]
+
