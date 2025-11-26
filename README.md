@@ -9,11 +9,7 @@ Humcp is a [FastMCP](https://github.com/modelcontextprotocol/fastmcp) server wit
 
 ## Features
 
-- **Calculator Tools** – Basic arithmetic, exponentiation, factorial, prime checks, GCD, logarithms, and more
-- **File System Tools** – Read, write, copy, delete files; list directories; create directories
-- **Shell Tools** – Execute shell commands and scripts, check command existence, get system info
-- **CSV Tools** – Load, read, query (via DuckDB SQL), and manage CSV files
-- **Pandas Tools** – Create DataFrames from various sources, run operations, export data
+- Built-in MCP Tools
 - Auto-generated Swagger/OpenAPI documentation at `/docs`
 - Tools organized by category with info endpoints (`/tools`, `/tools/{category}`)
 - Docker Compose setup for easy deployment
@@ -38,14 +34,8 @@ Humcp is a [FastMCP](https://github.com/modelcontextprotocol/fastmcp) server wit
 │   │   ├── adapter.py           # FastMCPFastAPIAdapter class
 │   │   ├── routes.py            # Route generation from MCP tools
 │   │   └── models.py            # Pydantic model generation
-│   └── tools/
-│       ├── local/
-│       │   ├── calculator.py    # Math operations
-│       │   ├── local_file_system.py  # File operations
-│       │   └── shell.py         # Shell command execution
-│       └── data/
-│           ├── csv.py           # CSV file operations
-│           └── pandas.py        # DataFrame operations
+│   └── tools/                   # MCP Tools
+│
 ├── tests/                       # Test suite
 ├── docker-compose.yml
 └── pyproject.toml
