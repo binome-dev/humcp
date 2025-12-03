@@ -3,7 +3,7 @@ from __future__ import annotations
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -13,9 +13,9 @@ from fastmcp import FastMCP
 
 async def run_shell_command(
     args: List[str],
-    tail: Optional[int] = 100,
-    base_dir: Optional[str] = None,
-    timeout: Optional[int] = 30,
+    tail: int = 100,
+    base_dir: str = "",
+    timeout: int = 30,
 ) -> dict:
     """
     Run a shell command and return the output or error.
@@ -71,7 +71,7 @@ async def run_shell_command(
         stderr_lines = result.stderr.split("\n") if result.stderr else []
 
         # Apply tail limit if specified
-        if tail is not None and tail > 0:
+        if tail > 0:
             stdout_lines = stdout_lines[-tail:]
             stderr_lines = stderr_lines[-tail:]
 
@@ -89,7 +89,7 @@ async def run_shell_command(
                 "stdout": stdout,
                 "stderr": stderr,
                 "working_directory": cwd or str(Path.cwd()),
-                "output_truncated": tail is not None and len(result.stdout.split("\n")) > tail if result.stdout else False
+                "output_truncated": tail > 0 and len(result.stdout.split("\n")) > tail if result.stdout else False
             }
         }
 
@@ -113,8 +113,8 @@ async def run_shell_command(
 async def run_shell_script(
     script: str,
     shell: str = "/bin/bash",
-    base_dir: Optional[str] = None,
-    timeout: Optional[int] = 30,
+    base_dir: str = "",
+    timeout: int = 30,
 ) -> dict:
     """
     Run a shell script (multiple commands) and return the output.
@@ -308,11 +308,11 @@ def register_tools(mcp: FastMCP) -> None:
     """Register all Shell tools with the MCP server."""
 
     # Command Execution
-    mcp.tool(name="shell/run_shell_command")(run_shell_command)
-    mcp.tool(name="shell/run_shell_script")(run_shell_script)
+    # mcp.tool(name="shell_run_shell_command")(run_shell_command)
+    mcp.tool(name="shell_run_shell_script")(run_shell_script)
 
     # System Information
-    mcp.tool(name="shell/check_command_exists")(check_command_exists)
-    mcp.tool(name="shell/get_environment_variable")(get_environment_variable)
-    mcp.tool(name="shell/get_current_directory")(get_current_directory)
-    mcp.tool(name="shell/get_system_info")(get_system_info)
+    mcp.tool(name="shell_check_command_exists")(check_command_exists)
+    mcp.tool(name="shell_get_environment_variable")(get_environment_variable)
+    mcp.tool(name="shell_get_current_directory")(get_current_directory)
+    mcp.tool(name="shell_get_system_info")(get_system_info)

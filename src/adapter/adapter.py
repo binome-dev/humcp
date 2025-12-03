@@ -11,7 +11,7 @@ class FastMCPFastAPIAdapter:
     def __init__(
         self,
         mcp_url: str,
-        transport: str = "sse",
+        transport: str = "http",
         title: str = "FastMCPFastAPIAdapter",
         description: str = "Auto-generated FastAPI interface for FastMCP server tools",
         version: str = "1.0.0",
@@ -39,7 +39,9 @@ class FastMCPFastAPIAdapter:
         if base_url.endswith(f"/{transport}"):
             return base_url
 
-        if transport == "sse":
+        if transport == "http":
+            return f"{base_url}/mcp"
+        elif transport == "sse":
             return f"{base_url}/sse"
         elif transport == "stdio":
             return base_url
