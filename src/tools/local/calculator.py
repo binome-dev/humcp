@@ -3,7 +3,6 @@ from __future__ import annotations
 import math
 import sys
 from pathlib import Path
-from typing import Optional
 
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -278,7 +277,7 @@ async def absolute_value(n: float) -> dict:
         return {"success": False, "error": str(e)}
 
 
-async def logarithm(n: float, base: Optional[float] = None) -> dict:
+async def logarithm(n: float, base: float = 0) -> dict:
     """
     Calculate the logarithm of a number with an optional base.
 
@@ -296,11 +295,11 @@ async def logarithm(n: float, base: Optional[float] = None) -> dict:
                 "error": "Logarithm is only defined for positive numbers"
             }
 
-        if base is None:
+        if base == 0:
             result = math.log(n)
             base_str = "e (natural logarithm)"
         else:
-            if base <= 0 or base == 1:
+            if base < 0 or base == 1:
                 return {
                     "success": False,
                     "error": "Logarithm base must be positive and not equal to 1"
@@ -383,20 +382,20 @@ def register_tools(mcp: FastMCP) -> None:
     """Register all Calculator tools with the MCP server."""
 
     # Basic arithmetic operations
-    mcp.tool(name="calculator/add")(add)
-    mcp.tool(name="calculator/subtract")(subtract)
-    mcp.tool(name="calculator/multiply")(multiply)
-    mcp.tool(name="calculator/divide")(divide)
-    mcp.tool(name="calculator/modulo")(modulo)
+    mcp.tool(name="calculator_add")(add)
+    mcp.tool(name="calculator_subtract")(subtract)
+    mcp.tool(name="calculator_multiply")(multiply)
+    mcp.tool(name="calculator_divide")(divide)
+    mcp.tool(name="calculator_modulo")(modulo)
     # Power and root operations
-    mcp.tool(name="calculator/exponentiate")(exponentiate)
-    mcp.tool(name="calculator/square_root")(square_root)
+    mcp.tool(name="calculator_exponentiate")(exponentiate)
+    mcp.tool(name="calculator_square_root")(square_root)
 
     # Mathematical functions
-    mcp.tool(name="calculator/factorial")(factorial)
-    mcp.tool(name="calculator/absolute_value")(absolute_value)
-    mcp.tool(name="calculator/logarithm")(logarithm)
+    mcp.tool(name="calculator_factorial")(factorial)
+    mcp.tool(name="calculator_absolute_value")(absolute_value)
+    mcp.tool(name="calculator_logarithm")(logarithm)
 
     # Number theory
-    mcp.tool(name="calculator/is_prime")(is_prime)
-    mcp.tool(name="calculator/greatest_common_divisor")(greatest_common_divisor)
+    mcp.tool(name="calculator_is_prime")(is_prime)
+    mcp.tool(name="calculator_greatest_common_divisor")(greatest_common_divisor)

@@ -144,7 +144,7 @@ async def create_pandas_dataframe(
 async def run_dataframe_operation(
     dataframe_name: str,
     operation: str,
-    operation_parameters: Optional[Dict[str, Any]] = None,
+    operation_parameters: Dict[str, Any] = {},
 ) -> dict:
     """
     Runs an operation on a stored pandas DataFrame with specified parameters.
@@ -165,8 +165,6 @@ async def run_dataframe_operation(
         - Filter rows: {"dataframe_name": "csv_data", "operation": "query", "operation_parameters": {"expr": "age > 25"}}
     """
     try:
-        if operation_parameters is None:
-            operation_parameters = {}
 
         manager = get_dataframe_manager()
 
@@ -376,11 +374,11 @@ def register_tools(mcp: FastMCP) -> None:
     """Register all Pandas tools with the MCP server."""
 
     # DataFrame Creation and Management
-    mcp.tool(name="pandas/create_pandas_dataframe")(create_pandas_dataframe)
-    mcp.tool(name="pandas/list_dataframes")(list_dataframes)
-    mcp.tool(name="pandas/get_dataframe_info")(get_dataframe_info)
-    mcp.tool(name="pandas/delete_dataframe")(delete_dataframe)
+    mcp.tool(name="pandas_create_pandas_dataframe")(create_pandas_dataframe)
+    mcp.tool(name="pandas_list_dataframes")(list_dataframes)
+    mcp.tool(name="pandas_get_dataframe_info")(get_dataframe_info)
+    mcp.tool(name="pandas_delete_dataframe")(delete_dataframe)
 
     # DataFrame Operations
-    mcp.tool(name="pandas/run_dataframe_operation")(run_dataframe_operation)
-    mcp.tool(name="pandas/export_dataframe")(export_dataframe)
+    mcp.tool(name="pandas_run_dataframe_operation")(run_dataframe_operation)
+    mcp.tool(name="pandas_export_dataframe")(export_dataframe)
