@@ -11,12 +11,12 @@ class FastMCPFastAPIAdapter:
     def __init__(
         self,
         mcp_url: str,
-        transport: str = "sse",
+        transport: str = "http",
         title: str = "FastMCPFastAPIAdapter",
         description: str = "Auto-generated FastAPI interface for FastMCP server tools",
         version: str = "1.0.0",
         route_prefix: str = "/tools",
-        tags: Optional[List[str]] = None
+        tags: Optional[List[str]] = None,
     ):
         self.title = title
         self.description = description
@@ -28,15 +28,13 @@ class FastMCPFastAPIAdapter:
 
         self.mcp_client = Client(self.mcp_url)
         self.route_generator = RouteGenerator(
-            client=self.mcp_client,
-            route_prefix=route_prefix,
-            tags=self.tags
+            client=self.mcp_client, route_prefix=route_prefix, tags=self.tags
         )
 
     def _construct_url(self, base_url: str, transport: str) -> str:
         base_url = base_url.rstrip("/")
 
-        if base_url.endswith(f"/{transport}"):
+        if transport == "http" or base_url.endswith(f"/{transport}"):
             return base_url
 
         if transport == "sse":
@@ -91,8 +89,8 @@ class FastMCPFastAPIAdapter:
                     "openapi": "/openapi.json",
                     "tools_list": f"{self.route_generator.route_prefix}",
                     "category_tools": f"{self.route_generator.route_prefix}/{{category}}",
-                    "tool_info": f"{self.route_generator.route_prefix}/{{category}}/{{tool_name}}"
-                }
+                    "tool_info": f"{self.route_generator.route_prefix}/{{category}}/{{tool_name}}",
+                },
             }
 
         return app

@@ -75,6 +75,7 @@ docker compose up --build
 | Variable | Description |
 |----------|-------------|
 | `MCP_SERVER_URL` | MCP server URL (used by FastAPI adapter) |
+| `TAVILY_API_KEY` | API key for Tavily web search tools |
 
 ## Available Tools
 
@@ -83,6 +84,7 @@ docker compose up --build
 - Shell (`shell/`)
 - CSV (`csv/`)
 - Pandas (`pandas/`)
+- Search (`search/`)
 
 ## Development
 

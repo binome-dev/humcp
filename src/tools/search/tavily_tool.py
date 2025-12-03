@@ -1,0 +1,121 @@
+from __future__ import annotations
+
+import json
+import os
+import sys
+from pathlib import Path
+from typing import Any, Dict
+
+project_root = Path(__file__).parent.parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+from fastmcp import FastMCP
+
+try:
+    from tavily import TavilyClient
+except ImportError:
+    raise ImportError(
+        "tavily-python is required for Tavily search tools. Install with: pip install tavily-python"
+    )
+
+
+class TavilySearchTool:
+    """
+    Helper class to perform web searches using the Tavily API.
+
+    This class wraps the Tavily client and provides a method to search the web
+    while trimming the response to a configurable token limit.
+    """
+
+    def __init__(
+        self, api_key: str, search_depth: str = "basic", max_tokens: int = 8000
+    ):
+        self.client = TavilyClient(api_key=api_key)
+        self.search_depth = search_depth
+        self.max_tokens = max_tokens
+
+    def web_search_using_tavily(self, query: str, max_results: int = 5) -> dict:
+        """
+        Function to search online given a query using the Tavily API. The query can be anything.
+
+        Args:
+            query (str): The query to search for.
+            max_results (int): The maximum number of results to return (default is 5).
+
+        Returns:
+            dict: A dictionary containing the search results.
+        """
+        response = self.client.search(
+            query=query, search_depth=self.search_depth, max_results=max_results
+        )
+
+        clean_response: Dict[str, Any] = {"query": query}
+        if "answer" in response:
+            clean_response["answer"] = response["answer"]
+
+        clean_results = []
+        current_token_count = len(json.dumps(clean_response))
+        for result in response.get("results", []):
+            _result = {
+                "title": result["title"],
+                "url": result["url"],
+                "content": result["content"],
+                "score": result["score"],
+            }
+            current_token_count += len(json.dumps(_result))
+            if current_token_count > self.max_tokens:
+                break
+            clean_results.append(_result)
+        clean_response["results"] = clean_results
+
+        return clean_response if clean_response else {}
+
+
+async def tavily_web_search(
+    query: str,
+    max_results: int = 5,
+    search_depth: str = "basic",
+    max_tokens: int = 8000,
+) -> dict:
+    """
+    Search the web using Tavily and return cleaned results.
+
+    Args:
+        query: The query to search for.
+        max_results: Maximum number of results to return.
+        search_depth: Tavily search depth (e.g., 'basic' or 'advanced').
+        max_tokens: Rough limit for response size to avoid oversized payloads.
+        api_key: Optional Tavily API key; falls back to TAVILY_API_KEY env var.
+
+    Returns:
+        Success flag and search data or error message.
+    """
+    try:
+        resolved_api_key = os.getenv("TAVILY_API_KEY")
+        if not resolved_api_key:
+            return {
+                "success": False,
+                "error": "TAVILY_API_KEY is not set. Provide api_key or set the environment variable.",
+            }
+
+        if max_results < 1:
+            return {"success": False, "error": "max_results must be at least 1"}
+
+        searcher = TavilySearchTool(
+            api_key=resolved_api_key,
+            search_depth=search_depth,
+            max_tokens=max_tokens,
+        )
+        results = searcher.web_search_using_tavily(query=query, max_results=max_results)
+
+        if not results:
+            return {"success": False, "error": "No results found."}
+
+        return {"success": True, "data": results}
+    except Exception as e:
+        return {"success": False, "error": f"Tavily search failed: {str(e)}"}
+
+
+def register_tools(mcp: FastMCP) -> None:
+    """Register Tavily search tool with the MCP server."""
+    mcp.tool(name="search/web_search")(tavily_web_search)
