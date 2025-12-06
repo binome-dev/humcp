@@ -9,7 +9,6 @@ from grafi.common.models.invoke_context import InvokeContext
 from grafi.common.models.mcp_connections import StreamableHttpConnection
 from grafi.common.models.message import Message
 from grafi.tools.function_calls.impl.mcp_tool import MCPTool
-
 from simple_function_call_assistant import SimpleFunctionCallAssistant
 
 load_dotenv()

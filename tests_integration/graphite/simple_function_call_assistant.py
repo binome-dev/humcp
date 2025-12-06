@@ -1,9 +1,5 @@
 import os
-from typing import Optional
-from typing import Self
-
-from openinference.semconv.trace import OpenInferenceSpanKindValues
-from pydantic import Field
+from typing import Optional, Self
 
 from grafi.assistants.assistant import Assistant
 from grafi.assistants.assistant_base import AssistantBaseBuilder
@@ -15,6 +11,8 @@ from grafi.topics.topic_impl.input_topic import InputTopic
 from grafi.topics.topic_impl.output_topic import OutputTopic
 from grafi.topics.topic_impl.topic import Topic
 from grafi.workflows.impl.event_driven_workflow import EventDrivenWorkflow
+from openinference.semconv.trace import OpenInferenceSpanKindValues
+from pydantic import Field
 
 
 class SimpleFunctionCallAssistant(Assistant):
