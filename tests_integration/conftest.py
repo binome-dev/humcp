@@ -13,7 +13,6 @@ SERVER_URL = f"http://{SERVER_HOST}:{SERVER_PORT}"
 
 
 def wait_for_server(url: str, timeout: float = 30.0, interval: float = 0.5) -> bool:
-    """Wait for the server to be ready by polling the endpoint."""
     print(f"Waiting for server at {url}...")
     start_time = time.time()
     while time.time() - start_time < timeout:
@@ -33,22 +32,16 @@ def wait_for_server(url: str, timeout: float = 30.0, interval: float = 0.5) -> b
 
 @pytest.fixture(scope="session")
 def mcp_server():
-    """Start the MCP server for integration tests."""
-    server_script = PROJECT_ROOT / "src" / "server.py"
-    print(f"\n=== Starting MCP Server ===")
-    print(f"Server script: {server_script}")
     print(f"Working directory: {PROJECT_ROOT}")
 
-    # Don't pipe stdout/stderr so we can see server logs in CI
     process = subprocess.Popen(
-        [sys.executable, str(server_script)],
+        [sys.executable, "-m", "src.server"],
         cwd=str(PROJECT_ROOT),
+        env={**dict(__import__("os").environ), "PYTHONPATH": str(PROJECT_ROOT)},
     )
 
-    # Give the server a moment to start
     time.sleep(2)
 
-    # Check if process is still running
     if process.poll() is not None:
         raise RuntimeError(
             f"MCP server process exited immediately with code: {process.returncode}"
@@ -81,5 +74,4 @@ def mcp_server():
 
 @pytest.fixture
 def mcp_url(mcp_server):
-    """Convenience fixture that returns just the MCP URL."""
     return mcp_server["mcp_url"]
