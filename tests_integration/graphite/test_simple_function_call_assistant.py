@@ -38,10 +38,8 @@ async def test_simple_function_call_assistant_with_mcp(mcp_server):
             }
         )
     }
-
-    # Build MCP tool and verify connection
+    
     mcp_tool = await MCPTool.builder().connections(server_params).build()
-    print(f"MCP Server URL: {mcp_server['mcp_url']}")
 
     assistant = (
         SimpleFunctionCallAssistant.builder()
