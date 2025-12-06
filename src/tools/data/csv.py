@@ -188,10 +188,10 @@ async def remove_csv_file(csv_name: str) -> dict:
 def register_tools(mcp: FastMCP) -> None:
     """Register all CSV tools with the MCP server."""
 
-    mcp.tool(name="csv/list_csv_files")(list_csv_files)
-    mcp.tool(name="csv/read_csv_file")(read_csv_file)
-    mcp.tool(name="csv/get_csv_columns")(get_csv_columns)
-    mcp.tool(name="csv/query_csv_file")(query_csv_file)
-    mcp.tool(name="csv/describe_csv_file")(describe_csv_file)
-    mcp.tool(name="csv/add_csv_file")(add_csv_file)
-    mcp.tool(name="csv/remove_csv_file")(remove_csv_file)
+    mcp.tool(name="csv_list_csv_files")(list_csv_files)
+    mcp.tool(name="csv_read_csv_file")(read_csv_file)
+    mcp.tool(name="csv_get_csv_columns")(get_csv_columns)
+    mcp.tool(name="csv_query_csv_file")(query_csv_file)
+    mcp.tool(name="csv_describe_csv_file")(describe_csv_file)
+    mcp.tool(name="csv_add_csv_file")(add_csv_file)
+    mcp.tool(name="csv_remove_csv_file")(remove_csv_file)

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Optional
 from uuid import uuid4
 
 project_root = Path(__file__).parent.parent.parent.parent
@@ -13,9 +12,9 @@ from fastmcp import FastMCP
 
 async def write_file(
     content: str,
-    filename: Optional[str] = None,
-    directory: Optional[str] = None,
-    extension: Optional[str] = None,
+    filename: str = "",
+    directory: str = "",
+    extension: str = "",
 ) -> dict:
     """
     Write content to a local file.
@@ -36,7 +35,7 @@ async def write_file(
     """
     try:
         # Generate filename if not provided
-        filename = filename or str(uuid4())
+        filename = filename if filename else str(uuid4())
 
         # Extract extension from filename if present
         if filename and "." in filename:
@@ -45,8 +44,8 @@ async def write_file(
             extension = extension or path_obj.suffix.lstrip(".")
 
         # Use defaults
-        directory = directory or str(Path.cwd())
-        extension = (extension or "txt").lstrip(".")
+        directory = directory if directory else str(Path.cwd())
+        extension = (extension if extension else "txt").lstrip(".")
 
         # Create directory if it doesn't exist
         dir_path = Path(directory)
@@ -76,7 +75,7 @@ async def write_file(
 
 async def read_file(
     filename: str,
-    directory: Optional[str] = None,
+    directory: str = "",
 ) -> dict:
     """
     Read content from a local file.
@@ -89,7 +88,7 @@ async def read_file(
         File content and metadata
     """
     try:
-        directory = directory or str(Path.cwd())
+        directory = directory if directory else str(Path.cwd())
         file_path = Path(directory) / filename
 
         if not file_path.exists():
@@ -121,7 +120,7 @@ async def read_file(
 
 
 async def list_files(
-    directory: Optional[str] = None,
+    directory: str = "",
     pattern: str = "*",
     recursive: bool = False,
 ) -> dict:
@@ -137,7 +136,7 @@ async def list_files(
         List of files matching the pattern
     """
     try:
-        directory = directory or str(Path.cwd())
+        directory = directory if directory else str(Path.cwd())
         dir_path = Path(directory)
 
         if not dir_path.exists():
@@ -185,7 +184,7 @@ async def list_files(
 
 async def delete_file(
     filename: str,
-    directory: Optional[str] = None,
+    directory: str = "",
 ) -> dict:
     """
     Delete a file from the local file system.
@@ -198,7 +197,7 @@ async def delete_file(
         Confirmation of deletion
     """
     try:
-        directory = directory or str(Path.cwd())
+        directory = directory if directory else str(Path.cwd())
         file_path = Path(directory) / filename
 
         if not file_path.exists():
@@ -273,7 +272,7 @@ async def create_directory(
 
 async def file_exists(
     filename: str,
-    directory: Optional[str] = None,
+    directory: str = "",
 ) -> dict:
     """
     Check if a file exists.
@@ -286,7 +285,7 @@ async def file_exists(
         Boolean indicating whether the file exists
     """
     try:
-        directory = directory or str(Path.cwd())
+        directory = directory if directory else str(Path.cwd())
         file_path = Path(directory) / filename
 
         exists = file_path.exists() and file_path.is_file()
@@ -312,7 +311,7 @@ async def file_exists(
 
 async def get_file_info(
     filename: str,
-    directory: Optional[str] = None,
+    directory: str = "",
 ) -> dict:
     """
     Get detailed information about a file.
@@ -325,7 +324,7 @@ async def get_file_info(
         Detailed file information including size, timestamps, etc.
     """
     try:
-        directory = directory or str(Path.cwd())
+        directory = directory if directory else str(Path.cwd())
         file_path = Path(directory) / filename
 
         if not file_path.exists():
@@ -363,7 +362,7 @@ async def get_file_info(
 async def append_to_file(
     content: str,
     filename: str,
-    directory: Optional[str] = None,
+    directory: str = "",
 ) -> dict:
     """
     Append content to an existing file.
@@ -377,7 +376,7 @@ async def append_to_file(
         Confirmation of append operation
     """
     try:
-        directory = directory or str(Path.cwd())
+        directory = directory if directory else str(Path.cwd())
         file_path = Path(directory) / filename
 
         if not file_path.exists():
@@ -406,8 +405,8 @@ async def append_to_file(
 async def copy_file(
     source_filename: str,
     destination_filename: str,
-    source_directory: Optional[str] = None,
-    destination_directory: Optional[str] = None,
+    source_directory: str = "",
+    destination_directory: str = "",
 ) -> dict:
     """
     Copy a file from source to destination.
@@ -424,8 +423,8 @@ async def copy_file(
     try:
         import shutil
 
-        source_directory = source_directory or str(Path.cwd())
-        destination_directory = destination_directory or str(Path.cwd())
+        source_directory = source_directory if source_directory else str(Path.cwd())
+        destination_directory = destination_directory if destination_directory else str(Path.cwd())
 
         source_path = Path(source_directory) / source_filename
         dest_path = Path(destination_directory) / destination_filename
@@ -459,14 +458,14 @@ def register_tools(mcp: FastMCP) -> None:
     """Register all Local File System tools with the MCP server."""
 
     # File Operations
-    mcp.tool(name="filesystem/write_file")(write_file)
-    mcp.tool(name="filesystem/read_file")(read_file)
-    mcp.tool(name="filesystem/append_to_file")(append_to_file)
-    mcp.tool(name="filesystem/delete_file")(delete_file)
-    mcp.tool(name="filesystem/copy_file")(copy_file)
+    mcp.tool(name="filesystem_write_file")(write_file)
+    mcp.tool(name="filesystem_read_file")(read_file)
+    mcp.tool(name="filesystem_append_to_file")(append_to_file)
+    mcp.tool(name="filesystem_delete_file")(delete_file)
+    mcp.tool(name="filesystem_copy_file")(copy_file)
     # File Information
-    mcp.tool(name="filesystem/file_exists")(file_exists)
-    mcp.tool(name="filesystem/get_file_info")(get_file_info)
-    mcp.tool(name="filesystem/list_files")(list_files)
+    mcp.tool(name="filesystem_file_exists")(file_exists)
+    mcp.tool(name="filesystem_get_file_info")(get_file_info)
+    mcp.tool(name="filesystem_list_files")(list_files)
     # Directory Operations
-    mcp.tool(name="filesystem/create_directory")(create_directory)
+    mcp.tool(name="filesystem_create_directory")(create_directory)
