@@ -51,7 +51,8 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.ref == 'refs/heads/main'
+    # TODO: Change back to main only after testing
+    # if: github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout code
@@ -72,4 +73,4 @@ jobs:
       - name: Run integration tests
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: uv run pytest tests_integration/ -v --tb=short
+        run: uv run pytest tests_integration/ -v -s --tb=short
