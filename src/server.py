@@ -42,5 +42,12 @@ except ImportError as e:
     print(f"Tavily search tools not available: {e}")
 
 
+try:
+    from src.tools.files import pdf_to_markdown
+
+    pdf_to_markdown.register_tools(mcp)
+except ImportError as e:
+    print(f"PDF to Markdown tools not available: {e}")
+
 if __name__ == "__main__":
     mcp.run(transport="sse", host="0.0.0.0", port=8081)
