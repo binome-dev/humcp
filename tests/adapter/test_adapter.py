@@ -66,7 +66,7 @@ class TestAdapterInitialization:
         sig = inspect.signature(FastMCPFastAPIAdapter.__init__)
         params = list(sig.parameters.keys())
 
-        assert "mcp_url" in params
+        assert "mcp_transport" in params
         assert "transport" in params
         assert "title" in params
         assert "description" in params

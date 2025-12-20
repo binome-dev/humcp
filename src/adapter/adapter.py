@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI
 from fastmcp.client import Client
@@ -9,7 +10,7 @@ from .routes import RouteGenerator
 class FastMCPFastAPIAdapter:
     def __init__(
         self,
-        mcp_url: str,
+        mcp_transport: Any,
         transport: str = "http",
         title: str = "FastMCPFastAPIAdapter",
         description: str = "Auto-generated FastAPI interface for FastMCP server tools",
@@ -23,9 +24,16 @@ class FastMCPFastAPIAdapter:
         self.route_prefix = route_prefix
         self.tags = tags or ["MCP Tools"]
 
-        self.mcp_url = self._construct_url(mcp_url, transport)
+        # Accept either a URL string or a FastMCP instance for in-memory transport
+        if isinstance(mcp_transport, str):
+            self.mcp_transport = self._construct_url(mcp_transport, transport)
+            self.mcp_display_url = self.mcp_transport
+        else:
+            self.mcp_transport = mcp_transport
+            # Optional display string for info responses when using in-memory transport
+            self.mcp_display_url = None
 
-        self.mcp_client = Client(self.mcp_url)
+        self.mcp_client = Client(self.mcp_transport)
         self.route_generator = RouteGenerator(
             client=self.mcp_client, route_prefix=route_prefix, tags=self.tags
         )
@@ -79,7 +87,7 @@ class FastMCPFastAPIAdapter:
             return {
                 "name": self.title,
                 "version": self.version,
-                "mcp_server": self.mcp_url,
+                "mcp_server": self.mcp_display_url or "in-memory",
                 "tools_count": len(self.route_generator.tools),
                 "categories_count": len(categories),
                 "route_prefix": self.route_generator.route_prefix,
