@@ -118,4 +118,4 @@ async def tavily_web_search(
 
 def register_tools(mcp: FastMCP) -> None:
     """Register Tavily search tool with the MCP server."""
-    mcp.tool(name="search/web_search")(tavily_web_search)
+    mcp.tool(name="web_search")(tavily_web_search)

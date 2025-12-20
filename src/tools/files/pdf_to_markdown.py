@@ -51,4 +51,4 @@ async def convert_to_markdown(pdf_path: str) -> str:
 
 def register_tools(mcp: FastMCP) -> None:
     """Register PDF to Markdown conversion tool with the MCP server."""
-    mcp.tool(name="files/convert_to_markdown")(convert_to_markdown)
+    mcp.tool(name="convert_to_markdown")(convert_to_markdown)
