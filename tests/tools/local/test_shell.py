@@ -19,10 +19,7 @@ class TestRunShellCommand:
 
     @pytest.mark.asyncio
     async def test_run_with_base_dir(self, tmp_path):
-        result = await run_shell_command(
-            args=["pwd"],
-            base_dir=str(tmp_path)
-        )
+        result = await run_shell_command(args=["pwd"], base_dir=str(tmp_path))
         assert result["success"] is True
         assert str(tmp_path) in result["data"]["stdout"]
 
@@ -41,18 +38,14 @@ class TestRunShellCommand:
     @pytest.mark.asyncio
     async def test_run_invalid_base_dir(self):
         result = await run_shell_command(
-            args=["echo", "test"],
-            base_dir="/nonexistent/path"
+            args=["echo", "test"], base_dir="/nonexistent/path"
         )
         assert result["success"] is False
         assert "does not exist" in result["error"].lower()
 
     @pytest.mark.asyncio
     async def test_run_with_tail(self):
-        result = await run_shell_command(
-            args=["echo", "line1\nline2\nline3"],
-            tail=2
-        )
+        result = await run_shell_command(args=["echo", "line1\nline2\nline3"], tail=2)
         assert result["success"] is True
 
 
@@ -81,10 +74,7 @@ class TestRunShellScript:
 
     @pytest.mark.asyncio
     async def test_run_script_with_base_dir(self, tmp_path):
-        result = await run_shell_script(
-            script="pwd",
-            base_dir=str(tmp_path)
-        )
+        result = await run_shell_script(script="pwd", base_dir=str(tmp_path))
         assert result["success"] is True
         assert str(tmp_path) in result["data"]["stdout"]
 

@@ -1,5 +1,4 @@
 from contextlib import asynccontextmanager
-from typing import List, Optional
 
 from fastapi import FastAPI
 from fastmcp.client import Client
@@ -16,7 +15,7 @@ class FastMCPFastAPIAdapter:
         description: str = "Auto-generated FastAPI interface for FastMCP server tools",
         version: str = "1.0.0",
         route_prefix: str = "/tools",
-        tags: Optional[List[str]] = None,
+        tags: list[str] | None = None,
     ):
         self.title = title
         self.description = description

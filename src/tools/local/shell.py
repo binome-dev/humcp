@@ -3,7 +3,6 @@ from __future__ import annotations
 import subprocess
 import sys
 from pathlib import Path
-from typing import List
 
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -12,7 +11,7 @@ from fastmcp import FastMCP
 
 
 async def run_shell_command(
-    args: List[str],
+    args: list[str],
     tail: int = 100,
     base_dir: str = "",
     timeout: int = 30,
@@ -36,10 +35,7 @@ async def run_shell_command(
     """
     try:
         if not args or len(args) == 0:
-            return {
-                "success": False,
-                "error": "Command args cannot be empty"
-            }
+            return {"success": False, "error": "Command args cannot be empty"}
 
         # Validate base_dir if provided
         cwd = None
@@ -48,12 +44,12 @@ async def run_shell_command(
             if not base_path.exists():
                 return {
                     "success": False,
-                    "error": f"Base directory does not exist: {base_dir}"
+                    "error": f"Base directory does not exist: {base_dir}",
                 }
             if not base_path.is_dir():
                 return {
                     "success": False,
-                    "error": f"Base directory is not a directory: {base_dir}"
+                    "error": f"Base directory is not a directory: {base_dir}",
                 }
             cwd = str(base_path)
 
@@ -89,25 +85,18 @@ async def run_shell_command(
                 "stdout": stdout,
                 "stderr": stderr,
                 "working_directory": cwd or str(Path.cwd()),
-                "output_truncated": tail > 0 and len(result.stdout.split("\n")) > tail if result.stdout else False
-            }
+                "output_truncated": tail > 0 and len(result.stdout.split("\n")) > tail
+                if result.stdout
+                else False,
+            },
         }
 
     except subprocess.TimeoutExpired:
-        return {
-            "success": False,
-            "error": f"Command timed out after {timeout} seconds"
-        }
+        return {"success": False, "error": f"Command timed out after {timeout} seconds"}
     except FileNotFoundError:
-        return {
-            "success": False,
-            "error": f"Command not found: {args[0]}"
-        }
+        return {"success": False, "error": f"Command not found: {args[0]}"}
     except Exception as e:
-        return {
-            "success": False,
-            "error": f"Failed to run shell command: {str(e)}"
-        }
+        return {"success": False, "error": f"Failed to run shell command: {str(e)}"}
 
 
 async def run_shell_script(
@@ -134,10 +123,7 @@ async def run_shell_script(
     """
     try:
         if not script or script.strip() == "":
-            return {
-                "success": False,
-                "error": "Script content cannot be empty"
-            }
+            return {"success": False, "error": "Script content cannot be empty"}
 
         # Validate base_dir if provided
         cwd = None
@@ -146,7 +132,7 @@ async def run_shell_script(
             if not base_path.exists():
                 return {
                     "success": False,
-                    "error": f"Base directory does not exist: {base_dir}"
+                    "error": f"Base directory does not exist: {base_dir}",
                 }
             cwd = str(base_path)
 
@@ -169,25 +155,16 @@ async def run_shell_script(
                 "return_code": result.returncode,
                 "stdout": result.stdout,
                 "stderr": result.stderr,
-                "working_directory": cwd or str(Path.cwd())
-            }
+                "working_directory": cwd or str(Path.cwd()),
+            },
         }
 
     except subprocess.TimeoutExpired:
-        return {
-            "success": False,
-            "error": f"Script timed out after {timeout} seconds"
-        }
+        return {"success": False, "error": f"Script timed out after {timeout} seconds"}
     except FileNotFoundError:
-        return {
-            "success": False,
-            "error": f"Shell not found: {shell}"
-        }
+        return {"success": False, "error": f"Shell not found: {shell}"}
     except Exception as e:
-        return {
-            "success": False,
-            "error": f"Failed to run shell script: {str(e)}"
-        }
+        return {"success": False, "error": f"Failed to run shell script: {str(e)}"}
 
 
 async def check_command_exists(command: str) -> dict:
@@ -213,11 +190,7 @@ async def check_command_exists(command: str) -> dict:
 
         return {
             "success": True,
-            "data": {
-                "command": command,
-                "exists": exists,
-                "path": path
-            }
+            "data": {"command": command, "exists": exists, "path": path},
         }
 
     except Exception as e:
@@ -244,8 +217,8 @@ async def get_environment_variable(variable_name: str) -> dict:
             "data": {
                 "variable_name": variable_name,
                 "value": value,
-                "is_set": value is not None
-            }
+                "is_set": value is not None,
+            },
         }
 
     except Exception as e:
@@ -262,12 +235,7 @@ async def get_current_directory() -> dict:
     try:
         cwd = str(Path.cwd())
 
-        return {
-            "success": True,
-            "data": {
-                "current_directory": cwd
-            }
-        }
+        return {"success": True, "data": {"current_directory": cwd}}
 
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -295,10 +263,7 @@ async def get_system_info() -> dict:
             "user": os.environ.get("USER") or os.environ.get("USERNAME"),
         }
 
-        return {
-            "success": True,
-            "data": info
-        }
+        return {"success": True, "data": info}
 
     except Exception as e:
         return {"success": False, "error": str(e)}

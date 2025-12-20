@@ -10,10 +10,10 @@ from fastmcp import FastMCP
 
 try:
     from markitdown import MarkItDown
-except ImportError:
+except ImportError as err:
     raise ImportError(
         "markitdown is required for PDF to Markdown conversion. Install with: pip install 'markitdown[all]'"
-    )
+    ) from err
 
 
 async def convert_to_markdown(pdf_path: str) -> str:

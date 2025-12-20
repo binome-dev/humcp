@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Self
+from typing import Self
 
 from grafi.assistants.assistant import Assistant
 from grafi.assistants.assistant_base import AssistantBaseBuilder
@@ -36,10 +36,10 @@ class SimpleFunctionCallAssistant(Assistant):
     )
     name: str = Field(default="SimpleFunctionCallAssistant")
     type: str = Field(default="SimpleFunctionCallAssistant")
-    api_key: Optional[str] = Field(default_factory=lambda: os.getenv("OPENAI_API_KEY"))
+    api_key: str | None = Field(default_factory=lambda: os.getenv("OPENAI_API_KEY"))
     model: str = Field(default="gpt-4o-mini")
-    function_call_llm_system_message: Optional[str] = Field(default=None)
-    summary_llm_system_message: Optional[str] = Field(default=None)
+    function_call_llm_system_message: str | None = Field(default=None)
+    summary_llm_system_message: str | None = Field(default=None)
     function_tool: FunctionCallTool
 
     @classmethod
@@ -146,9 +146,9 @@ class SimpleFunctionCallAssistantBuilder(
     def function_call_llm_system_message(
         self, function_call_llm_system_message: str
     ) -> Self:
-        self.kwargs[
-            "function_call_llm_system_message"
-        ] = function_call_llm_system_message
+        self.kwargs["function_call_llm_system_message"] = (
+            function_call_llm_system_message
+        )
         return self
 
     def summary_llm_system_message(self, summary_llm_system_message: str) -> Self:

@@ -9,9 +9,11 @@ from fastmcp import FastMCP
 
 try:
     import duckdb
+
     DUCKDB_AVAILABLE = True
 except ImportError:
     DUCKDB_AVAILABLE = False
+
 
 class CSVManager:
     def __init__(self, csv_files: list = None):
@@ -20,7 +22,7 @@ class CSVManager:
         if csv_files:
             for file_path in csv_files:
                 path = Path(file_path)
-                if path.exists() and path.suffix.lower() == '.csv':
+                if path.exists() and path.suffix.lower() == ".csv":
                     self.csv_files.append(path)
                     self.csv_map[path.stem] = path
 
@@ -33,11 +35,13 @@ class CSVManager:
 
 _csv_manager = None
 
+
 def get_csv_manager():
     global _csv_manager
     if _csv_manager is None:
         _csv_manager = CSVManager()
     return _csv_manager
+
 
 def set_csv_files(csv_files: list):
     global _csv_manager
@@ -48,7 +52,11 @@ async def list_csv_files() -> dict:
     """List all available CSV files."""
     try:
         manager = get_csv_manager()
-        return {"success": True, "data": manager.list_files(), "count": len(manager.list_files())}
+        return {
+            "success": True,
+            "data": manager.list_files(),
+            "count": len(manager.list_files()),
+        }
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -62,7 +70,7 @@ async def read_csv_file(csv_name: str, row_limit: int = None) -> dict:
             return {"success": False, "error": f"CSV '{csv_name}' not found"}
 
         rows = []
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding="utf-8") as f:
             reader = csv_lib.DictReader(f)
             for i, row in enumerate(reader):
                 if row_limit and i >= row_limit:
@@ -82,7 +90,7 @@ async def get_csv_columns(csv_name: str) -> dict:
         if not file_path:
             return {"success": False, "error": f"CSV '{csv_name}' not found"}
 
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding="utf-8") as f:
             reader = csv_lib.DictReader(f)
             columns = reader.fieldnames or []
 
@@ -102,15 +110,22 @@ async def query_csv_file(csv_name: str, sql_query: str) -> dict:
         if not file_path:
             return {"success": False, "error": f"CSV '{csv_name}' not found"}
 
-        query = sql_query.strip().replace('`', '').split(';')[0]
-        conn = duckdb.connect(':memory:')
-        conn.execute(f"CREATE TABLE {csv_name} AS SELECT * FROM read_csv_auto('{file_path}')")
+        query = sql_query.strip().replace("`", "").split(";")[0]
+        conn = duckdb.connect(":memory:")
+        conn.execute(
+            f"CREATE TABLE {csv_name} AS SELECT * FROM read_csv_auto('{file_path}')"
+        )
         result = conn.execute(query).fetchall()
         columns = [desc[0] for desc in conn.description]
-        rows = [dict(zip(columns, row)) for row in result]
+        rows = [dict(zip(columns, row, strict=False)) for row in result]
         conn.close()
 
-        return {"success": True, "data": rows, "row_count": len(rows), "columns": columns}
+        return {
+            "success": True,
+            "data": rows,
+            "row_count": len(rows),
+            "columns": columns,
+        }
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -126,7 +141,7 @@ async def describe_csv_file(csv_name: str) -> dict:
         file_size = file_path.stat().st_size
         rows = []
 
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding="utf-8") as f:
             reader = csv_lib.DictReader(f)
             columns = reader.fieldnames or []
             for i, row in enumerate(reader):
@@ -144,8 +159,8 @@ async def describe_csv_file(csv_name: str) -> dict:
                 "columns": columns,
                 "column_count": len(columns),
                 "row_count": row_count,
-                "sample_rows": rows[:5]
-            }
+                "sample_rows": rows[:5],
+            },
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -157,14 +172,17 @@ async def add_csv_file(file_path: str) -> dict:
         path = Path(file_path)
         if not path.exists():
             return {"success": False, "error": f"File not found: {file_path}"}
-        if path.suffix.lower() != '.csv':
+        if path.suffix.lower() != ".csv":
             return {"success": False, "error": f"Not a CSV: {file_path}"}
 
         manager = get_csv_manager()
         manager.csv_files.append(path)
         manager.csv_map[path.stem] = path
 
-        return {"success": True, "data": {"message": f"Added: {path.stem}", "file_name": path.stem}}
+        return {
+            "success": True,
+            "data": {"message": f"Added: {path.stem}", "file_name": path.stem},
+        }
     except Exception as e:
         return {"success": False, "error": str(e)}
 

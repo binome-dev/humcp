@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -11,22 +11,23 @@ from fastmcp import FastMCP
 
 try:
     import pandas as pd
-except ImportError:
+except ImportError as err:
     raise ImportError(
         "pandas is required for Pandas tools. Install with: pip install pandas"
-    )
+    ) from err
+
 
 class DataFrameManager:
     """Manages pandas DataFrames in memory"""
 
     def __init__(self):
-        self.dataframes: Dict[str, pd.DataFrame] = {}
+        self.dataframes: dict[str, pd.DataFrame] = {}
 
     def add_dataframe(self, name: str, df: pd.DataFrame) -> None:
         """Add a DataFrame to the manager"""
         self.dataframes[name] = df
 
-    def get_dataframe(self, name: str) -> Optional[pd.DataFrame]:
+    def get_dataframe(self, name: str) -> pd.DataFrame | None:
         """Get a DataFrame by name"""
         return self.dataframes.get(name)
 
@@ -60,7 +61,7 @@ def get_dataframe_manager():
 async def create_pandas_dataframe(
     dataframe_name: str,
     create_using_function: str,
-    function_parameters: Dict[str, Any],
+    function_parameters: dict[str, Any],
 ) -> dict:
     """
     Creates a pandas DataFrame by running a pandas function with specified parameters.
@@ -91,14 +92,14 @@ async def create_pandas_dataframe(
         if manager.dataframe_exists(dataframe_name):
             return {
                 "success": False,
-                "error": f"DataFrame '{dataframe_name}' already exists. Use a different name or delete the existing one."
+                "error": f"DataFrame '{dataframe_name}' already exists. Use a different name or delete the existing one.",
             }
 
         # Check if the function exists in pandas
         if not hasattr(pd, create_using_function):
             return {
                 "success": False,
-                "error": f"Function 'pd.{create_using_function}' does not exist in pandas"
+                "error": f"Function 'pd.{create_using_function}' does not exist in pandas",
             }
 
         # Create the dataframe
@@ -108,19 +109,19 @@ async def create_pandas_dataframe(
         if dataframe is None:
             return {
                 "success": False,
-                "error": f"Function returned None when creating DataFrame '{dataframe_name}'"
+                "error": f"Function returned None when creating DataFrame '{dataframe_name}'",
             }
 
         if not isinstance(dataframe, pd.DataFrame):
             return {
                 "success": False,
-                "error": f"Function did not return a DataFrame (got {type(dataframe).__name__})"
+                "error": f"Function did not return a DataFrame (got {type(dataframe).__name__})",
             }
 
         if dataframe.empty:
             return {
                 "success": False,
-                "error": f"Created DataFrame '{dataframe_name}' is empty"
+                "error": f"Created DataFrame '{dataframe_name}' is empty",
             }
 
         # Store the dataframe
@@ -144,7 +145,7 @@ async def create_pandas_dataframe(
 async def run_dataframe_operation(
     dataframe_name: str,
     operation: str,
-    operation_parameters: Dict[str, Any] = {},
+    operation_parameters: dict[str, Any] | None = None,
 ) -> dict:
     """
     Runs an operation on a stored pandas DataFrame with specified parameters.
@@ -165,6 +166,8 @@ async def run_dataframe_operation(
         - Filter rows: {"dataframe_name": "csv_data", "operation": "query", "operation_parameters": {"expr": "age > 25"}}
     """
     try:
+        if operation_parameters is None:
+            operation_parameters = {}
 
         manager = get_dataframe_manager()
 
@@ -173,14 +176,14 @@ async def run_dataframe_operation(
         if dataframe is None:
             return {
                 "success": False,
-                "error": f"DataFrame '{dataframe_name}' not found. Create it first using create_pandas_dataframe."
+                "error": f"DataFrame '{dataframe_name}' not found. Create it first using create_pandas_dataframe.",
             }
 
         # Check if the operation exists
         if not hasattr(dataframe, operation):
             return {
                 "success": False,
-                "error": f"Operation '{operation}' does not exist on DataFrame"
+                "error": f"Operation '{operation}' does not exist on DataFrame",
             }
 
         # Run the operation
@@ -204,8 +207,8 @@ async def run_dataframe_operation(
             "data": {
                 "operation": operation,
                 "dataframe": dataframe_name,
-                "result": result_str
-            }
+                "result": result_str,
+            },
         }
 
     except Exception as e:
@@ -227,18 +230,16 @@ async def list_dataframes() -> dict:
         for name in dataframe_names:
             df = manager.get_dataframe(name)
             if df is not None:
-                dataframes_info.append({
-                    "name": name,
-                    "shape": df.shape,
-                    "columns": list(df.columns),
-                    "memory_usage_bytes": df.memory_usage(deep=True).sum()
-                })
+                dataframes_info.append(
+                    {
+                        "name": name,
+                        "shape": df.shape,
+                        "columns": list(df.columns),
+                        "memory_usage_bytes": df.memory_usage(deep=True).sum(),
+                    }
+                )
 
-        return {
-            "success": True,
-            "data": dataframes_info,
-            "count": len(dataframes_info)
-        }
+        return {"success": True, "data": dataframes_info, "count": len(dataframes_info)}
 
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -261,7 +262,7 @@ async def get_dataframe_info(dataframe_name: str) -> dict:
         if dataframe is None:
             return {
                 "success": False,
-                "error": f"DataFrame '{dataframe_name}' not found"
+                "error": f"DataFrame '{dataframe_name}' not found",
             }
 
         info = {
@@ -271,7 +272,7 @@ async def get_dataframe_info(dataframe_name: str) -> dict:
             "dtypes": {col: str(dtype) for col, dtype in dataframe.dtypes.items()},
             "memory_usage_bytes": dataframe.memory_usage(deep=True).sum(),
             "null_counts": dataframe.isnull().sum().to_dict(),
-            "sample_data": dataframe.head().to_dict(orient='records')
+            "sample_data": dataframe.head().to_dict(orient="records"),
         }
 
         return {"success": True, "data": info}
@@ -296,14 +297,14 @@ async def delete_dataframe(dataframe_name: str) -> dict:
         if not manager.dataframe_exists(dataframe_name):
             return {
                 "success": False,
-                "error": f"DataFrame '{dataframe_name}' not found"
+                "error": f"DataFrame '{dataframe_name}' not found",
             }
 
         manager.remove_dataframe(dataframe_name)
 
         return {
             "success": True,
-            "data": {"message": f"DataFrame '{dataframe_name}' deleted successfully"}
+            "data": {"message": f"DataFrame '{dataframe_name}' deleted successfully"},
         }
 
     except Exception as e:
@@ -313,7 +314,7 @@ async def delete_dataframe(dataframe_name: str) -> dict:
 async def export_dataframe(
     dataframe_name: str,
     export_function: str,
-    export_parameters: Dict[str, Any],
+    export_parameters: dict[str, Any],
 ) -> dict:
     """
     Export a DataFrame using pandas export functions (to_csv, to_json, to_excel, etc.).
@@ -341,29 +342,33 @@ async def export_dataframe(
         if dataframe is None:
             return {
                 "success": False,
-                "error": f"DataFrame '{dataframe_name}' not found"
+                "error": f"DataFrame '{dataframe_name}' not found",
             }
 
         # Check if the export function exists
         if not hasattr(dataframe, export_function):
             return {
                 "success": False,
-                "error": f"Export function '{export_function}' does not exist on DataFrame"
+                "error": f"Export function '{export_function}' does not exist on DataFrame",
             }
 
         # Run the export
         getattr(dataframe, export_function)(**export_parameters)
 
         # Get the output path if available
-        output_path = export_parameters.get('path_or_buf') or export_parameters.get('excel_writer') or 'output'
+        output_path = (
+            export_parameters.get("path_or_buf")
+            or export_parameters.get("excel_writer")
+            or "output"
+        )
 
         return {
             "success": True,
             "data": {
                 "message": f"DataFrame '{dataframe_name}' exported successfully",
                 "output": str(output_path),
-                "function": export_function
-            }
+                "function": export_function,
+            },
         }
 
     except Exception as e:

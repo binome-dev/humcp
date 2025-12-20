@@ -25,12 +25,7 @@ async def add(a: float, b: float) -> dict:
         result = a + b
         return {
             "success": True,
-            "data": {
-                "operation": "addition",
-                "a": a,
-                "b": b,
-                "result": result
-            }
+            "data": {"operation": "addition", "a": a, "b": b, "result": result},
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -51,12 +46,7 @@ async def subtract(a: float, b: float) -> dict:
         result = a - b
         return {
             "success": True,
-            "data": {
-                "operation": "subtraction",
-                "a": a,
-                "b": b,
-                "result": result
-            }
+            "data": {"operation": "subtraction", "a": a, "b": b, "result": result},
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -77,12 +67,7 @@ async def multiply(a: float, b: float) -> dict:
         result = a * b
         return {
             "success": True,
-            "data": {
-                "operation": "multiplication",
-                "a": a,
-                "b": b,
-                "result": result
-            }
+            "data": {"operation": "multiplication", "a": a, "b": b, "result": result},
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -101,20 +86,12 @@ async def divide(a: float, b: float) -> dict:
     """
     try:
         if b == 0:
-            return {
-                "success": False,
-                "error": "Division by zero is undefined"
-            }
+            return {"success": False, "error": "Division by zero is undefined"}
 
         result = a / b
         return {
             "success": True,
-            "data": {
-                "operation": "division",
-                "a": a,
-                "b": b,
-                "result": result
-            }
+            "data": {"operation": "division", "a": a, "b": b, "result": result},
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -135,12 +112,7 @@ async def exponentiate(a: float, b: float) -> dict:
         result = math.pow(a, b)
         return {
             "success": True,
-            "data": {
-                "operation": "exponentiation",
-                "a": a,
-                "b": b,
-                "result": result
-            }
+            "data": {"operation": "exponentiation", "a": a, "b": b, "result": result},
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -160,17 +132,13 @@ async def factorial(n: int) -> dict:
         if n < 0:
             return {
                 "success": False,
-                "error": "Factorial of a negative number is undefined"
+                "error": "Factorial of a negative number is undefined",
             }
 
         result = math.factorial(n)
         return {
             "success": True,
-            "data": {
-                "operation": "factorial",
-                "n": n,
-                "result": result
-            }
+            "data": {"operation": "factorial", "n": n, "result": result},
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -194,8 +162,8 @@ async def is_prime(n: int) -> dict:
                     "operation": "prime_check",
                     "n": n,
                     "is_prime": False,
-                    "reason": "Numbers less than or equal to 1 are not prime"
-                }
+                    "reason": "Numbers less than or equal to 1 are not prime",
+                },
             }
 
         # Check divisibility from 2 to sqrt(n)
@@ -207,17 +175,13 @@ async def is_prime(n: int) -> dict:
                         "operation": "prime_check",
                         "n": n,
                         "is_prime": False,
-                        "divisible_by": i
-                    }
+                        "divisible_by": i,
+                    },
                 }
 
         return {
             "success": True,
-            "data": {
-                "operation": "prime_check",
-                "n": n,
-                "is_prime": True
-            }
+            "data": {"operation": "prime_check", "n": n, "is_prime": True},
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -237,17 +201,13 @@ async def square_root(n: float) -> dict:
         if n < 0:
             return {
                 "success": False,
-                "error": "Square root of a negative number is undefined (use complex numbers)"
+                "error": "Square root of a negative number is undefined (use complex numbers)",
             }
 
         result = math.sqrt(n)
         return {
             "success": True,
-            "data": {
-                "operation": "square_root",
-                "n": n,
-                "result": result
-            }
+            "data": {"operation": "square_root", "n": n, "result": result},
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -267,11 +227,7 @@ async def absolute_value(n: float) -> dict:
         result = abs(n)
         return {
             "success": True,
-            "data": {
-                "operation": "absolute_value",
-                "n": n,
-                "result": result
-            }
+            "data": {"operation": "absolute_value", "n": n, "result": result},
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -292,7 +248,7 @@ async def logarithm(n: float, base: float = 0) -> dict:
         if n <= 0:
             return {
                 "success": False,
-                "error": "Logarithm is only defined for positive numbers"
+                "error": "Logarithm is only defined for positive numbers",
             }
 
         if base == 0:
@@ -302,7 +258,7 @@ async def logarithm(n: float, base: float = 0) -> dict:
             if base < 0 or base == 1:
                 return {
                     "success": False,
-                    "error": "Logarithm base must be positive and not equal to 1"
+                    "error": "Logarithm base must be positive and not equal to 1",
                 }
             result = math.log(n, base)
             base_str = str(base)
@@ -313,8 +269,8 @@ async def logarithm(n: float, base: float = 0) -> dict:
                 "operation": "logarithm",
                 "n": n,
                 "base": base_str,
-                "result": result
-            }
+                "result": result,
+            },
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -333,20 +289,12 @@ async def modulo(a: float, b: float) -> dict:
     """
     try:
         if b == 0:
-            return {
-                "success": False,
-                "error": "Modulo by zero is undefined"
-            }
+            return {"success": False, "error": "Modulo by zero is undefined"}
 
         result = a % b
         return {
             "success": True,
-            "data": {
-                "operation": "modulo",
-                "a": a,
-                "b": b,
-                "result": result
-            }
+            "data": {"operation": "modulo", "a": a, "b": b, "result": result},
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -367,12 +315,7 @@ async def greatest_common_divisor(a: int, b: int) -> dict:
         result = math.gcd(a, b)
         return {
             "success": True,
-            "data": {
-                "operation": "gcd",
-                "a": a,
-                "b": b,
-                "result": result
-            }
+            "data": {"operation": "gcd", "a": a, "b": b, "result": result},
         }
     except Exception as e:
         return {"success": False, "error": str(e)}

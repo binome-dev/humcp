@@ -4,7 +4,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -13,10 +13,10 @@ from fastmcp import FastMCP
 
 try:
     from tavily import TavilyClient
-except ImportError:
+except ImportError as err:
     raise ImportError(
         "tavily-python is required for Tavily search tools. Install with: pip install tavily-python"
-    )
+    ) from err
 
 
 class TavilySearchTool:
@@ -49,7 +49,7 @@ class TavilySearchTool:
             query=query, search_depth=self.search_depth, max_results=max_results
         )
 
-        clean_response: Dict[str, Any] = {"query": query}
+        clean_response: dict[str, Any] = {"query": query}
         if "answer" in response:
             clean_response["answer"] = response["answer"]
 

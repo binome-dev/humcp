@@ -21,7 +21,6 @@ def reset_manager():
 
 class TestDataFrameManager:
     def test_add_and_get_dataframe(self):
-        
         manager = DataFrameManager()
         df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
 
@@ -67,7 +66,7 @@ class TestCreatePandasDataframe:
         result = await create_pandas_dataframe(
             dataframe_name="test_df",
             create_using_function="DataFrame",
-            function_parameters={"data": {"col1": [1, 2], "col2": [3, 4]}}
+            function_parameters={"data": {"col1": [1, 2], "col2": [3, 4]}},
         )
         assert result["success"] is True
         assert result["data"]["name"] == "test_df"
@@ -78,13 +77,13 @@ class TestCreatePandasDataframe:
         await create_pandas_dataframe(
             dataframe_name="test_df",
             create_using_function="DataFrame",
-            function_parameters={"data": {"a": [1]}}
+            function_parameters={"data": {"a": [1]}},
         )
 
         result = await create_pandas_dataframe(
             dataframe_name="test_df",
             create_using_function="DataFrame",
-            function_parameters={"data": {"b": [2]}}
+            function_parameters={"data": {"b": [2]}},
         )
         assert result["success"] is False
         assert "already exists" in result["error"].lower()
@@ -94,7 +93,7 @@ class TestCreatePandasDataframe:
         result = await create_pandas_dataframe(
             dataframe_name="test_df",
             create_using_function="nonexistent_function",
-            function_parameters={}
+            function_parameters={},
         )
         assert result["success"] is False
         assert "does not exist" in result["error"].lower()
@@ -106,13 +105,11 @@ class TestRunDataframeOperation:
         await create_pandas_dataframe(
             dataframe_name="test_df",
             create_using_function="DataFrame",
-            function_parameters={"data": {"a": [1, 2, 3, 4, 5]}}
+            function_parameters={"data": {"a": [1, 2, 3, 4, 5]}},
         )
 
         result = await run_dataframe_operation(
-            dataframe_name="test_df",
-            operation="head",
-            operation_parameters={"n": 2}
+            dataframe_name="test_df", operation="head", operation_parameters={"n": 2}
         )
         assert result["success"] is True
         assert "result" in result["data"]
@@ -120,8 +117,7 @@ class TestRunDataframeOperation:
     @pytest.mark.asyncio
     async def test_operation_on_nonexistent_df(self, reset_manager):
         result = await run_dataframe_operation(
-            dataframe_name="nonexistent",
-            operation="head"
+            dataframe_name="nonexistent", operation="head"
         )
         assert result["success"] is False
         assert "not found" in result["error"].lower()
@@ -131,12 +127,11 @@ class TestRunDataframeOperation:
         await create_pandas_dataframe(
             dataframe_name="test_df",
             create_using_function="DataFrame",
-            function_parameters={"data": {"a": [1]}}
+            function_parameters={"data": {"a": [1]}},
         )
 
         result = await run_dataframe_operation(
-            dataframe_name="test_df",
-            operation="nonexistent_operation"
+            dataframe_name="test_df", operation="nonexistent_operation"
         )
         assert result["success"] is False
 
@@ -153,12 +148,12 @@ class TestListDataframes:
         await create_pandas_dataframe(
             dataframe_name="df1",
             create_using_function="DataFrame",
-            function_parameters={"data": {"a": [1]}}
+            function_parameters={"data": {"a": [1]}},
         )
         await create_pandas_dataframe(
             dataframe_name="df2",
             create_using_function="DataFrame",
-            function_parameters={"data": {"b": [2]}}
+            function_parameters={"data": {"b": [2]}},
         )
 
         result = await list_dataframes()
@@ -172,7 +167,7 @@ class TestGetDataframeInfo:
         await create_pandas_dataframe(
             dataframe_name="test_df",
             create_using_function="DataFrame",
-            function_parameters={"data": {"col1": [1, 2], "col2": ["a", "b"]}}
+            function_parameters={"data": {"col1": [1, 2], "col2": ["a", "b"]}},
         )
 
         result = await get_dataframe_info("test_df")
@@ -193,7 +188,7 @@ class TestDeleteDataframe:
         await create_pandas_dataframe(
             dataframe_name="test_df",
             create_using_function="DataFrame",
-            function_parameters={"data": {"a": [1]}}
+            function_parameters={"data": {"a": [1]}},
         )
 
         result = await delete_dataframe("test_df")

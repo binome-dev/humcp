@@ -1,20 +1,14 @@
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field, create_model
 
 
 def create_pydantic_model_from_schema(
-    schema: dict,
-    model_name: str,
-    description: Optional[str] = None
+    schema: dict, model_name: str, description: str | None = None
 ) -> type[BaseModel]:
     if schema.get("type") != "object":
         # If not an object, create a simple wrapper
-        return create_model(
-            model_name,
-            value=(Any, ...),
-            __doc__=description
-        )
+        return create_model(model_name, value=(Any, ...), __doc__=description)
 
     properties = schema.get("properties", {})
     required = schema.get("required", [])
@@ -28,14 +22,20 @@ def create_pydantic_model_from_schema(
         if field_name in required:
             # Required field
             if field_description:
-                fields[field_name] = (field_type, Field(..., description=field_description))
+                fields[field_name] = (
+                    field_type,
+                    Field(..., description=field_description),
+                )
             else:
                 fields[field_name] = (field_type, ...)
         else:
             # Optional field - use Optional[type] to accept None values
-            optional_type = Optional[field_type]
+            optional_type = field_type | None
             if field_description:
-                fields[field_name] = (optional_type, Field(default=None, description=field_description))
+                fields[field_name] = (
+                    optional_type,
+                    Field(default=None, description=field_description),
+                )
             else:
                 fields[field_name] = (optional_type, None)
 

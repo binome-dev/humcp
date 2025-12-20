@@ -60,7 +60,7 @@ class TestConstructUrl:
 
 class TestAdapterInitialization:
     def test_default_values(self):
-        assert hasattr(FastMCPFastAPIAdapter.__init__, '__code__')
+        assert hasattr(FastMCPFastAPIAdapter.__init__, "__code__")
 
     def test_init_parameters(self):
         sig = inspect.signature(FastMCPFastAPIAdapter.__init__)

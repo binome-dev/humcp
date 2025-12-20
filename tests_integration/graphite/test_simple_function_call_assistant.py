@@ -38,7 +38,7 @@ async def test_simple_function_call_assistant_with_mcp(mcp_server):
             }
         )
     }
-    
+
     mcp_tool = await MCPTool.builder().connections(server_params).build()
 
     assistant = (
@@ -53,7 +53,10 @@ async def test_simple_function_call_assistant_with_mcp(mcp_server):
     )
 
     input_data = [
-        Message(role="user", content="call the calculator tool and return the results of 1 + 1")
+        Message(
+            role="user",
+            content="call the calculator tool and return the results of 1 + 1",
+        )
     ]
 
     outputs = []

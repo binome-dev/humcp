@@ -65,8 +65,8 @@ async def write_file(
                 "file_path": str(file_path),
                 "filename": full_filename,
                 "directory": str(dir_path),
-                "size_bytes": len(content)
-            }
+                "size_bytes": len(content),
+            },
         }
 
     except Exception as e:
@@ -92,16 +92,10 @@ async def read_file(
         file_path = Path(directory) / filename
 
         if not file_path.exists():
-            return {
-                "success": False,
-                "error": f"File not found: {file_path}"
-            }
+            return {"success": False, "error": f"File not found: {file_path}"}
 
         if not file_path.is_file():
-            return {
-                "success": False,
-                "error": f"Path is not a file: {file_path}"
-            }
+            return {"success": False, "error": f"Path is not a file: {file_path}"}
 
         content = file_path.read_text(encoding="utf-8")
 
@@ -111,8 +105,8 @@ async def read_file(
                 "content": content,
                 "file_path": str(file_path),
                 "filename": filename,
-                "size_bytes": file_path.stat().st_size
-            }
+                "size_bytes": file_path.stat().st_size,
+            },
         }
 
     except Exception as e:
@@ -140,16 +134,10 @@ async def list_files(
         dir_path = Path(directory)
 
         if not dir_path.exists():
-            return {
-                "success": False,
-                "error": f"Directory not found: {dir_path}"
-            }
+            return {"success": False, "error": f"Directory not found: {dir_path}"}
 
         if not dir_path.is_dir():
-            return {
-                "success": False,
-                "error": f"Path is not a directory: {dir_path}"
-            }
+            return {"success": False, "error": f"Path is not a directory: {dir_path}"}
 
         # Get files based on recursive flag
         if recursive:
@@ -166,7 +154,7 @@ async def list_files(
                 "path": str(f),
                 "size_bytes": f.stat().st_size,
                 "extension": f.suffix.lstrip(".") if f.suffix else None,
-                "modified_time": f.stat().st_mtime
+                "modified_time": f.stat().st_mtime,
             }
             for f in sorted(files)
         ]
@@ -175,7 +163,7 @@ async def list_files(
             "success": True,
             "data": file_list,
             "count": len(file_list),
-            "directory": str(dir_path)
+            "directory": str(dir_path),
         }
 
     except Exception as e:
@@ -201,16 +189,10 @@ async def delete_file(
         file_path = Path(directory) / filename
 
         if not file_path.exists():
-            return {
-                "success": False,
-                "error": f"File not found: {file_path}"
-            }
+            return {"success": False, "error": f"File not found: {file_path}"}
 
         if not file_path.is_file():
-            return {
-                "success": False,
-                "error": f"Path is not a file: {file_path}"
-            }
+            return {"success": False, "error": f"Path is not a file: {file_path}"}
 
         file_path.unlink()
 
@@ -219,8 +201,8 @@ async def delete_file(
             "data": {
                 "message": "Successfully deleted file",
                 "file_path": str(file_path),
-                "filename": filename
-            }
+                "filename": filename,
+            },
         }
 
     except Exception as e:
@@ -248,12 +230,12 @@ async def create_directory(
             if dir_path.is_dir():
                 return {
                     "success": False,
-                    "error": f"Directory already exists: {dir_path}"
+                    "error": f"Directory already exists: {dir_path}",
                 }
             else:
                 return {
                     "success": False,
-                    "error": f"Path exists but is not a directory: {dir_path}"
+                    "error": f"Path exists but is not a directory: {dir_path}",
                 }
 
         dir_path.mkdir(parents=parents, exist_ok=False)
@@ -262,8 +244,8 @@ async def create_directory(
             "success": True,
             "data": {
                 "message": "Successfully created directory",
-                "directory": str(dir_path)
-            }
+                "directory": str(dir_path),
+            },
         }
 
     except Exception as e:
@@ -290,20 +272,13 @@ async def file_exists(
 
         exists = file_path.exists() and file_path.is_file()
 
-        result = {
-            "exists": exists,
-            "file_path": str(file_path),
-            "filename": filename
-        }
+        result = {"exists": exists, "file_path": str(file_path), "filename": filename}
 
         if exists:
             result["size_bytes"] = file_path.stat().st_size
             result["modified_time"] = file_path.stat().st_mtime
 
-        return {
-            "success": True,
-            "data": result
-        }
+        return {"success": True, "data": result}
 
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -328,16 +303,10 @@ async def get_file_info(
         file_path = Path(directory) / filename
 
         if not file_path.exists():
-            return {
-                "success": False,
-                "error": f"File not found: {file_path}"
-            }
+            return {"success": False, "error": f"File not found: {file_path}"}
 
         if not file_path.is_file():
-            return {
-                "success": False,
-                "error": f"Path is not a file: {file_path}"
-            }
+            return {"success": False, "error": f"Path is not a file: {file_path}"}
 
         stat = file_path.stat()
 
@@ -351,8 +320,8 @@ async def get_file_info(
                 "created_time": stat.st_ctime,
                 "modified_time": stat.st_mtime,
                 "accessed_time": stat.st_atime,
-                "is_symlink": file_path.is_symlink()
-            }
+                "is_symlink": file_path.is_symlink(),
+            },
         }
 
     except Exception as e:
@@ -380,10 +349,7 @@ async def append_to_file(
         file_path = Path(directory) / filename
 
         if not file_path.exists():
-            return {
-                "success": False,
-                "error": f"File not found: {file_path}"
-            }
+            return {"success": False, "error": f"File not found: {file_path}"}
 
         with open(file_path, "a", encoding="utf-8") as f:
             f.write(content)
@@ -394,8 +360,8 @@ async def append_to_file(
                 "message": "Successfully appended to file",
                 "file_path": str(file_path),
                 "appended_bytes": len(content),
-                "new_size_bytes": file_path.stat().st_size
-            }
+                "new_size_bytes": file_path.stat().st_size,
+            },
         }
 
     except Exception as e:
@@ -424,16 +390,15 @@ async def copy_file(
         import shutil
 
         source_directory = source_directory if source_directory else str(Path.cwd())
-        destination_directory = destination_directory if destination_directory else str(Path.cwd())
+        destination_directory = (
+            destination_directory if destination_directory else str(Path.cwd())
+        )
 
         source_path = Path(source_directory) / source_filename
         dest_path = Path(destination_directory) / destination_filename
 
         if not source_path.exists():
-            return {
-                "success": False,
-                "error": f"Source file not found: {source_path}"
-            }
+            return {"success": False, "error": f"Source file not found: {source_path}"}
 
         # Create destination directory if it doesn't exist
         dest_path.parent.mkdir(parents=True, exist_ok=True)
@@ -446,8 +411,8 @@ async def copy_file(
                 "message": "Successfully copied file",
                 "source_path": str(source_path),
                 "destination_path": str(dest_path),
-                "size_bytes": dest_path.stat().st_size
-            }
+                "size_bytes": dest_path.stat().st_size,
+            },
         }
 
     except Exception as e:

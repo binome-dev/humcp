@@ -1,4 +1,3 @@
-
 import pytest
 
 from src.tools.local.local_file_system import (
@@ -18,9 +17,7 @@ class TestWriteFile:
     @pytest.mark.asyncio
     async def test_write_file_basic(self, tmp_path):
         result = await write_file(
-            content="Hello, World!",
-            filename="test.txt",
-            directory=str(tmp_path)
+            content="Hello, World!", filename="test.txt", directory=str(tmp_path)
         )
         assert result["success"] is True
         assert (tmp_path / "test.txt").exists()
@@ -29,10 +26,7 @@ class TestWriteFile:
     @pytest.mark.asyncio
     async def test_write_file_with_extension(self, tmp_path):
         result = await write_file(
-            content="data",
-            filename="myfile",
-            directory=str(tmp_path),
-            extension="json"
+            content="data", filename="myfile", directory=str(tmp_path), extension="json"
         )
         assert result["success"] is True
         assert (tmp_path / "myfile.json").exists()
@@ -145,7 +139,9 @@ class TestGetFileInfo:
 
     @pytest.mark.asyncio
     async def test_get_file_info_not_found(self, tmp_path):
-        result = await get_file_info(filename="nonexistent.txt", directory=str(tmp_path))
+        result = await get_file_info(
+            filename="nonexistent.txt", directory=str(tmp_path)
+        )
         assert result["success"] is False
 
 
@@ -156,9 +152,7 @@ class TestAppendToFile:
         test_file.write_text("Hello")
 
         result = await append_to_file(
-            content=", World!",
-            filename="test.txt",
-            directory=str(tmp_path)
+            content=", World!", filename="test.txt", directory=str(tmp_path)
         )
         assert result["success"] is True
         assert test_file.read_text() == "Hello, World!"
@@ -166,9 +160,7 @@ class TestAppendToFile:
     @pytest.mark.asyncio
     async def test_append_to_nonexistent_file(self, tmp_path):
         result = await append_to_file(
-            content="data",
-            filename="nonexistent.txt",
-            directory=str(tmp_path)
+            content="data", filename="nonexistent.txt", directory=str(tmp_path)
         )
         assert result["success"] is False
 
@@ -183,7 +175,7 @@ class TestCopyFile:
             source_filename="source.txt",
             destination_filename="dest.txt",
             source_directory=str(tmp_path),
-            destination_directory=str(tmp_path)
+            destination_directory=str(tmp_path),
         )
         assert result["success"] is True
         assert (tmp_path / "dest.txt").exists()
@@ -195,6 +187,6 @@ class TestCopyFile:
             source_filename="nonexistent.txt",
             destination_filename="dest.txt",
             source_directory=str(tmp_path),
-            destination_directory=str(tmp_path)
+            destination_directory=str(tmp_path),
         )
         assert result["success"] is False
