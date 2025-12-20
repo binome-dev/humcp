@@ -26,29 +26,23 @@ async def convert_to_markdown(pdf_path: str) -> str:
     Returns:
         Success flag and markdown content or error message.
     """
-    try:
-        # Validate that the PDF file exists
-        pdf_file = Path(pdf_path)
-        if not pdf_file.exists():
-            return {"success": False, "error": f"PDF file not found: {pdf_path}"}
+    # Validate that the PDF file exists
+    pdf_file = Path(pdf_path)
+    if not pdf_file.exists():
+        return {"success": False, "error": f"PDF file not found: {pdf_path}"}
 
-        if not pdf_file.suffix.lower() == ".pdf":
-            return {"success": False, "error": f"File is not a PDF: {pdf_path}"}
+    if not pdf_file.suffix.lower() == ".pdf":
+        return {"success": False, "error": f"File is not a PDF: {pdf_path}"}
 
-        # Convert PDF to markdown
-        md = MarkItDown()
-        result = md.convert(str(pdf_file))
+    # Convert PDF to markdown
+    md = MarkItDown()
+    result = md.convert(str(pdf_file))
 
-        markdown_content = (
-            result.text_content if hasattr(result, "text_content") else str(result)
-        )
+    markdown_content = (
+        result.text_content if hasattr(result, "text_content") else str(result)
+    )
 
-        return markdown_content
-
-    except Exception as e:
-        raise e
-
-
+    return markdown_content
 def register_tools(mcp: FastMCP) -> None:
     """Register PDF to Markdown conversion tool with the MCP server."""
     mcp.tool(name="convert_to_markdown")(convert_to_markdown)
