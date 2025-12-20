@@ -48,7 +48,19 @@ app = FastAPI(
 # Root info endpoint (mirrors the adapter's default)
 @app.get("/", tags=["Info"])
 async def root():
-    categories = adapter.route_generator._get_tool_categories()
+    tools = adapter.route_generator.tools
+
+    # Derive tool categories from the public tools attribute instead of using
+    # the private _get_tool_categories() helper.
+    if hasattr(tools, "items"):
+        # tools is already a mapping of {category: [tools...]}
+        categories = tools
+    else:
+        # tools is an iterable of tool objects; group by their "category" attribute
+        categories = {}
+        for tool in tools or []:
+            category = getattr(tool, "category", "default")
+            categories.setdefault(category, []).append(tool)
     return {
         "name": adapter.title,
         "version": adapter.version,
