@@ -45,21 +45,17 @@ HuMCP is a [FastMCP](https://github.com/modelcontextprotocol/fastmcp) server wit
 
 ```bash
 uv sync
+cp .env.example .env
 ```
 
 ## Running Locally
 
-**Terminal 1 – MCP Server:**
 ```bash
-uv run python src/server.py
+uv run python -m src.server & sleep 2 && uv run uvicorn src.main:app --host 0.0.0.0 --port 8080
 ```
-Server runs at `http://127.0.0.1:8081/sse`
 
-**Terminal 2 – FastAPI Adapter:**
-```bash
-uv run uvicorn src.main:app --host 0.0.0.0 --port 8080
-```
-Swagger UI at [http://localhost:8080/docs](http://localhost:8080/docs)
+- MCP server: `http://localhost:8081/sse`
+- Swagger UI: [http://localhost:8080/docs](http://localhost:8080/docs)
 
 ## Docker Usage
 

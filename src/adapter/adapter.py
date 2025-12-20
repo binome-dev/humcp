@@ -37,7 +37,9 @@ class FastMCPFastAPIAdapter:
         if transport == "http" or base_url.endswith(f"/{transport}"):
             return base_url
 
-        if transport == "sse":
+        if transport == "http":
+            return f"{base_url}/mcp"
+        elif transport == "sse":
             return f"{base_url}/sse"
         elif transport == "stdio":
             return base_url
