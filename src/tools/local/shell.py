@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import subprocess
 import sys
 from pathlib import Path
@@ -8,6 +9,8 @@ project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from fastmcp import FastMCP
+
+logger = logging.getLogger("humcp.tools.shell")
 
 
 async def run_shell_command(
@@ -36,6 +39,9 @@ async def run_shell_command(
     try:
         if not args or len(args) == 0:
             return {"success": False, "error": "Command args cannot be empty"}
+        logger.info(
+            "Shell command requested cmd=%s cwd=%s", args[0], base_dir or Path.cwd()
+        )
 
         # Validate base_dir if provided
         cwd = None
@@ -76,6 +82,16 @@ async def run_shell_command(
 
         # Determine success based on return code
         success = result.returncode == 0
+        if success:
+            logger.info(
+                "Shell command succeeded cmd=%s return_code=%s",
+                args[0],
+                result.returncode,
+            )
+        else:
+            logger.warning(
+                "Shell command failed cmd=%s return_code=%s", args[0], result.returncode
+            )
 
         return {
             "success": success,
@@ -92,10 +108,17 @@ async def run_shell_command(
         }
 
     except subprocess.TimeoutExpired:
+        logger.warning(
+            "Shell command timed out cmd=%s timeout=%s",
+            args[0] if args else "",
+            timeout,
+        )
         return {"success": False, "error": f"Command timed out after {timeout} seconds"}
     except FileNotFoundError:
+        logger.warning("Shell command not found cmd=%s", args[0] if args else "")
         return {"success": False, "error": f"Command not found: {args[0]}"}
     except Exception as e:
+        logger.exception("Failed to run shell command cmd=%s", args[0] if args else "")
         return {"success": False, "error": f"Failed to run shell command: {str(e)}"}
 
 
@@ -124,6 +147,11 @@ async def run_shell_script(
     try:
         if not script or script.strip() == "":
             return {"success": False, "error": "Script content cannot be empty"}
+        logger.info(
+            "Shell script requested length=%d cwd=%s",
+            len(script),
+            base_dir or Path.cwd(),
+        )
 
         # Validate base_dir if provided
         cwd = None
@@ -146,6 +174,10 @@ async def run_shell_script(
         )
 
         success = result.returncode == 0
+        if success:
+            logger.info("Shell script succeeded return_code=%s", result.returncode)
+        else:
+            logger.warning("Shell script failed return_code=%s", result.returncode)
 
         return {
             "success": success,
@@ -160,10 +192,13 @@ async def run_shell_script(
         }
 
     except subprocess.TimeoutExpired:
+        logger.warning("Shell script timed out timeout=%s", timeout)
         return {"success": False, "error": f"Script timed out after {timeout} seconds"}
     except FileNotFoundError:
+        logger.warning("Shell not found shell=%s", shell)
         return {"success": False, "error": f"Shell not found: {shell}"}
     except Exception as e:
+        logger.exception("Failed to run shell script")
         return {"success": False, "error": f"Failed to run shell script: {str(e)}"}
 
 
@@ -188,12 +223,14 @@ async def check_command_exists(command: str) -> dict:
         exists = result.returncode == 0
         path = result.stdout.strip() if exists else None
 
+        logger.info("Checked command exists cmd=%s exists=%s", command, exists)
         return {
             "success": True,
             "data": {"command": command, "exists": exists, "path": path},
         }
 
     except Exception as e:
+        logger.exception("Failed checking command exists cmd=%s", command)
         return {"success": False, "error": str(e)}
 
 
@@ -212,6 +249,11 @@ async def get_environment_variable(variable_name: str) -> dict:
 
         value = os.environ.get(variable_name)
 
+        logger.info(
+            "Fetched environment variable name=%s is_set=%s",
+            variable_name,
+            value is not None,
+        )
         return {
             "success": True,
             "data": {
@@ -222,6 +264,7 @@ async def get_environment_variable(variable_name: str) -> dict:
         }
 
     except Exception as e:
+        logger.exception("Failed fetching environment variable name=%s", variable_name)
         return {"success": False, "error": str(e)}
 
 
@@ -235,9 +278,11 @@ async def get_current_directory() -> dict:
     try:
         cwd = str(Path.cwd())
 
+        logger.info("Retrieved current directory cwd=%s", cwd)
         return {"success": True, "data": {"current_directory": cwd}}
 
     except Exception as e:
+        logger.exception("Failed to get current directory")
         return {"success": False, "error": str(e)}
 
 
@@ -263,9 +308,11 @@ async def get_system_info() -> dict:
             "user": os.environ.get("USER") or os.environ.get("USERNAME"),
         }
 
+        logger.info("Retrieved system info")
         return {"success": True, "data": info}
 
     except Exception as e:
+        logger.exception("Failed to get system info")
         return {"success": False, "error": str(e)}
 
 

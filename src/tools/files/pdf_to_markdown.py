@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import sys
 from pathlib import Path
 
@@ -14,6 +15,8 @@ except ImportError as err:
     raise ImportError(
         "markitdown is required for PDF to Markdown conversion. Install with: pip install 'markitdown[all]'"
     ) from err
+
+logger = logging.getLogger("humcp.tools.pdf_to_markdown")
 
 
 async def convert_to_markdown(pdf_path: str) -> str:
@@ -36,13 +39,17 @@ async def convert_to_markdown(pdf_path: str) -> str:
 
     # Convert PDF to markdown
     md = MarkItDown()
+    logger.info("Converting PDF to markdown path=%s", pdf_file)
     result = md.convert(str(pdf_file))
 
     markdown_content = (
         result.text_content if hasattr(result, "text_content") else str(result)
     )
 
+    logger.info("PDF conversion complete path=%s", pdf_file)
     return markdown_content
+
+
 def register_tools(mcp: FastMCP) -> None:
     """Register PDF to Markdown conversion tool with the MCP server."""
     mcp.tool(name="convert_to_markdown")(convert_to_markdown)

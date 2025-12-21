@@ -5,9 +5,11 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 
 from src.adapter.adapter import FastMCPFastAPIAdapter
+from src.logging_setup import configure_logging
 from src.server import mcp
 
 load_dotenv()
+configure_logging()
 
 # Single port for both FastAPI (Swagger) and MCP ASGI app
 APP_PORT = os.getenv("PORT", os.getenv("MCP_PORT", "8080"))

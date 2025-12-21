@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sys
 from pathlib import Path
@@ -17,6 +18,8 @@ except ImportError as err:
     raise ImportError(
         "tavily-python is required for Tavily search tools. Install with: pip install tavily-python"
     ) from err
+
+logger = logging.getLogger("humcp.tools.tavily")
 
 
 class TavilySearchTool:
@@ -45,6 +48,11 @@ class TavilySearchTool:
         Returns:
             dict: A dictionary containing the search results.
         """
+        logger.info(
+            "Tavily search start depth=%s max_results=%s",
+            self.search_depth,
+            max_results,
+        )
         response = self.client.search(
             query=query, search_depth=self.search_depth, max_results=max_results
         )
@@ -68,6 +76,11 @@ class TavilySearchTool:
             clean_results.append(_result)
         clean_response["results"] = clean_results
 
+        logger.info(
+            "Tavily search complete results=%d max_tokens=%s",
+            len(clean_results),
+            self.max_tokens,
+        )
         return clean_response if clean_response else {}
 
 
@@ -100,7 +113,9 @@ async def tavily_web_search(
 
         if max_results < 1:
             return {"success": False, "error": "max_results must be at least 1"}
-
+        logger.info(
+            "Tavily tool invoked query_length=%d depth=%s", len(query), search_depth
+        )
         searcher = TavilySearchTool(
             api_key=resolved_api_key,
             search_depth=search_depth,
@@ -113,6 +128,7 @@ async def tavily_web_search(
 
         return {"success": True, "data": results}
     except Exception as e:
+        logger.exception("Tavily search failed")
         return {"success": False, "error": f"Tavily search failed: {str(e)}"}
 
 

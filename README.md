@@ -51,7 +51,7 @@ cp .env.example .env
 ## Running Locally
 
 ```bash
-UV_CACHE_DIR=.uv-cache uv run uvicorn src.main:app --host 0.0.0.0 --port 8080
+uv run uvicorn src.main:app --host 0.0.0.0 --port 8080
 ```
 
 - MCP endpoint (same port): `http://localhost:8080/mcp`

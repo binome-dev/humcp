@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import math
 import sys
 from pathlib import Path
@@ -8,6 +9,8 @@ project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from fastmcp import FastMCP
+
+logger = logging.getLogger("humcp.tools.calculator")
 
 
 async def add(a: float, b: float) -> dict:
@@ -23,11 +26,13 @@ async def add(a: float, b: float) -> dict:
     """
     try:
         result = a + b
+        logger.info("calculator_add a=%s b=%s", a, b)
         return {
             "success": True,
             "data": {"operation": "addition", "a": a, "b": b, "result": result},
         }
     except Exception as e:
+        logger.exception("calculator_add failed")
         return {"success": False, "error": str(e)}
 
 
@@ -44,11 +49,13 @@ async def subtract(a: float, b: float) -> dict:
     """
     try:
         result = a - b
+        logger.info("calculator_subtract a=%s b=%s", a, b)
         return {
             "success": True,
             "data": {"operation": "subtraction", "a": a, "b": b, "result": result},
         }
     except Exception as e:
+        logger.exception("calculator_subtract failed")
         return {"success": False, "error": str(e)}
 
 
@@ -65,11 +72,13 @@ async def multiply(a: float, b: float) -> dict:
     """
     try:
         result = a * b
+        logger.info("calculator_multiply a=%s b=%s", a, b)
         return {
             "success": True,
             "data": {"operation": "multiplication", "a": a, "b": b, "result": result},
         }
     except Exception as e:
+        logger.exception("calculator_multiply failed")
         return {"success": False, "error": str(e)}
 
 
@@ -89,11 +98,13 @@ async def divide(a: float, b: float) -> dict:
             return {"success": False, "error": "Division by zero is undefined"}
 
         result = a / b
+        logger.info("calculator_divide a=%s b=%s", a, b)
         return {
             "success": True,
             "data": {"operation": "division", "a": a, "b": b, "result": result},
         }
     except Exception as e:
+        logger.exception("calculator_divide failed")
         return {"success": False, "error": str(e)}
 
 
@@ -110,11 +121,13 @@ async def exponentiate(a: float, b: float) -> dict:
     """
     try:
         result = math.pow(a, b)
+        logger.info("calculator_exponentiate a=%s b=%s", a, b)
         return {
             "success": True,
             "data": {"operation": "exponentiation", "a": a, "b": b, "result": result},
         }
     except Exception as e:
+        logger.exception("calculator_exponentiate failed")
         return {"success": False, "error": str(e)}
 
 
@@ -136,11 +149,13 @@ async def factorial(n: int) -> dict:
             }
 
         result = math.factorial(n)
+        logger.info("calculator_factorial n=%s", n)
         return {
             "success": True,
             "data": {"operation": "factorial", "n": n, "result": result},
         }
     except Exception as e:
+        logger.exception("calculator_factorial failed")
         return {"success": False, "error": str(e)}
 
 
@@ -179,11 +194,13 @@ async def is_prime(n: int) -> dict:
                     },
                 }
 
+        logger.info("calculator_is_prime n=%s", n)
         return {
             "success": True,
             "data": {"operation": "prime_check", "n": n, "is_prime": True},
         }
     except Exception as e:
+        logger.exception("calculator_is_prime failed")
         return {"success": False, "error": str(e)}
 
 
@@ -205,11 +222,13 @@ async def square_root(n: float) -> dict:
             }
 
         result = math.sqrt(n)
+        logger.info("calculator_square_root n=%s", n)
         return {
             "success": True,
             "data": {"operation": "square_root", "n": n, "result": result},
         }
     except Exception as e:
+        logger.exception("calculator_square_root failed")
         return {"success": False, "error": str(e)}
 
 
@@ -225,11 +244,13 @@ async def absolute_value(n: float) -> dict:
     """
     try:
         result = abs(n)
+        logger.info("calculator_absolute_value n=%s", n)
         return {
             "success": True,
             "data": {"operation": "absolute_value", "n": n, "result": result},
         }
     except Exception as e:
+        logger.exception("calculator_absolute_value failed")
         return {"success": False, "error": str(e)}
 
 
@@ -263,6 +284,7 @@ async def logarithm(n: float, base: float = 0) -> dict:
             result = math.log(n, base)
             base_str = str(base)
 
+        logger.info("calculator_logarithm n=%s base=%s", n, base_str)
         return {
             "success": True,
             "data": {
@@ -273,6 +295,7 @@ async def logarithm(n: float, base: float = 0) -> dict:
             },
         }
     except Exception as e:
+        logger.exception("calculator_logarithm failed")
         return {"success": False, "error": str(e)}
 
 
@@ -292,11 +315,13 @@ async def modulo(a: float, b: float) -> dict:
             return {"success": False, "error": "Modulo by zero is undefined"}
 
         result = a % b
+        logger.info("calculator_modulo a=%s b=%s", a, b)
         return {
             "success": True,
             "data": {"operation": "modulo", "a": a, "b": b, "result": result},
         }
     except Exception as e:
+        logger.exception("calculator_modulo failed")
         return {"success": False, "error": str(e)}
 
 
@@ -313,16 +338,19 @@ async def greatest_common_divisor(a: int, b: int) -> dict:
     """
     try:
         result = math.gcd(a, b)
+        logger.info("calculator_greatest_common_divisor a=%s b=%s", a, b)
         return {
             "success": True,
             "data": {"operation": "gcd", "a": a, "b": b, "result": result},
         }
     except Exception as e:
+        logger.exception("calculator_greatest_common_divisor failed")
         return {"success": False, "error": str(e)}
 
 
 def register_tools(mcp: FastMCP) -> None:
     """Register all Calculator tools with the MCP server."""
+    logger.info("Registering calculator tools")
 
     # Basic arithmetic operations
     mcp.tool(name="calculator_add")(add)

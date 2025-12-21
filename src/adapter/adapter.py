@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -5,6 +6,8 @@ from fastapi import FastAPI
 from fastmcp.client import Client
 
 from .routes import RouteGenerator
+
+logger = logging.getLogger("humcp.adapter")
 
 
 class FastMCPFastAPIAdapter:
@@ -37,6 +40,11 @@ class FastMCPFastAPIAdapter:
         self.route_generator = RouteGenerator(
             client=self.mcp_client, route_prefix=route_prefix, tags=self.tags
         )
+        logger.info(
+            "Initialized FastMCPFastAPIAdapter (transport=%s, route_prefix=%s)",
+            transport,
+            route_prefix,
+        )
 
     def _construct_url(self, base_url: str, transport: str) -> str:
         base_url = base_url.rstrip("/")
@@ -56,7 +64,9 @@ class FastMCPFastAPIAdapter:
     async def _load_tools(self):
         await self.mcp_client.__aenter__()
         await self.route_generator.load_tools()
-        print(f"Loaded {len(self.route_generator.tools)} tools from FastMCP server")
+        logger.info(
+            "Loaded %d tools from FastMCP server", len(self.route_generator.tools)
+        )
 
     def _register_routes(self, app: FastAPI):
         self.route_generator.register_routes(app)
@@ -64,6 +74,7 @@ class FastMCPFastAPIAdapter:
 
     async def _cleanup(self):
         await self.mcp_client.__aexit__(None, None, None)
+        logger.info("Shut down MCP client")
 
     def create_app(self) -> FastAPI:
         @asynccontextmanager

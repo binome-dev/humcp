@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from fastapi import Body, FastAPI, HTTPException
@@ -5,6 +6,8 @@ from fastmcp.client import Client
 from mcp.types import Tool
 
 from .models import create_pydantic_model_from_schema, sanitize_model_name
+
+logger = logging.getLogger("humcp.adapter.routes")
 
 
 class RouteGenerator:
@@ -22,6 +25,7 @@ class RouteGenerator:
     async def load_tools(self) -> dict[str, Tool]:
         tools_list: list[Tool] = await self.client.list_tools()
         self.tools = {tool.name: tool for tool in tools_list}
+        logger.info("Discovered %d tools from MCP server", len(self.tools))
         return self.tools
 
     def register_routes(self, app: FastAPI):
@@ -40,23 +44,40 @@ class RouteGenerator:
         async def tool_endpoint(input_data: InputModel = Body(...)) -> dict[str, Any]:
             try:
                 params = input_data.model_dump(exclude_none=True)
+                logger.info(
+                    "Invoking tool %s with params keys=%s",
+                    tool.name,
+                    list(params.keys()),
+                )
 
                 result = await self.client.call_tool(tool.name, params)
 
                 if hasattr(result, "content"):
                     if isinstance(result.content, list):
+                        logger.info(
+                            "Tool %s returned list content length=%d",
+                            tool.name,
+                            len(result.content),
+                        )
                         return {
                             "result": [
                                 item.text if hasattr(item, "text") else str(item)
                                 for item in result.content
                             ]
                         }
+                    logger.info(
+                        "Tool %s returned content type=%s",
+                        tool.name,
+                        type(result.content).__name__,
+                    )
                     return {"result": result.content}
+                logger.info("Tool %s returned non-content result", tool.name)
                 return {"result": str(result)}
 
             except HTTPException:
                 raise
             except Exception as e:
+                logger.exception("Tool execution failed: %s", tool.name)
                 raise HTTPException(
                     status_code=500, detail=f"Tool execution failed: {str(e)}"
                 ) from e
