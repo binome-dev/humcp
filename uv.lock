@@ -682,7 +682,7 @@ wheels = [
 
 [[package]]
 name = "grafi"
-version = "0.0.32"
+version = "0.0.33"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -690,15 +690,14 @@ dependencies = [
     { name = "arize-phoenix-otel" },
     { name = "cloudpickle" },
     { name = "docstring-parser" },
-    { name = "jsonpickle" },
     { name = "loguru" },
     { name = "openai" },
     { name = "openinference-instrumentation-openai" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a8/ca/6eb366f2973c8f7b3e968b97fe8cafd0b49395442b76af2a49175358dee7/grafi-0.0.32.tar.gz", hash = "sha256:bf9dea158e133786a8dae53e172447d4b69b026618e203ca3e448b137a3d9a21", size = 1502208, upload-time = "2025-10-25T21:22:15.937Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c7/bf/a999eb2a7f95d506905e46d9c6ffb17c94979beb5f70a4e119425cddf5bc/grafi-0.0.33.tar.gz", hash = "sha256:0a764ec1d3046cef0f60b113d0ed1695974fc9e4a7672a34eb6b698246a0c644", size = 1519509, upload-time = "2025-12-21T16:49:32.146Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/de/3e/f764eb74e8e0314f61aa3336f84d3b45b1cd3677efcc7f6d5b1651ec983e/grafi-0.0.32-py3-none-any.whl", hash = "sha256:fafca3854c8c8dffe668908603ec961ed3c20c3956229533d439ebe4dbf7a99f", size = 114990, upload-time = "2025-10-25T21:22:13.908Z" },
+    { url = "https://files.pythonhosted.org/packages/e6/2b/8af1c694f4a70f8085f89d69dc7f716a77fbdc814d3ec4f8fa42cc2c1827/grafi-0.0.33-py3-none-any.whl", hash = "sha256:a3eb47f7554c9b6bcc64f20b8d8c42be852bf736648b1f787d4b7df716fdfc19", size = 118910, upload-time = "2025-12-21T16:49:30.863Z" },
 ]
 
 [[package]]
@@ -831,7 +830,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "grafi", specifier = ">=0.0.32" },
+    { name = "grafi", specifier = ">=0.0.33" },
     { name = "mypy", specifier = ">=1.13.0" },
     { name = "pre-commit", specifier = ">=3.4.0" },
     { name = "pytest", specifier = ">=9.0.1" },
@@ -978,15 +977,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/aa/51/2cb4468b3448a8385ebcd15059d325c9ce67df4e2758d133ab9442b19834/jiter-0.12.0-cp314-cp314t-win32.whl", hash = "sha256:8bbcfe2791dfdb7c5e48baf646d37a6a3dcb5a97a032017741dea9f817dca183", size = 205110, upload-time = "2025-11-09T20:48:47.033Z" },
     { url = "https://files.pythonhosted.org/packages/b2/c5/ae5ec83dec9c2d1af805fd5fe8f74ebded9c8670c5210ec7820ce0dbeb1e/jiter-0.12.0-cp314-cp314t-win_amd64.whl", hash = "sha256:2fa940963bf02e1d8226027ef461e36af472dea85d36054ff835aeed944dd873", size = 205223, upload-time = "2025-11-09T20:48:49.076Z" },
     { url = "https://files.pythonhosted.org/packages/97/9a/3c5391907277f0e55195550cf3fa8e293ae9ee0c00fb402fec1e38c0c82f/jiter-0.12.0-cp314-cp314t-win_arm64.whl", hash = "sha256:506c9708dd29b27288f9f8f1140c3cb0e3d8ddb045956d7757b1fa0e0f39a473", size = 185564, upload-time = "2025-11-09T20:48:50.376Z" },
-]
-
-[[package]]
-name = "jsonpickle"
-version = "4.1.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/e4/a6/d07afcfdef402900229bcca795f80506b207af13a838d4d99ad45abf530c/jsonpickle-4.1.1.tar.gz", hash = "sha256:f86e18f13e2b96c1c1eede0b7b90095bbb61d99fedc14813c44dc2f361dbbae1", size = 316885, upload-time = "2025-06-02T20:36:11.57Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c1/73/04df8a6fa66d43a9fd45c30f283cc4afff17da671886e451d52af60bdc7e/jsonpickle-4.1.1-py3-none-any.whl", hash = "sha256:bb141da6057898aa2438ff268362b126826c812a1721e31cf08a6e142910dc91", size = 47125, upload-time = "2025-06-02T20:36:08.647Z" },
 ]
 
 [[package]]
