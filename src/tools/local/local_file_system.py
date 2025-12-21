@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from uuid import uuid4
 
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
-
-from fastmcp import FastMCP
+from src.tools import tool
 
 
+@tool("filesystem_write_file")
 async def write_file(
     content: str,
     filename: str = "",
@@ -73,6 +70,7 @@ async def write_file(
         return {"success": False, "error": f"Failed to write file: {str(e)}"}
 
 
+@tool("filesystem_read_file")
 async def read_file(
     filename: str,
     directory: str = "",
@@ -113,6 +111,7 @@ async def read_file(
         return {"success": False, "error": f"Failed to read file: {str(e)}"}
 
 
+@tool("filesystem_list_files")
 async def list_files(
     directory: str = "",
     pattern: str = "*",
@@ -170,6 +169,7 @@ async def list_files(
         return {"success": False, "error": f"Failed to list files: {str(e)}"}
 
 
+@tool("filesystem_delete_file")
 async def delete_file(
     filename: str,
     directory: str = "",
@@ -209,6 +209,7 @@ async def delete_file(
         return {"success": False, "error": f"Failed to delete file: {str(e)}"}
 
 
+@tool("filesystem_create_directory")
 async def create_directory(
     directory: str,
     parents: bool = True,
@@ -252,6 +253,7 @@ async def create_directory(
         return {"success": False, "error": f"Failed to create directory: {str(e)}"}
 
 
+@tool("filesystem_file_exists")
 async def file_exists(
     filename: str,
     directory: str = "",
@@ -284,6 +286,7 @@ async def file_exists(
         return {"success": False, "error": str(e)}
 
 
+@tool("filesystem_get_file_info")
 async def get_file_info(
     filename: str,
     directory: str = "",
@@ -328,6 +331,7 @@ async def get_file_info(
         return {"success": False, "error": str(e)}
 
 
+@tool("filesystem_append_to_file")
 async def append_to_file(
     content: str,
     filename: str,
@@ -368,6 +372,7 @@ async def append_to_file(
         return {"success": False, "error": f"Failed to append to file: {str(e)}"}
 
 
+@tool("filesystem_copy_file")
 async def copy_file(
     source_filename: str,
     destination_filename: str,
@@ -417,20 +422,3 @@ async def copy_file(
 
     except Exception as e:
         return {"success": False, "error": f"Failed to copy file: {str(e)}"}
-
-
-def register_tools(mcp: FastMCP) -> None:
-    """Register all Local File System tools with the MCP server."""
-
-    # File Operations
-    mcp.tool(name="filesystem_write_file")(write_file)
-    mcp.tool(name="filesystem_read_file")(read_file)
-    mcp.tool(name="filesystem_append_to_file")(append_to_file)
-    mcp.tool(name="filesystem_delete_file")(delete_file)
-    mcp.tool(name="filesystem_copy_file")(copy_file)
-    # File Information
-    mcp.tool(name="filesystem_file_exists")(file_exists)
-    mcp.tool(name="filesystem_get_file_info")(get_file_info)
-    mcp.tool(name="filesystem_list_files")(list_files)
-    # Directory Operations
-    mcp.tool(name="filesystem_create_directory")(create_directory)

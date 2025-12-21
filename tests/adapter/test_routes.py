@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from mcp.types import Tool
 
-from src.adapter.routes import RouteGenerator
+from src.humcp.routes import RouteGenerator
 
 
 class TestGetToolCategories:

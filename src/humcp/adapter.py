@@ -1,5 +1,4 @@
 import logging
-from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI
@@ -75,42 +74,3 @@ class FastMCPFastAPIAdapter:
     async def _cleanup(self):
         await self.mcp_client.__aexit__(None, None, None)
         logger.info("Shut down MCP client")
-
-    def create_app(self) -> FastAPI:
-        @asynccontextmanager
-        async def lifespan(app: FastAPI):
-            await self._load_tools()
-            self._register_routes(app)
-            yield
-            await self._cleanup()
-
-        app = FastAPI(
-            title=self.title,
-            description=self.description,
-            version=self.version,
-            lifespan=lifespan,
-        )
-
-        # Add root endpoint
-        @app.get("/", tags=["Info"])
-        async def root():
-            categories = self.route_generator._get_tool_categories()
-            return {
-                "name": self.title,
-                "version": self.version,
-                "mcp_server": self.mcp_display_url or "in-memory",
-                "tools_count": len(self.route_generator.tools),
-                "categories_count": len(categories),
-                "route_prefix": self.route_generator.route_prefix,
-                "available_categories": sorted(categories.keys()),
-                "endpoints": {
-                    "docs": "/docs",
-                    "redoc": "/redoc",
-                    "openapi": "/openapi.json",
-                    "tools_list": f"{self.route_generator.route_prefix}",
-                    "category_tools": f"{self.route_generator.route_prefix}/{{category}}",
-                    "tool_info": f"{self.route_generator.route_prefix}/{{category}}/{{tool_name}}",
-                },
-            }
-
-        return app

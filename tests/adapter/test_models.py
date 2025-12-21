@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from src.adapter.models import (
+from src.humcp.models import (
     _get_python_type,
     create_pydantic_model_from_schema,
     sanitize_model_name,

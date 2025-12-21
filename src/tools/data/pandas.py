@@ -1,13 +1,8 @@
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 from typing import Any
 
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
-
-from fastmcp import FastMCP
+from src.tools import tool
 
 try:
     import pandas as pd
@@ -58,6 +53,7 @@ def get_dataframe_manager():
     return _dataframe_manager
 
 
+@tool("pandas_create_pandas_dataframe")
 async def create_pandas_dataframe(
     dataframe_name: str,
     create_using_function: str,
@@ -142,6 +138,7 @@ async def create_pandas_dataframe(
         return {"success": False, "error": f"Error creating DataFrame: {str(e)}"}
 
 
+@tool("pandas_run_dataframe_operation")
 async def run_dataframe_operation(
     dataframe_name: str,
     operation: str,
@@ -215,6 +212,7 @@ async def run_dataframe_operation(
         return {"success": False, "error": f"Error running operation: {str(e)}"}
 
 
+@tool("pandas_list_dataframes")
 async def list_dataframes() -> dict:
     """
     List all DataFrames currently stored in memory.
@@ -245,6 +243,7 @@ async def list_dataframes() -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("pandas_get_dataframe_info")
 async def get_dataframe_info(dataframe_name: str) -> dict:
     """
     Get detailed information about a specific DataFrame.
@@ -281,6 +280,7 @@ async def get_dataframe_info(dataframe_name: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("pandas_delete_dataframe")
 async def delete_dataframe(dataframe_name: str) -> dict:
     """
     Delete a DataFrame from memory.
@@ -311,6 +311,7 @@ async def delete_dataframe(dataframe_name: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("pandas_export_dataframe")
 async def export_dataframe(
     dataframe_name: str,
     export_function: str,
@@ -373,17 +374,3 @@ async def export_dataframe(
 
     except Exception as e:
         return {"success": False, "error": f"Error exporting DataFrame: {str(e)}"}
-
-
-def register_tools(mcp: FastMCP) -> None:
-    """Register all Pandas tools with the MCP server."""
-
-    # DataFrame Creation and Management
-    mcp.tool(name="pandas_create_pandas_dataframe")(create_pandas_dataframe)
-    mcp.tool(name="pandas_list_dataframes")(list_dataframes)
-    mcp.tool(name="pandas_get_dataframe_info")(get_dataframe_info)
-    mcp.tool(name="pandas_delete_dataframe")(delete_dataframe)
-
-    # DataFrame Operations
-    mcp.tool(name="pandas_run_dataframe_operation")(run_dataframe_operation)
-    mcp.tool(name="pandas_export_dataframe")(export_dataframe)

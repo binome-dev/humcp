@@ -1,78 +1,76 @@
+import importlib.util
 import logging
 from collections.abc import Callable
+from pathlib import Path
 
 from fastmcp import FastMCP
 
-mcp = FastMCP("Humcp Server")
+from src.tools import TOOL_REGISTRY, ToolRegistration
 
 logger = logging.getLogger("humcp.server")
 
+TOOLS_DIR = Path(__file__).parent / "tools"
 
-def _register_toolset(name: str, loader: Callable[[FastMCP], None]) -> None:
-    """Register a toolset and log the result."""
+
+def _register_tool(mcp_instance: FastMCP, registration: ToolRegistration) -> None:
+    """Register a single tool and log the result."""
+
     try:
-        loader(mcp)
-        logger.info("Registered toolset: %s", name)
+        mcp_instance.tool(name=registration.name)(registration.func)
+        logger.info(
+            "Registered tool: %s (category=%s)",
+            registration.name,
+            registration.category,
+        )
     except ImportError as e:
-        logger.warning("%s tools not available: %s", name, e)
+        logger.warning("%s tool not available: %s", registration.name, e)
     except Exception:  # pragma: no cover - defensive
-        logger.exception("Failed to register toolset %s", name)
+        logger.exception("Failed to register tool %s", registration.name)
 
 
-try:
-    from src.tools.data import csv
+def _import_tool_modules() -> None:
+    """Import all tool modules so their @tool decorators run.
 
-    _register_toolset("csv", csv.register_tools)
-except ImportError as e:
-    logger.warning("CSV tools module missing: %s", e)
+    Scans the tools directory for .py files directly, without requiring __init__.py.
+    """
 
-try:
-    from src.tools.data import pandas
+    for py_file in TOOLS_DIR.rglob("*.py"):
+        if py_file.name.startswith("_"):
+            continue
 
-    _register_toolset("pandas", pandas.register_tools)
-except ImportError as e:
-    logger.warning("Pandas tools module missing: %s", e)
+        # Convert path to module name: src/tools/local/calculator.py -> src.tools.local.calculator
+        relative_path = py_file.relative_to(TOOLS_DIR.parent.parent)
+        module_name = str(relative_path.with_suffix("")).replace("/", ".")
 
-try:
-    from src.tools.local import calculator
-
-    _register_toolset("calculator", calculator.register_tools)
-except ImportError as e:
-    logger.warning("Calculator tools module missing: %s", e)
-
-try:
-    from src.tools.local import local_file_system
-
-    _register_toolset("local_file_system", local_file_system.register_tools)
-except ImportError as e:
-    logger.warning("Local File System tools module missing: %s", e)
-
-try:
-    from src.tools.local import shell
-
-    _register_toolset("shell", shell.register_tools)
-except ImportError as e:
-    logger.warning("Shell tools module missing: %s", e)
-
-try:
-    from src.tools.search import tavily_tool
-
-    _register_toolset("tavily_tool", tavily_tool.register_tools)
-except ImportError as e:
-    logger.warning("Tavily search tools module missing: %s", e)
+        try:
+            spec = importlib.util.spec_from_file_location(module_name, py_file)
+            if spec and spec.loader:
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                logger.debug("Imported tool module: %s", module_name)
+        except ImportError as e:
+            logger.warning("Tool module %s missing dependency: %s", module_name, e)
+        except Exception:  # pragma: no cover - defensive
+            logger.exception("Failed to import tool module %s", module_name)
 
 
-try:
-    from src.tools.files import pdf_to_markdown
+def create_mcp_server() -> FastMCP:
+    """Create and configure the MCP server with all available tools."""
 
-    _register_toolset("pdf_to_markdown", pdf_to_markdown.register_tools)
-except ImportError as e:
-    logger.warning("PDF to Markdown tools module missing: %s", e)
+    mcp = FastMCP("Humcp Server")
+    logger.info("Creating MCP server")
 
+    _import_tool_modules()
 
-tool_count = len(getattr(getattr(mcp, "_tool_manager", None), "tools", []))
-logger.info("MCP server initialized with %d tools", tool_count)
+    seen_funcs: set[Callable[..., object]] = set()
+    for registration in TOOL_REGISTRY:
+        if registration.func in seen_funcs:
+            logger.debug("Skipping duplicate tool: %s", registration.name)
+            continue
+        seen_funcs.add(registration.func)
+        _register_tool(mcp, registration)
 
-if __name__ == "__main__":
-    logger.info("Starting MCP server on http://0.0.0.0:8081/mcp")
-    mcp.run(transport="http", host="0.0.0.0", port=8081)
+    tool_count = len(getattr(getattr(mcp, "_tool_manager", None), "tools", []))
+    logger.info("MCP server initialized with %d tools", tool_count)
+
+    return mcp

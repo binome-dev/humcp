@@ -2,17 +2,13 @@ from __future__ import annotations
 
 import logging
 import math
-import sys
-from pathlib import Path
 
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
-
-from fastmcp import FastMCP
+from src.tools import tool
 
 logger = logging.getLogger("humcp.tools.calculator")
 
 
+@tool("calculator_add")
 async def add(a: float, b: float) -> dict:
     """
     Add two numbers and return the result.
@@ -36,6 +32,7 @@ async def add(a: float, b: float) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("calculator_subtract")
 async def subtract(a: float, b: float) -> dict:
     """
     Subtract second number from first and return the result.
@@ -59,6 +56,7 @@ async def subtract(a: float, b: float) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("calculator_multiply")
 async def multiply(a: float, b: float) -> dict:
     """
     Multiply two numbers and return the result.
@@ -82,6 +80,7 @@ async def multiply(a: float, b: float) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("calculator_divide")
 async def divide(a: float, b: float) -> dict:
     """
     Divide first number by second and return the result.
@@ -108,6 +107,7 @@ async def divide(a: float, b: float) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("calculator_exponentiate")
 async def exponentiate(a: float, b: float) -> dict:
     """
     Raise first number to the power of the second number and return the result.
@@ -131,6 +131,7 @@ async def exponentiate(a: float, b: float) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("calculator_factorial")
 async def factorial(n: int) -> dict:
     """
     Calculate the factorial of a number and return the result.
@@ -159,6 +160,7 @@ async def factorial(n: int) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("calculator_is_prime")
 async def is_prime(n: int) -> dict:
     """
     Check if a number is prime and return the result.
@@ -204,6 +206,7 @@ async def is_prime(n: int) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("calculator_square_root")
 async def square_root(n: float) -> dict:
     """
     Calculate the square root of a number and return the result.
@@ -232,6 +235,7 @@ async def square_root(n: float) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("calculator_absolute_value")
 async def absolute_value(n: float) -> dict:
     """
     Calculate the absolute value of a number.
@@ -254,6 +258,7 @@ async def absolute_value(n: float) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("calculator_logarithm")
 async def logarithm(n: float, base: float = 0) -> dict:
     """
     Calculate the logarithm of a number with an optional base.
@@ -299,6 +304,7 @@ async def logarithm(n: float, base: float = 0) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("calculator_modulo")
 async def modulo(a: float, b: float) -> dict:
     """
     Calculate the remainder when dividing the first number by the second.
@@ -325,6 +331,7 @@ async def modulo(a: float, b: float) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("calculator_greatest_common_divisor")
 async def greatest_common_divisor(a: int, b: int) -> dict:
     """
     Calculate the greatest common divisor (GCD) of two integers.
@@ -346,27 +353,3 @@ async def greatest_common_divisor(a: int, b: int) -> dict:
     except Exception as e:
         logger.exception("calculator_greatest_common_divisor failed")
         return {"success": False, "error": str(e)}
-
-
-def register_tools(mcp: FastMCP) -> None:
-    """Register all Calculator tools with the MCP server."""
-    logger.info("Registering calculator tools")
-
-    # Basic arithmetic operations
-    mcp.tool(name="calculator_add")(add)
-    mcp.tool(name="calculator_subtract")(subtract)
-    mcp.tool(name="calculator_multiply")(multiply)
-    mcp.tool(name="calculator_divide")(divide)
-    mcp.tool(name="calculator_modulo")(modulo)
-    # Power and root operations
-    mcp.tool(name="calculator_exponentiate")(exponentiate)
-    mcp.tool(name="calculator_square_root")(square_root)
-
-    # Mathematical functions
-    mcp.tool(name="calculator_factorial")(factorial)
-    mcp.tool(name="calculator_absolute_value")(absolute_value)
-    mcp.tool(name="calculator_logarithm")(logarithm)
-
-    # Number theory
-    mcp.tool(name="calculator_is_prime")(is_prime)
-    mcp.tool(name="calculator_greatest_common_divisor")(greatest_common_divisor)

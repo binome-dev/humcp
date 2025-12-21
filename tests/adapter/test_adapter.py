@@ -1,6 +1,6 @@
 import inspect
 
-from src.adapter.adapter import FastMCPFastAPIAdapter
+from src.humcp.adapter import FastMCPFastAPIAdapter
 
 
 class TestConstructUrl:

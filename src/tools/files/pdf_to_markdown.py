@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 import logging
-import sys
 from pathlib import Path
 
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
-
-from fastmcp import FastMCP
+from src.tools import tool
 
 try:
     from markitdown import MarkItDown
@@ -19,6 +15,7 @@ except ImportError as err:
 logger = logging.getLogger("humcp.tools.pdf_to_markdown")
 
 
+@tool("convert_to_markdown")
 async def convert_to_markdown(pdf_path: str) -> str:
     """
     Convert a PDF file to Markdown format.
@@ -48,8 +45,3 @@ async def convert_to_markdown(pdf_path: str) -> str:
 
     logger.info("PDF conversion complete path=%s", pdf_file)
     return markdown_content
-
-
-def register_tools(mcp: FastMCP) -> None:
-    """Register PDF to Markdown conversion tool with the MCP server."""
-    mcp.tool(name="convert_to_markdown")(convert_to_markdown)

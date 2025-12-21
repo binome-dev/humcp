@@ -4,15 +4,18 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI
 
-from src.adapter.adapter import FastMCPFastAPIAdapter
+from src.humcp.adapter import FastMCPFastAPIAdapter
 from src.logging_setup import configure_logging
-from src.server import mcp
+from src.server import create_mcp_server
 
 load_dotenv()
 configure_logging()
 
 # Single port for both FastAPI (Swagger) and MCP ASGI app
 APP_PORT = os.getenv("PORT", os.getenv("MCP_PORT", "8080"))
+
+# Create MCP server instance
+mcp = create_mcp_server()
 
 # MCP ASGI app that will be mounted under /mcp
 mcp_http_app = mcp.http_app(path="/")
