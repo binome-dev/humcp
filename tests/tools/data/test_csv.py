@@ -1,4 +1,3 @@
-
 import pytest
 
 from src.tools.data.csv import (

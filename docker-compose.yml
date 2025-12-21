@@ -1,34 +1,16 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  humcp-server:
+  humcp:
     build:
       context: .
-      dockerfile: docker/Dockerfile.mcp
-    container_name: humcp-server
-    ports:
-      - "8081:8081"
-    restart: unless-stopped
-    networks:
-      - mcp-network
-
-  humcp-fastapi-server:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.fastapi
-    container_name: humcp-fastapi-server
-    depends_on:
-      - humcp-server
+      dockerfile: docker/Dockerfile
+    container_name: humcp
     command: >
-      /bin/sh -c "sleep 10 && uv run uvicorn src.main:app --host 0.0.0.0 --port 8080"
+      uv run uvicorn src.main:app --host 0.0.0.0 --port 8080
     environment:
-      - MCP_SERVER_URL=http://humcp-server:8081
+      - PORT=8080
+      - MCP_SERVER_URL=http://localhost:8080/mcp
     ports:
       - "8080:8080"
     restart: unless-stopped
-    networks:
-      - mcp-network
-
-networks:
-  mcp-network:
-    driver: bridge

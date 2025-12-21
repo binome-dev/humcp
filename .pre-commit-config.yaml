@@ -1,0 +1,39 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [
+          "fastapi>=0.104.0",
+          "pydantic>=2.0.0",
+          "pandas>=2.3.3",
+        ]
+        args: [
+          --ignore-missing-imports,
+          --no-strict-optional,
+          --disable-error-code=assignment,
+          --disable-error-code=call-overload,
+          --disable-error-code=arg-type,
+          --disable-error-code=attr-defined,
+          --disable-error-code=valid-type,
+          --disable-error-code=return-value,
+        ]

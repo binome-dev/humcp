@@ -139,15 +139,17 @@ class TestGetToolCategories:
     def test_tool_description_preserved(self):
         tools = {
             "calculator/add": self._create_mock_tool(
-                "calculator/add",
-                description="Add two numbers together"
+                "calculator/add", description="Add two numbers together"
             ),
         }
         generator = self._create_route_generator(tools)
 
         categories = generator._get_tool_categories()
 
-        assert categories["calculator"]["tools"][0]["description"] == "Add two numbers together"
+        assert (
+            categories["calculator"]["tools"][0]["description"]
+            == "Add two numbers together"
+        )
 
 
 class TestRouteGeneratorInit:

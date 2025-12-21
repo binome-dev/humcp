@@ -51,10 +51,10 @@ cp .env.example .env
 ## Running Locally
 
 ```bash
-uv run python -m src.server & sleep 2 && uv run uvicorn src.main:app --host 0.0.0.0 --port 8080
+uv run uvicorn src.main:app --host 0.0.0.0 --port 8080
 ```
 
-- MCP server: `http://localhost:8081/sse`
+- MCP endpoint (same port): `http://localhost:8080/mcp`
 - Swagger UI: [http://localhost:8080/docs](http://localhost:8080/docs)
 
 ## Docker Usage
@@ -63,14 +63,17 @@ uv run python -m src.server & sleep 2 && uv run uvicorn src.main:app --host 0.0.
 docker compose up --build
 ```
 
-- MCP server: `http://localhost:8081/sse`
-- FastAPI/Swagger: `http://localhost:8080/docs`
+- MCP endpoint: `http://localhost:8080/mcp`
+- Swagger UI: [http://localhost:8080/docs](http://localhost:8080/docs)
 
 ## Environment Variables
 
 | Variable | Description |
 |----------|-------------|
-| `MCP_SERVER_URL` | MCP server URL (used by FastAPI adapter) |
+| `PORT` | Port to run the combined FastAPI + MCP server (default `8080`) |
+| `MCP_PORT` | Legacy override for MCP port if `PORT` is not set |
+| `MCP_SERVER_URL` | Optional display URL for the MCP server (defaults to `http://0.0.0.0:<PORT>/mcp`) |
+| `TAVILY_API_KEY` | API key for Tavily web search tools |
 
 ## Available Tools
 
@@ -79,6 +82,7 @@ docker compose up --build
 - Shell (`shell/`)
 - CSV (`csv/`)
 - Pandas (`pandas/`)
+- Search (`search/`)
 
 ## Development
 

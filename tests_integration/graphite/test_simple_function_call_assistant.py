@@ -25,20 +25,22 @@ def get_invoke_context() -> InvokeContext:
     )
 
 
+# For integration tests.
+@pytest.mark.skipif(not os.getenv("OPENAI_API_KEY"), reason="OPENAI_API_KEY not set")
 @pytest.mark.asyncio
 async def test_simple_function_call_assistant_with_mcp(mcp_server):
     """Test that the assistant can call MCP tools and return results."""
     invoke_context = get_invoke_context()
 
     server_params = {
-        "hello": StreamableHttpConnection(
+        "mcp": StreamableHttpConnection(
             {
                 "url": mcp_server["mcp_url"],
                 "transport": "http",
             }
         )
     }
-    
+
     mcp_tool = await MCPTool.builder().connections(server_params).build()
 
     assistant = (
@@ -53,7 +55,10 @@ async def test_simple_function_call_assistant_with_mcp(mcp_server):
     )
 
     input_data = [
-        Message(role="user", content="call the calculator tool and return the results of 1 + 1")
+        Message(
+            role="user",
+            content="call the calculator tool and return the results of 1 + 1",
+        )
     ]
 
     outputs = []

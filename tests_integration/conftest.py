@@ -49,9 +49,7 @@ def mcp_server():
 
     if not wait_for_server(SERVER_URL):
         process.kill()
-        raise RuntimeError(
-            f"MCP server failed to start within timeout at {SERVER_URL}"
-        )
+        raise RuntimeError(f"MCP server failed to start within timeout at {SERVER_URL}")
 
     print(f"=== MCP Server Started at {SERVER_URL} ===\n")
 
