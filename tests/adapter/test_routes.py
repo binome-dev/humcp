@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from mcp.types import Tool
 
-from src.humcp.routes import RouteGenerator
+from src.adapter.routes import RouteGenerator
 
 
 class TestGetToolCategories:
@@ -29,10 +29,9 @@ class TestGetToolCategories:
         categories = generator._get_tool_categories()
 
         assert "calculator" in categories
-        assert categories["calculator"]["tools_count"] == 1
-        assert len(categories["calculator"]["tools"]) == 1
-        assert categories["calculator"]["tools"][0]["name"] == "add"
-        assert categories["calculator"]["tools"][0]["full_name"] == "calculator/add"
+        assert len(categories["calculator"]) == 1
+        assert categories["calculator"][0]["name"] == "add"
+        assert categories["calculator"][0]["full_name"] == "calculator/add"
 
     def test_single_category_multiple_tools(self):
         tools = {
@@ -45,8 +44,7 @@ class TestGetToolCategories:
         categories = generator._get_tool_categories()
 
         assert "calculator" in categories
-        assert categories["calculator"]["tools_count"] == 3
-        assert len(categories["calculator"]["tools"]) == 3
+        assert len(categories["calculator"]) == 3
 
     def test_multiple_categories(self):
         tools = {
@@ -62,9 +60,9 @@ class TestGetToolCategories:
         assert "calculator" in categories
         assert "filesystem" in categories
         assert "shell" in categories
-        assert categories["calculator"]["tools_count"] == 1
-        assert categories["filesystem"]["tools_count"] == 1
-        assert categories["shell"]["tools_count"] == 1
+        assert len(categories["calculator"]) == 1
+        assert len(categories["filesystem"]) == 1
+        assert len(categories["shell"]) == 1
 
     def test_uncategorized_tool(self):
         tools = {
@@ -75,8 +73,8 @@ class TestGetToolCategories:
         categories = generator._get_tool_categories()
 
         assert "uncategorized" in categories
-        assert categories["uncategorized"]["tools_count"] == 1
-        assert categories["uncategorized"]["tools"][0]["name"] == "simple_tool"
+        assert len(categories["uncategorized"]) == 1
+        assert categories["uncategorized"][0]["name"] == "simple_tool"
 
     def test_mixed_categorized_and_uncategorized(self):
         tools = {
@@ -100,10 +98,10 @@ class TestGetToolCategories:
         categories = generator._get_tool_categories()
 
         assert "data" in categories
-        assert categories["data"]["tools_count"] == 1
+        assert len(categories["data"]) == 1
         # The sub_tool should be "csv/read" (everything after first /)
-        assert categories["data"]["tools"][0]["name"] == "csv/read"
-        assert categories["data"]["tools"][0]["full_name"] == "data/csv/read"
+        assert categories["data"][0]["name"] == "csv/read"
+        assert categories["data"][0]["full_name"] == "data/csv/read"
 
     def test_empty_tools(self):
         tools = {}
@@ -122,7 +120,7 @@ class TestGetToolCategories:
         categories = generator._get_tool_categories()
 
         expected_endpoint = "/tools/calculator/add"
-        assert categories["calculator"]["tools"][0]["endpoint"] == expected_endpoint
+        assert categories["calculator"][0]["endpoint"] == expected_endpoint
 
     def test_custom_route_prefix(self):
         mock_client = MagicMock()
@@ -134,7 +132,7 @@ class TestGetToolCategories:
         categories = generator._get_tool_categories()
 
         expected_endpoint = "/api/v1/tools/calculator/add"
-        assert categories["calculator"]["tools"][0]["endpoint"] == expected_endpoint
+        assert categories["calculator"][0]["endpoint"] == expected_endpoint
 
     def test_tool_description_preserved(self):
         tools = {
@@ -146,10 +144,7 @@ class TestGetToolCategories:
 
         categories = generator._get_tool_categories()
 
-        assert (
-            categories["calculator"]["tools"][0]["description"]
-            == "Add two numbers together"
-        )
+        assert categories["calculator"][0]["description"] == "Add two numbers together"
 
 
 class TestRouteGeneratorInit:

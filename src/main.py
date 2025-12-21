@@ -4,40 +4,32 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI
 
-from src.humcp.adapter import FastMCPFastAPIAdapter
+from src.adapter.fast_mcp_fast_api_adapter import FastMCPFastAPIAdapter
 from src.logging_setup import configure_logging
 from src.server import create_mcp_server
 
 load_dotenv()
 configure_logging()
 
-# Single port for both FastAPI (Swagger) and MCP ASGI app
 APP_PORT = os.getenv("PORT", os.getenv("MCP_PORT", "8080"))
+MCP_SERVER_URL = os.getenv("MCP_SERVER_URL") or f"http://0.0.0.0:{APP_PORT}/mcp"
 
-# Create MCP server instance
 mcp = create_mcp_server()
-
-# MCP ASGI app that will be mounted under /mcp
 mcp_http_app = mcp.http_app(path="/")
-
-# URL shown in the API info response (override with MCP_SERVER_URL if needed)
-mcp_server_url = os.getenv("MCP_SERVER_URL") or f"http://0.0.0.0:{APP_PORT}/mcp"
 
 adapter = FastMCPFastAPIAdapter(
     title="HuMCP FastAPI server",
     description="HuMCP FastAPI server",
-    mcp_transport=mcp,  # use in-memory transport for route generation/calls
+    mcp_transport=mcp,
     transport="http",
 )
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Ensure the MCP ASGI app runs its lifespan so /mcp works when mounted
     async with mcp_http_app.router.lifespan_context(mcp_http_app):
         await adapter._load_tools()
         adapter._register_routes(app)
-        adapter.route_generator.create_info_routes(app)
         yield
         await adapter._cleanup()
 
@@ -50,41 +42,22 @@ app = FastAPI(
 )
 
 
-# Root info endpoint (mirrors the adapter's default)
 @app.get("/", tags=["Info"])
 async def root():
-    tools = adapter.route_generator.tools
-
-    # Derive tool categories from the public tools attribute instead of using
-    # the private _get_tool_categories() helper.
-    if hasattr(tools, "items"):
-        # tools is already a mapping of {category: [tools...]}
-        categories = tools
-    else:
-        # tools is an iterable of tool objects; group by their "category" attribute
-        categories = {}
-        for tool in tools or []:
-            category = getattr(tool, "category", "default")
-            categories.setdefault(category, []).append(tool)
+    categories = adapter.route_generator._get_tool_categories()
     return {
         "name": adapter.title,
         "version": adapter.version,
-        "mcp_server": adapter.mcp_display_url or mcp_server_url,
+        "mcp_server": adapter.mcp_display_url or MCP_SERVER_URL,
         "tools_count": len(adapter.route_generator.tools),
-        "categories_count": len(categories),
-        "route_prefix": adapter.route_generator.route_prefix,
-        "available_categories": sorted(categories.keys()),
+        "categories": list(categories.keys()),
         "endpoints": {
             "docs": "/docs",
-            "redoc": "/redoc",
             "openapi": "/openapi.json",
-            "tools_list": f"{adapter.route_generator.route_prefix}",
-            "category_tools": f"{adapter.route_generator.route_prefix}/{{category}}",
-            "tool_info": f"{adapter.route_generator.route_prefix}/{{category}}/{{tool_name}}",
+            "tools": adapter.route_generator.route_prefix,
             "mcp": "/mcp",
         },
     }
 
 
-# Mount MCP under /mcp on the same port as FastAPI/Swagger
 app.mount("/mcp", mcp_http_app)

@@ -48,17 +48,13 @@ class FastMCPFastAPIAdapter:
     def _construct_url(self, base_url: str, transport: str) -> str:
         base_url = base_url.rstrip("/")
 
-        if transport == "http" or base_url.endswith(f"/{transport}"):
+        if transport == "http" or transport == "stdio":
             return base_url
 
-        if transport == "http":
-            return f"{base_url}/mcp"
-        elif transport == "sse":
-            return f"{base_url}/sse"
-        elif transport == "stdio":
+        if base_url.endswith(f"/{transport}"):
             return base_url
-        else:
-            return f"{base_url}/{transport}"
+
+        return f"{base_url}/{transport}"
 
     async def _load_tools(self):
         await self.mcp_client.__aenter__()
