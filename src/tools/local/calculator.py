@@ -43,7 +43,11 @@ async def divide(a: float, b: float) -> dict:
 @tool("calculator_exponentiate")
 async def exponentiate(a: float, b: float) -> dict:
     """Raise a to the power of b."""
-    return _ok({"operation": "power", "a": a, "b": b, "result": math.pow(a, b)})
+    try:
+        result = math.pow(a, b)
+    except (OverflowError, ValueError) as exc:
+        return _err(f"Error computing power: {exc}")
+    return _ok({"operation": "power", "a": a, "b": b, "result": result})
 
 
 @tool("calculator_factorial")
