@@ -14,14 +14,37 @@ TOKEN_PATH = Path.home() / ".humcp" / "google_token.json"
 CLIENT_SECRET_PATH = Path.home() / ".humcp" / "client_secret.json"
 
 SCOPES = {
+    # Gmail
     "gmail_readonly": "https://www.googleapis.com/auth/gmail.readonly",
     "gmail_send": "https://www.googleapis.com/auth/gmail.send",
     "gmail_modify": "https://www.googleapis.com/auth/gmail.modify",
+    # Calendar
     "calendar": "https://www.googleapis.com/auth/calendar",
     "calendar_readonly": "https://www.googleapis.com/auth/calendar.readonly",
+    # Drive
     "drive": "https://www.googleapis.com/auth/drive",
     "drive_readonly": "https://www.googleapis.com/auth/drive.readonly",
     "drive_file": "https://www.googleapis.com/auth/drive.file",
+    # Tasks
+    "tasks": "https://www.googleapis.com/auth/tasks",
+    "tasks_readonly": "https://www.googleapis.com/auth/tasks.readonly",
+    # Docs
+    "docs": "https://www.googleapis.com/auth/documents",
+    "docs_readonly": "https://www.googleapis.com/auth/documents.readonly",
+    # Sheets
+    "sheets": "https://www.googleapis.com/auth/spreadsheets",
+    "sheets_readonly": "https://www.googleapis.com/auth/spreadsheets.readonly",
+    # Slides
+    "slides": "https://www.googleapis.com/auth/presentations",
+    "slides_readonly": "https://www.googleapis.com/auth/presentations.readonly",
+    # Forms
+    "forms": "https://www.googleapis.com/auth/forms.body",
+    "forms_readonly": "https://www.googleapis.com/auth/forms.body.readonly",
+    "forms_responses": "https://www.googleapis.com/auth/forms.responses.readonly",
+    # Chat
+    "chat_spaces": "https://www.googleapis.com/auth/chat.spaces.readonly",
+    "chat_messages": "https://www.googleapis.com/auth/chat.messages",
+    "chat_messages_readonly": "https://www.googleapis.com/auth/chat.messages.readonly",
 }
 
 def _ensure_config_dir() -> None:

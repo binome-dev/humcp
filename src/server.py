@@ -71,7 +71,7 @@ except ImportError as e:
 
 try:
     from src.tools.google import gmail
-    
+
     _register_toolset("gmail", gmail.register_tools)
 except ImportError as e:
     logger.warning("Gmail tools module missing: %s", e)
@@ -89,6 +89,48 @@ try:
     _register_toolset("drive", drive.register_tools)
 except ImportError as e:
     logger.warning("Google Drive tools module missing: %s", e)
+
+try:
+    from src.tools.google import tasks
+
+    _register_toolset("tasks", tasks.register_tools)
+except ImportError as e:
+    logger.warning("Google Tasks tools module missing: %s", e)
+
+try:
+    from src.tools.google import docs
+
+    _register_toolset("docs", docs.register_tools)
+except ImportError as e:
+    logger.warning("Google Docs tools module missing: %s", e)
+
+try:
+    from src.tools.google import sheets
+
+    _register_toolset("sheets", sheets.register_tools)
+except ImportError as e:
+    logger.warning("Google Sheets tools module missing: %s", e)
+
+try:
+    from src.tools.google import slides
+
+    _register_toolset("slides", slides.register_tools)
+except ImportError as e:
+    logger.warning("Google Slides tools module missing: %s", e)
+
+try:
+    from src.tools.google import forms
+
+    _register_toolset("forms", forms.register_tools)
+except ImportError as e:
+    logger.warning("Google Forms tools module missing: %s", e)
+
+try:
+    from src.tools.google import chat
+
+    _register_toolset("chat", chat.register_tools)
+except ImportError as e:
+    logger.warning("Google Chat tools module missing: %s", e)
 
 
 tool_count = len(getattr(getattr(mcp, "_tool_manager", None), "tools", []))
