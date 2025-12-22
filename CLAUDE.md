@@ -38,7 +38,7 @@ HuMCP is a FastMCP server with a FastAPI adapter that exposes MCP tools as REST 
 
 **Entry Points:**
 - `src/main.py` - FastAPI application that mounts MCP at `/mcp` and auto-generates REST endpoints
-- `src/server.py` - Creates the FastMCP server, auto-discovers and registers tools from `src/tools/`
+- `src/mcp_register.py` - Creates the FastMCP server, auto-discovers and registers tools from `src/tools/`
 
 **Adapter Layer (`src/adapter/`):**
 - `fast_mcp_fast_api_adapter.py` - `FastMCPFastAPIAdapter` bridges FastMCP and FastAPI
