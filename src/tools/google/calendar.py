@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastmcp import FastMCP
 
@@ -54,7 +54,7 @@ async def events(
         def _list_events():
             service = get_google_service("calendar", "v3", CALENDAR_READONLY_SCOPES)
 
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             time_min = now.isoformat()
             time_max = (now + timedelta(days=days_ahead)).isoformat()
 
