@@ -1,0 +1,317 @@
+import asyncio
+import logging
+
+from fastmcp import FastMCP
+
+from src.tools.google.auth import SCOPES, get_google_service
+
+logger = logging.getLogger("humcp.tools.google.slides")
+
+SLIDES_READONLY_SCOPES = [SCOPES["slides_readonly"], SCOPES["drive_readonly"]]
+SLIDES_FULL_SCOPES = [SCOPES["slides"], SCOPES["drive"]]
+
+
+async def list_presentations(max_results: int = 25) -> dict:
+    """List Google Slides presentations accessible to the user."""
+    try:
+
+        def _list():
+            service = get_google_service("drive", "v3", SLIDES_READONLY_SCOPES)
+            query = (
+                "mimeType='application/vnd.google-apps.presentation' and trashed=false"
+            )
+            results = (
+                service.files()
+                .list(
+                    q=query,
+                    pageSize=max_results,
+                    fields="files(id, name, modifiedTime, webViewLink)",
+                    orderBy="modifiedTime desc",
+                )
+                .execute()
+            )
+            files = results.get("files", [])
+            return {
+                "presentations": [
+                    {
+                        "id": f["id"],
+                        "name": f["name"],
+                        "modified": f.get("modifiedTime", ""),
+                        "web_link": f.get("webViewLink", ""),
+                    }
+                    for f in files
+                ],
+                "total": len(files),
+            }
+
+        logger.info("slides_list_presentations")
+        result = await asyncio.to_thread(_list)
+        return {"success": True, "data": result}
+    except Exception as e:
+        logger.exception("slides_list_presentations failed")
+        return {"success": False, "error": str(e)}
+
+
+async def get_presentation(presentation_id: str) -> dict:
+    """Get details about a presentation including slides content."""
+    try:
+
+        def _get():
+            service = get_google_service("slides", "v1", SLIDES_READONLY_SCOPES)
+            presentation = (
+                service.presentations().get(presentationId=presentation_id).execute()
+            )
+
+            slides = []
+            for slide in presentation.get("slides", []):
+                slide_info = {
+                    "id": slide["objectId"],
+                    "elements": [],
+                }
+
+                # Extract text content from shapes
+                for element in slide.get("pageElements", []):
+                    if "shape" in element and "text" in element.get("shape", {}):
+                        text_content = []
+                        for text_element in (
+                            element["shape"]["text"]
+                            .get("textElements", [])
+                        ):
+                            if "textRun" in text_element:
+                                text_content.append(
+                                    text_element["textRun"].get("content", "")
+                                )
+                        if text_content:
+                            slide_info["elements"].append(
+                                {
+                                    "type": "text",
+                                    "content": "".join(text_content).strip(),
+                                }
+                            )
+
+                slides.append(slide_info)
+
+            return {
+                "id": presentation["presentationId"],
+                "title": presentation.get("title", ""),
+                "slide_count": len(slides),
+                "slides": slides,
+                "width": presentation.get("pageSize", {})
+                .get("width", {})
+                .get("magnitude", 0),
+                "height": presentation.get("pageSize", {})
+                .get("height", {})
+                .get("magnitude", 0),
+            }
+
+        logger.info("slides_get_presentation id=%s", presentation_id)
+        result = await asyncio.to_thread(_get)
+        return {"success": True, "data": result}
+    except Exception as e:
+        logger.exception("slides_get_presentation failed")
+        return {"success": False, "error": str(e)}
+
+
+async def create_presentation(title: str) -> dict:
+    """Create a new Google Slides presentation."""
+    try:
+
+        def _create():
+            service = get_google_service("slides", "v1", SLIDES_FULL_SCOPES)
+            presentation = (
+                service.presentations().create(body={"title": title}).execute()
+            )
+            return {
+                "id": presentation["presentationId"],
+                "title": presentation.get("title", ""),
+                "slide_count": len(presentation.get("slides", [])),
+                "web_link": f"https://docs.google.com/presentation/d/{presentation['presentationId']}/edit",
+            }
+
+        logger.info("slides_create_presentation title=%s", title)
+        result = await asyncio.to_thread(_create)
+        return {"success": True, "data": result}
+    except Exception as e:
+        logger.exception("slides_create_presentation failed")
+        return {"success": False, "error": str(e)}
+
+
+async def add_slide(
+    presentation_id: str,
+    layout: str = "BLANK",
+    insert_at: int = -1,
+) -> dict:
+    """Add a new slide to a presentation."""
+    try:
+
+        def _add():
+            service = get_google_service("slides", "v1", SLIDES_FULL_SCOPES)
+
+            # Get presentation to find layout ID
+            presentation = (
+                service.presentations().get(presentationId=presentation_id).execute()
+            )
+
+            # Find layout
+            layout_id = None
+            for master in presentation.get("masters", []):
+                for lo in master.get("layouts", []):
+                    if lo.get("layoutProperties", {}).get("name", "") == layout:
+                        layout_id = lo["objectId"]
+                        break
+                if layout_id:
+                    break
+
+            request = {
+                "createSlide": {
+                    "slideLayoutReference": {"predefinedLayout": layout},
+                }
+            }
+
+            if insert_at >= 0:
+                request["createSlide"]["insertionIndex"] = insert_at
+
+            result = (
+                service.presentations()
+                .batchUpdate(
+                    presentationId=presentation_id, body={"requests": [request]}
+                )
+                .execute()
+            )
+
+            new_slide_id = result.get("replies", [{}])[0].get("createSlide", {}).get(
+                "objectId"
+            )
+
+            return {
+                "slide_id": new_slide_id,
+                "presentation_id": presentation_id,
+                "layout": layout,
+            }
+
+        logger.info("slides_add_slide id=%s layout=%s", presentation_id, layout)
+        result = await asyncio.to_thread(_add)
+        return {"success": True, "data": result}
+    except Exception as e:
+        logger.exception("slides_add_slide failed")
+        return {"success": False, "error": str(e)}
+
+
+async def add_text_to_slide(
+    presentation_id: str,
+    slide_id: str,
+    text: str,
+    x: float = 100,
+    y: float = 100,
+    width: float = 400,
+    height: float = 100,
+) -> dict:
+    """Add a text box to a slide."""
+    try:
+
+        def _add_text():
+            service = get_google_service("slides", "v1", SLIDES_FULL_SCOPES)
+
+            # Create text box shape
+            shape_id = f"textbox_{slide_id}_{int(x)}_{int(y)}"
+
+            requests = [
+                {
+                    "createShape": {
+                        "objectId": shape_id,
+                        "shapeType": "TEXT_BOX",
+                        "elementProperties": {
+                            "pageObjectId": slide_id,
+                            "size": {
+                                "width": {"magnitude": width, "unit": "PT"},
+                                "height": {"magnitude": height, "unit": "PT"},
+                            },
+                            "transform": {
+                                "scaleX": 1,
+                                "scaleY": 1,
+                                "translateX": x,
+                                "translateY": y,
+                                "unit": "PT",
+                            },
+                        },
+                    }
+                },
+                {
+                    "insertText": {
+                        "objectId": shape_id,
+                        "text": text,
+                        "insertionIndex": 0,
+                    }
+                },
+            ]
+
+            service.presentations().batchUpdate(
+                presentationId=presentation_id, body={"requests": requests}
+            ).execute()
+
+            return {
+                "shape_id": shape_id,
+                "slide_id": slide_id,
+                "text": text,
+            }
+
+        logger.info("slides_add_text id=%s slide=%s", presentation_id, slide_id)
+        result = await asyncio.to_thread(_add_text)
+        return {"success": True, "data": result}
+    except Exception as e:
+        logger.exception("slides_add_text failed")
+        return {"success": False, "error": str(e)}
+
+
+async def get_slide_thumbnail(
+    presentation_id: str,
+    slide_id: str,
+    size: str = "MEDIUM",
+) -> dict:
+    """Get a thumbnail image URL for a slide."""
+    try:
+
+        def _get_thumbnail():
+            service = get_google_service("slides", "v1", SLIDES_READONLY_SCOPES)
+
+            size_map = {
+                "SMALL": "SMALL",
+                "MEDIUM": "MEDIUM",
+                "LARGE": "LARGE",
+            }
+            thumbnail_size = size_map.get(size.upper(), "MEDIUM")
+
+            result = (
+                service.presentations()
+                .pages()
+                .getThumbnail(
+                    presentationId=presentation_id,
+                    pageObjectId=slide_id,
+                    thumbnailProperties_thumbnailSize=thumbnail_size,
+                )
+                .execute()
+            )
+
+            return {
+                "slide_id": slide_id,
+                "content_url": result.get("contentUrl", ""),
+                "width": result.get("width", 0),
+                "height": result.get("height", 0),
+            }
+
+        logger.info("slides_get_thumbnail id=%s slide=%s", presentation_id, slide_id)
+        result = await asyncio.to_thread(_get_thumbnail)
+        return {"success": True, "data": result}
+    except Exception as e:
+        logger.exception("slides_get_thumbnail failed")
+        return {"success": False, "error": str(e)}
+
+
+def register_tools(mcp: FastMCP) -> None:
+    """Register all Google Slides tools with the MCP server."""
+    mcp.tool(name="slides_list_presentations")(list_presentations)
+    mcp.tool(name="slides_get_presentation")(get_presentation)
+    mcp.tool(name="slides_create_presentation")(create_presentation)
+    mcp.tool(name="slides_add_slide")(add_slide)
+    mcp.tool(name="slides_add_text")(add_text_to_slide)
+    mcp.tool(name="slides_get_thumbnail")(get_slide_thumbnail)

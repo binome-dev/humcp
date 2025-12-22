@@ -11,6 +11,8 @@ services:
     environment:
       - PORT=8080
       - MCP_SERVER_URL=http://localhost:8080/mcp
+      - GOOGLE_OAUTH_CLIENT_ID=${GOOGLE_OAUTH_CLIENT_ID}
+      - GOOGLE_OAUTH_CLIENT_SECRET=${GOOGLE_OAUTH_CLIENT_SECRET}
     ports:
       - "8080:8080"
     restart: unless-stopped
