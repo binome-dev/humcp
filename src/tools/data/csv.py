@@ -1,12 +1,8 @@
 import csv as csv_lib
 import logging
-import sys
 from pathlib import Path
 
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
-
-from fastmcp import FastMCP
+from src.tools import tool
 
 logger = logging.getLogger("humcp.tools.csv")
 
@@ -51,6 +47,7 @@ def set_csv_files(csv_files: list):
     _csv_manager = CSVManager(csv_files)
 
 
+@tool("csv_list_csv_files")
 async def list_csv_files() -> dict:
     """List all available CSV files."""
     try:
@@ -66,6 +63,7 @@ async def list_csv_files() -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("csv_read_csv_file")
 async def read_csv_file(csv_name: str, row_limit: int = None) -> dict:
     """Read contents of a CSV file."""
     try:
@@ -89,6 +87,7 @@ async def read_csv_file(csv_name: str, row_limit: int = None) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("csv_get_csv_columns")
 async def get_csv_columns(csv_name: str) -> dict:
     """Get column names from a CSV file."""
     try:
@@ -108,6 +107,7 @@ async def get_csv_columns(csv_name: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("csv_query_csv_file")
 async def query_csv_file(csv_name: str, sql_query: str) -> dict:
     """Execute SQL query on CSV file using DuckDB."""
     try:
@@ -141,6 +141,7 @@ async def query_csv_file(csv_name: str, sql_query: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("csv_describe_csv_file")
 async def describe_csv_file(csv_name: str) -> dict:
     """Get detailed information about a CSV file."""
     try:
@@ -179,6 +180,7 @@ async def describe_csv_file(csv_name: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("csv_add_csv_file")
 async def add_csv_file(file_path: str) -> dict:
     """Add a CSV file to available files."""
     try:
@@ -202,6 +204,7 @@ async def add_csv_file(file_path: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("csv_remove_csv_file")
 async def remove_csv_file(csv_name: str) -> dict:
     """Remove a CSV file from available files."""
     try:
@@ -218,16 +221,3 @@ async def remove_csv_file(csv_name: str) -> dict:
     except Exception as e:
         logger.exception("Failed to remove CSV file name=%s", csv_name)
         return {"success": False, "error": str(e)}
-
-
-def register_tools(mcp: FastMCP) -> None:
-    """Register all CSV tools with the MCP server."""
-
-    logger.info("Registering CSV tools")
-    mcp.tool(name="csv_list_csv_files")(list_csv_files)
-    mcp.tool(name="csv_read_csv_file")(read_csv_file)
-    mcp.tool(name="csv_get_csv_columns")(get_csv_columns)
-    mcp.tool(name="csv_query_csv_file")(query_csv_file)
-    mcp.tool(name="csv_describe_csv_file")(describe_csv_file)
-    mcp.tool(name="csv_add_csv_file")(add_csv_file)
-    mcp.tool(name="csv_remove_csv_file")(remove_csv_file)

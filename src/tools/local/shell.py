@@ -2,13 +2,9 @@ from __future__ import annotations
 
 import logging
 import subprocess
-import sys
 from pathlib import Path
 
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
-
-from fastmcp import FastMCP
+from src.tools import tool
 
 logger = logging.getLogger("humcp.tools.shell")
 
@@ -122,6 +118,7 @@ async def run_shell_command(
         return {"success": False, "error": f"Failed to run shell command: {str(e)}"}
 
 
+@tool("shell_run_shell_script")
 async def run_shell_script(
     script: str,
     shell: str = "/bin/bash",
@@ -202,6 +199,7 @@ async def run_shell_script(
         return {"success": False, "error": f"Failed to run shell script: {str(e)}"}
 
 
+@tool("shell_check_command_exists")
 async def check_command_exists(command: str) -> dict:
     """
     Check if a command exists in the system PATH.
@@ -234,6 +232,7 @@ async def check_command_exists(command: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("shell_get_environment_variable")
 async def get_environment_variable(variable_name: str) -> dict:
     """
     Get the value of an environment variable.
@@ -268,6 +267,7 @@ async def get_environment_variable(variable_name: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("shell_get_current_directory")
 async def get_current_directory() -> dict:
     """
     Get the current working directory.
@@ -286,6 +286,7 @@ async def get_current_directory() -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("shell_get_system_info")
 async def get_system_info() -> dict:
     """
     Get basic system information.
@@ -314,17 +315,3 @@ async def get_system_info() -> dict:
     except Exception as e:
         logger.exception("Failed to get system info")
         return {"success": False, "error": str(e)}
-
-
-def register_tools(mcp: FastMCP) -> None:
-    """Register all Shell tools with the MCP server."""
-
-    # Command Execution
-    # mcp.tool(name="shell_run_shell_command")(run_shell_command)
-    mcp.tool(name="shell_run_shell_script")(run_shell_script)
-
-    # System Information
-    mcp.tool(name="shell_check_command_exists")(check_command_exists)
-    mcp.tool(name="shell_get_environment_variable")(get_environment_variable)
-    mcp.tool(name="shell_get_current_directory")(get_current_directory)
-    mcp.tool(name="shell_get_system_info")(get_system_info)

@@ -94,25 +94,17 @@ class RouteGenerator:
             name=tool.name,
         )
 
-    def _get_tool_categories(self) -> dict[str, dict[str, Any]]:
-        categories: dict[str, dict[str, Any]] = {}
+    def _get_tool_categories(self) -> dict[str, list[dict[str, Any]]]:
+        categories: dict[str, list[dict[str, Any]]] = {}
 
         for tool_name, tool in self.tools.items():
-            parts = tool_name.split("/")
-            if len(parts) >= 2:
-                category = parts[0]
-                sub_tool = "/".join(parts[1:])
-            else:
-                category = "uncategorized"
-                sub_tool = tool_name
+            parts = tool_name.split("/", 1)
+            category = parts[0] if len(parts) > 1 else "uncategorized"
+            short_name = parts[1] if len(parts) > 1 else tool_name
 
-            if category not in categories:
-                categories[category] = {"name": category, "tools_count": 0, "tools": []}
-
-            categories[category]["tools_count"] += 1
-            categories[category]["tools"].append(
+            categories.setdefault(category, []).append(
                 {
-                    "name": sub_tool,
+                    "name": short_name,
                     "full_name": tool_name,
                     "description": tool.description,
                     "endpoint": f"{self.route_prefix}/{tool_name}",
@@ -121,76 +113,57 @@ class RouteGenerator:
 
         return categories
 
+    def _get_input_schema(self, tool: Tool) -> dict:
+        return tool.inputSchema if hasattr(tool, "inputSchema") else {}
+
     def create_info_routes(self, app: FastAPI):
         @app.get(f"{self.route_prefix}", tags=["Info"])
         async def list_tools():
             categories = self._get_tool_categories()
-
             return {
                 "total_tools": len(self.tools),
-                "categories_count": len(categories),
-                "tools_by_category": {
-                    category_name: {
-                        "tools_count": category_data["tools_count"],
-                        "tools": [
-                            {
-                                "name": tool["name"],
-                                "full_name": tool["full_name"],
-                                "description": tool["description"],
-                                "endpoint": tool["endpoint"],
-                            }
-                            for tool in category_data["tools"]
-                        ],
-                    }
-                    for category_name, category_data in sorted(categories.items())
+                "categories": {
+                    name: {"count": len(tools), "tools": tools}
+                    for name, tools in sorted(categories.items())
                 },
             }
 
         @app.get(f"{self.route_prefix}/{{category}}", tags=["Info"])
         async def get_category_tools(category: str):
             categories = self._get_tool_categories()
-
             if category not in categories:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Category '{category}' not found. Available categories: {', '.join(sorted(categories.keys()))}",
+                    detail=f"Category '{category}' not found",
                 )
-
-            category_data = categories[category]
+            tools = categories[category]
             return {
                 "category": category,
-                "tools_count": category_data["tools_count"],
+                "count": len(tools),
                 "tools": [
                     {
-                        "name": tool["name"],
-                        "full_name": tool["full_name"],
-                        "description": tool["description"],
-                        "parameters": self.tools[tool["full_name"]].inputSchema
-                        if hasattr(self.tools[tool["full_name"]], "inputSchema")
-                        else {},
-                        "endpoint": tool["endpoint"],
+                        **t,
+                        "parameters": self._get_input_schema(
+                            self.tools[t["full_name"]]
+                        ),
                     }
-                    for tool in category_data["tools"]
+                    for t in tools
                 ],
             }
 
-        # Tool detail endpoint
         @app.get(f"{self.route_prefix}/{{category}}/{{tool_name:path}}", tags=["Info"])
         async def get_tool_info(category: str, tool_name: str):
-            full_tool_name = f"{category}/{tool_name}"
-
-            if full_tool_name not in self.tools:
+            full_name = f"{category}/{tool_name}"
+            if full_name not in self.tools:
                 raise HTTPException(
-                    status_code=404, detail=f"Tool '{full_tool_name}' not found"
+                    status_code=404, detail=f"Tool '{full_name}' not found"
                 )
 
-            tool = self.tools[full_tool_name]
-            input_schema = tool.inputSchema if hasattr(tool, "inputSchema") else {}
-
+            tool = self.tools[full_name]
             return {
                 "name": tool.name,
                 "category": category,
                 "description": tool.description,
-                "parameters": input_schema,
+                "parameters": self._get_input_schema(tool),
                 "endpoint": f"{self.route_prefix}/{tool.name}",
             }

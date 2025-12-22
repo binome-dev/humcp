@@ -69,12 +69,14 @@ async def test_simple_function_call_assistant_with_mcp(mcp_server):
         )
     ):
         print(f"Output: {output}")
+        assert "2" in output.data[0].content
         outputs.append(output)
         assert output is not None
 
     print(f"Total outputs: {len(outputs)}")
     for i, out in enumerate(outputs):
         print(f"Output {i}: {out}")
+        assert "2" in output.data[0].content
 
     events = await event_store.get_events()
     print(f"Total events: {len(events)}")
