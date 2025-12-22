@@ -48,7 +48,7 @@ HuMCP is a FastMCP server with a FastAPI adapter that exposes MCP tools as REST 
 **Tool Registration System:**
 - Tools use `@tool(name, category)` decorator from `src/tools/__init__.py`
 - Decorator adds tools to `TOOL_REGISTRY` for auto-discovery
-- `src/server.py` walks `src/tools/` modules and registers all decorated functions with FastMCP
+- `src/mcp_register.py` walks `src/tools/` modules and registers all decorated functions with FastMCP
 
 ### Adding New Tools
 
