@@ -51,7 +51,11 @@ async def factorial(n: int) -> dict:
     """Calculate factorial of n (must be non-negative)."""
     if n < 0:
         return _err("Factorial undefined for negative numbers")
-    return _ok({"operation": "factorial", "n": n, "result": math.factorial(n)})
+    try:
+        result = math.factorial(n)
+    except (OverflowError, MemoryError):
+        return _err("Factorial result too large to compute")
+    return _ok({"operation": "factorial", "n": n, "result": result})
 
 
 @tool("calculator_is_prime")
