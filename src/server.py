@@ -69,6 +69,27 @@ try:
 except ImportError as e:
     logger.warning("PDF to Markdown tools module missing: %s", e)
 
+try:
+    from src.tools.google import gmail
+    
+    _register_toolset("gmail", gmail.register_tools)
+except ImportError as e:
+    logger.warning("Gmail tools module missing: %s", e)
+
+try:
+    from src.tools.google import calendar
+
+    _register_toolset("calendar", calendar.register_tools)
+except ImportError as e:
+    logger.warning("Google Calendar tools module missing: %s", e)
+
+try:
+    from src.tools.google import drive
+
+    _register_toolset("drive", drive.register_tools)
+except ImportError as e:
+    logger.warning("Google Drive tools module missing: %s", e)
+
 
 tool_count = len(getattr(getattr(mcp, "_tool_manager", None), "tools", []))
 logger.info("MCP server initialized with %d tools", tool_count)
