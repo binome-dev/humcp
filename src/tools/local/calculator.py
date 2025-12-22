@@ -110,4 +110,8 @@ async def modulo(a: float, b: float) -> dict:
 @tool("calculator_greatest_common_divisor")
 async def greatest_common_divisor(a: int, b: int) -> dict:
     """Calculate GCD of a and b."""
-    return _ok({"operation": "gcd", "a": a, "b": b, "result": math.gcd(a, b)})
+    try:
+        result = math.gcd(a, b)
+    except Exception as e:
+        return _err(f"GCD error: {e}")
+    return _ok({"operation": "gcd", "a": a, "b": b, "result": result})
