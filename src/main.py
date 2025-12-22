@@ -6,7 +6,7 @@ from fastapi import FastAPI
 
 from src.adapter.fast_mcp_fast_api_adapter import FastMCPFastAPIAdapter
 from src.logging_setup import configure_logging
-from src.server import create_mcp_server
+from src.mcp_register import create_mcp_server
 
 load_dotenv()
 configure_logging()
