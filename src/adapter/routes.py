@@ -98,7 +98,7 @@ class RouteGenerator:
         categories: dict[str, list[dict[str, Any]]] = {}
 
         for tool_name, tool in self.tools.items():
-            parts = tool_name.split("/", 1)
+            parts = tool_name.split("_", 1)
             category = parts[0] if len(parts) > 1 else "uncategorized"
             short_name = parts[1] if len(parts) > 1 else tool_name
 
@@ -151,9 +151,9 @@ class RouteGenerator:
                 ],
             }
 
-        @app.get(f"{self.route_prefix}/{{category}}/{{tool_name:path}}", tags=["Info"])
+        @app.get(f"{self.route_prefix}/{{category}}/{{tool_name}}", tags=["Info"])
         async def get_tool_info(category: str, tool_name: str):
-            full_name = f"{category}/{tool_name}"
+            full_name = f"{category}_{tool_name}"
             if full_name not in self.tools:
                 raise HTTPException(
                     status_code=404, detail=f"Tool '{full_name}' not found"
