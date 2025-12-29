@@ -210,7 +210,7 @@ uv run pytest
 
 **Run linter:**
 ```bash
-uv run pre-commit run --all-file
+uv run pre-commit run --all-files
 ```
 
 ## License
