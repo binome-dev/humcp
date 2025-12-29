@@ -22,39 +22,36 @@ def register_routes(app: FastAPI) -> None:
     for reg in TOOL_REGISTRY:
         _add_tool_route(app, reg)
 
+    # Build cached lookup structures once at startup
+    categories = _build_categories()
+    tool_lookup = _build_tool_lookup()
+    total_tools = len(TOOL_REGISTRY)
+
     # Info endpoints
     @app.get("/tools", tags=["Info"])
     async def list_tools():
-        cats = _categorize()
         return {
-            "total_tools": len(TOOL_REGISTRY),
+            "total_tools": total_tools,
             "categories": {
-                k: {"count": len(v), "tools": v} for k, v in sorted(cats.items())
+                k: {"count": len(v), "tools": v} for k, v in sorted(categories.items())
             },
         }
 
     @app.get("/tools/{category}", tags=["Info"])
     async def get_category(category: str):
-        cats = _categorize()
-        if category not in cats:
+        if category not in categories:
             raise HTTPException(404, f"Category '{category}' not found")
         return {
             "category": category,
-            "count": len(cats[category]),
-            "tools": cats[category],
+            "count": len(categories[category]),
+            "tools": categories[category],
         }
 
     @app.get("/tools/{category}/{tool_name}", tags=["Info"])
     async def get_tool(category: str, tool_name: str):
-        # Match by category and name (either exact or with category prefix)
-        reg = next(
-            (
-                r
-                for r in TOOL_REGISTRY
-                if r.category == category
-                and (r.name == tool_name or r.name == f"{category}_{tool_name}")
-            ),
-            None,
+        # Try exact match first, then with category prefix
+        reg = tool_lookup.get((category, tool_name)) or tool_lookup.get(
+            (category, f"{category}_{tool_name}")
         )
         if not reg:
             raise HTTPException(
@@ -96,8 +93,8 @@ def _add_tool_route(app: FastAPI, reg: ToolRegistration) -> None:
     )
 
 
-def _categorize() -> dict[str, list[dict[str, Any]]]:
-    """Group tools by category."""
+def _build_categories() -> dict[str, list[dict[str, Any]]]:
+    """Build category map from TOOL_REGISTRY (called once at startup)."""
     cats: dict[str, list[dict[str, Any]]] = {}
     for reg in TOOL_REGISTRY:
         cats.setdefault(reg.category, []).append(
@@ -108,6 +105,11 @@ def _categorize() -> dict[str, list[dict[str, Any]]]:
             }
         )
     return cats
+
+
+def _build_tool_lookup() -> dict[tuple[str, str], ToolRegistration]:
+    """Build (category, name) -> ToolRegistration lookup (called once at startup)."""
+    return {(reg.category, reg.name): reg for reg in TOOL_REGISTRY}
 
 
 def _get_schema_from_func(func: Any) -> dict[str, Any]:
