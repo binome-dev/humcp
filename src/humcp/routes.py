@@ -132,8 +132,9 @@ def _get_schema_from_func(func: Any) -> dict[str, Any]:
         if param.annotation != inspect.Parameter.empty:
             # Get base type (handle Optional, etc.)
             ann = param.annotation
-            origin = getattr(ann, "__origin__", None)
-            if origin is type(None) or ann is type(None):
+            # Skip parameters that are explicitly annotated as None.
+            # Optional[...] / Union[..., None] are handled in the Union logic below.
+            if ann is type(None):
                 continue
 
             # Handle Union types (e.g., str | None)
