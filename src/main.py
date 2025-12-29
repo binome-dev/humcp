@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from src.humcp import create_app
+from src.humcp.server import create_app
 from src.logging_setup import configure_logging
 
 configure_logging()

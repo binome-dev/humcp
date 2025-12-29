@@ -4,7 +4,7 @@ import logging
 import subprocess
 from pathlib import Path
 
-from src.tools import tool
+from src.humcp.decorator import tool
 
 logger = logging.getLogger("humcp.tools.shell")
 

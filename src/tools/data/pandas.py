@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.tools import tool
+from src.humcp.decorator import tool
 
 try:
     import pandas as pd
@@ -53,7 +53,7 @@ def get_dataframe_manager():
     return _dataframe_manager
 
 
-@tool("pandas_create_pandas_dataframe")
+@tool("create_pandas_dataframe")
 async def create_pandas_dataframe(
     dataframe_name: str,
     create_using_function: str,
@@ -138,7 +138,7 @@ async def create_pandas_dataframe(
         return {"success": False, "error": f"Error creating DataFrame: {str(e)}"}
 
 
-@tool("pandas_run_dataframe_operation")
+@tool("run_dataframe_operation")
 async def run_dataframe_operation(
     dataframe_name: str,
     operation: str,
@@ -212,7 +212,7 @@ async def run_dataframe_operation(
         return {"success": False, "error": f"Error running operation: {str(e)}"}
 
 
-@tool("pandas_list_dataframes")
+@tool("list_dataframes")
 async def list_dataframes() -> dict:
     """
     List all DataFrames currently stored in memory.
@@ -243,7 +243,7 @@ async def list_dataframes() -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("pandas_get_dataframe_info")
+@tool("get_dataframe_info")
 async def get_dataframe_info(dataframe_name: str) -> dict:
     """
     Get detailed information about a specific DataFrame.
@@ -280,7 +280,7 @@ async def get_dataframe_info(dataframe_name: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("pandas_delete_dataframe")
+@tool("delete_dataframe")
 async def delete_dataframe(dataframe_name: str) -> dict:
     """
     Delete a DataFrame from memory.
@@ -311,7 +311,7 @@ async def delete_dataframe(dataframe_name: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("pandas_export_dataframe")
+@tool("export_dataframe")
 async def export_dataframe(
     dataframe_name: str,
     export_function: str,

@@ -4,31 +4,29 @@ import logging
 from typing import Any
 
 from fastapi import Body, FastAPI, HTTPException
-from fastmcp.client import Client
-from mcp.types import Tool
 from pydantic import BaseModel, Field, create_model
+
+from src.humcp.registry import TOOL_REGISTRY, ToolRegistration
 
 logger = logging.getLogger("humcp.routes")
 
 
-def register_routes(app: FastAPI, client: Client, tools: dict[str, Tool]) -> None:
-    """Register all REST routes for tools.
+def register_routes(app: FastAPI) -> None:
+    """Register REST routes from TOOL_REGISTRY.
 
     Args:
         app: FastAPI application.
-        client: MCP client for tool execution.
-        tools: Dict of tool name to Tool object.
     """
     # Tool execution endpoints
-    for tool in tools.values():
-        _add_tool_route(app, client, tool)
+    for reg in TOOL_REGISTRY:
+        _add_tool_route(app, reg)
 
     # Info endpoints
     @app.get("/tools", tags=["Info"])
     async def list_tools():
-        cats = _categorize(tools)
+        cats = _categorize()
         return {
-            "total_tools": len(tools),
+            "total_tools": len(TOOL_REGISTRY),
             "categories": {
                 k: {"count": len(v), "tools": v} for k, v in sorted(cats.items())
             },
@@ -36,88 +34,118 @@ def register_routes(app: FastAPI, client: Client, tools: dict[str, Tool]) -> Non
 
     @app.get("/tools/{category}", tags=["Info"])
     async def get_category(category: str):
-        cats = _categorize(tools)
+        cats = _categorize()
         if category not in cats:
             raise HTTPException(404, f"Category '{category}' not found")
         return {
             "category": category,
             "count": len(cats[category]),
-            "tools": [
-                {**t, "parameters": _get_schema(tools[t["full_name"]])}
-                for t in cats[category]
-            ],
+            "tools": cats[category],
         }
 
     @app.get("/tools/{category}/{tool_name}", tags=["Info"])
     async def get_tool(category: str, tool_name: str):
-        full = f"{category}_{tool_name}"
-        if full not in tools:
-            raise HTTPException(404, f"Tool '{full}' not found")
-        t = tools[full]
+        # Match by category and name (either exact or with category prefix)
+        reg = next(
+            (
+                r
+                for r in TOOL_REGISTRY
+                if r.category == category
+                and (r.name == tool_name or r.name == f"{category}_{tool_name}")
+            ),
+            None,
+        )
+        if not reg:
+            raise HTTPException(
+                404, f"Tool '{tool_name}' not found in category '{category}'"
+            )
         return {
-            "name": t.name,
-            "category": category,
-            "description": t.description,
-            "parameters": _get_schema(t),
-            "endpoint": f"/tools/{t.name}",
+            "name": reg.name,
+            "category": reg.category,
+            "description": reg.func.__doc__,
+            "endpoint": f"/tools/{reg.name}",
+            "input_schema": _get_schema_from_func(reg.func),
         }
 
 
-def _add_tool_route(app: FastAPI, client: Client, tool: Tool) -> None:
+def _add_tool_route(app: FastAPI, reg: ToolRegistration) -> None:
     """Add POST /tools/{name} endpoint for a tool."""
-    schema = _get_schema(tool)
-    InputModel = _create_model(schema, f"{_pascal(tool.name)}Input")
+    schema = _get_schema_from_func(reg.func)
+    InputModel = _create_model(schema, f"{_pascal(reg.name)}Input")
 
     async def endpoint(data: BaseModel = Body(...)) -> dict[str, Any]:  # type: ignore[assignment]
         try:
-            result = await client.call_tool(
-                tool.name, data.model_dump(exclude_none=True)
-            )
-            if hasattr(result, "content") and isinstance(result.content, list):
-                return {
-                    "result": [
-                        x.text if hasattr(x, "text") else str(x) for x in result.content
-                    ]
-                }
-            return {"result": getattr(result, "content", str(result))}
+            params = data.model_dump(exclude_none=True)
+            result = await reg.func(**params)
+            return {"result": result}
         except HTTPException:
             raise
         except Exception as e:
-            logger.exception("Tool %s failed", tool.name)
+            logger.exception("Tool %s failed", reg.name)
             raise HTTPException(500, f"Tool failed: {e}") from e
 
     endpoint.__annotations__["data"] = InputModel
     app.add_api_route(
-        f"/tools/{tool.name}",
+        f"/tools/{reg.name}",
         endpoint,
         methods=["POST"],
-        summary=tool.description or tool.name,
+        summary=reg.func.__doc__ or reg.name,
         tags=["Tools"],
-        name=tool.name,
+        name=reg.name,
     )
 
 
-def _categorize(tools: dict[str, Tool]) -> dict[str, list[dict[str, Any]]]:
-    """Group tools by category prefix."""
+def _categorize() -> dict[str, list[dict[str, Any]]]:
+    """Group tools by category."""
     cats: dict[str, list[dict[str, Any]]] = {}
-    for name, t in tools.items():
-        parts = name.split("_", 1)
-        cat = parts[0] if len(parts) > 1 else "uncategorized"
-        short = parts[1] if len(parts) > 1 else name
-        cats.setdefault(cat, []).append(
+    for reg in TOOL_REGISTRY:
+        cats.setdefault(reg.category, []).append(
             {
-                "name": short,
-                "full_name": name,
-                "description": t.description,
-                "endpoint": f"/tools/{name}",
+                "name": reg.name,
+                "description": reg.func.__doc__,
+                "endpoint": f"/tools/{reg.name}",
             }
         )
     return cats
 
 
-def _get_schema(tool: Tool) -> dict[str, Any]:
-    """Get input schema from tool."""
-    return tool.inputSchema if hasattr(tool, "inputSchema") else {}
+def _get_schema_from_func(func: Any) -> dict[str, Any]:
+    """Extract JSON schema from function type hints."""
+    import inspect
+
+    sig = inspect.signature(func)
+    properties: dict[str, Any] = {}
+    required: list[str] = []
+
+    type_map = {
+        str: "string",
+        int: "integer",
+        float: "number",
+        bool: "boolean",
+        list: "array",
+        dict: "object",
+    }
+
+    for name, param in sig.parameters.items():
+        if param.annotation != inspect.Parameter.empty:
+            # Get base type (handle Optional, etc.)
+            ann = param.annotation
+            origin = getattr(ann, "__origin__", None)
+            if origin is type(None) or ann is type(None):
+                continue
+
+            # Handle Union types (e.g., str | None)
+            args = getattr(ann, "__args__", None)
+            if args:
+                ann = next((a for a in args if a is not type(None)), ann)
+
+            json_type = type_map.get(ann, "string")
+            properties[name] = {"type": json_type}
+
+            if param.default == inspect.Parameter.empty:
+                required.append(name)
+
+    return {"type": "object", "properties": properties, "required": required}
 
 
 def _pascal(name: str) -> str:
