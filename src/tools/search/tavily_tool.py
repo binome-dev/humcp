@@ -3,14 +3,9 @@ from __future__ import annotations
 import json
 import logging
 import os
-import sys
-from pathlib import Path
 from typing import Any
 
-project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
-
-from fastmcp import FastMCP
+from src.tools import tool
 
 try:
     from tavily import TavilyClient
@@ -84,6 +79,7 @@ class TavilySearchTool:
         return clean_response if clean_response else {}
 
 
+@tool("web_search")
 async def tavily_web_search(
     query: str,
     max_results: int = 5,
@@ -130,8 +126,3 @@ async def tavily_web_search(
     except Exception as e:
         logger.exception("Tavily search failed")
         return {"success": False, "error": f"Tavily search failed: {str(e)}"}
-
-
-def register_tools(mcp: FastMCP) -> None:
-    """Register Tavily search tool with the MCP server."""
-    mcp.tool(name="web_search")(tavily_web_search)

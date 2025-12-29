@@ -22,37 +22,35 @@ class TestGetToolCategories:
 
     def test_single_category_single_tool(self):
         tools = {
-            "calculator/add": self._create_mock_tool("calculator/add"),
+            "calculator_add": self._create_mock_tool("calculator_add"),
         }
         generator = self._create_route_generator(tools)
 
         categories = generator._get_tool_categories()
 
         assert "calculator" in categories
-        assert categories["calculator"]["tools_count"] == 1
-        assert len(categories["calculator"]["tools"]) == 1
-        assert categories["calculator"]["tools"][0]["name"] == "add"
-        assert categories["calculator"]["tools"][0]["full_name"] == "calculator/add"
+        assert len(categories["calculator"]) == 1
+        assert categories["calculator"][0]["name"] == "add"
+        assert categories["calculator"][0]["full_name"] == "calculator_add"
 
     def test_single_category_multiple_tools(self):
         tools = {
-            "calculator/add": self._create_mock_tool("calculator/add"),
-            "calculator/subtract": self._create_mock_tool("calculator/subtract"),
-            "calculator/multiply": self._create_mock_tool("calculator/multiply"),
+            "calculator_add": self._create_mock_tool("calculator_add"),
+            "calculator_subtract": self._create_mock_tool("calculator_subtract"),
+            "calculator_multiply": self._create_mock_tool("calculator_multiply"),
         }
         generator = self._create_route_generator(tools)
 
         categories = generator._get_tool_categories()
 
         assert "calculator" in categories
-        assert categories["calculator"]["tools_count"] == 3
-        assert len(categories["calculator"]["tools"]) == 3
+        assert len(categories["calculator"]) == 3
 
     def test_multiple_categories(self):
         tools = {
-            "calculator/add": self._create_mock_tool("calculator/add"),
-            "filesystem/read": self._create_mock_tool("filesystem/read"),
-            "shell/execute": self._create_mock_tool("shell/execute"),
+            "calculator_add": self._create_mock_tool("calculator_add"),
+            "filesystem_read": self._create_mock_tool("filesystem_read"),
+            "shell_execute": self._create_mock_tool("shell_execute"),
         }
         generator = self._create_route_generator(tools)
 
@@ -62,26 +60,26 @@ class TestGetToolCategories:
         assert "calculator" in categories
         assert "filesystem" in categories
         assert "shell" in categories
-        assert categories["calculator"]["tools_count"] == 1
-        assert categories["filesystem"]["tools_count"] == 1
-        assert categories["shell"]["tools_count"] == 1
+        assert len(categories["calculator"]) == 1
+        assert len(categories["filesystem"]) == 1
+        assert len(categories["shell"]) == 1
 
     def test_uncategorized_tool(self):
         tools = {
-            "simple_tool": self._create_mock_tool("simple_tool"),
+            "simpletool": self._create_mock_tool("simpletool"),
         }
         generator = self._create_route_generator(tools)
 
         categories = generator._get_tool_categories()
 
         assert "uncategorized" in categories
-        assert categories["uncategorized"]["tools_count"] == 1
-        assert categories["uncategorized"]["tools"][0]["name"] == "simple_tool"
+        assert len(categories["uncategorized"]) == 1
+        assert categories["uncategorized"][0]["name"] == "simpletool"
 
     def test_mixed_categorized_and_uncategorized(self):
         tools = {
-            "calculator/add": self._create_mock_tool("calculator/add"),
-            "simple_tool": self._create_mock_tool("simple_tool"),
+            "calculator_add": self._create_mock_tool("calculator_add"),
+            "simpletool": self._create_mock_tool("simpletool"),
         }
         generator = self._create_route_generator(tools)
 
@@ -93,17 +91,16 @@ class TestGetToolCategories:
 
     def test_nested_category_path(self):
         tools = {
-            "data/csv/read": self._create_mock_tool("data/csv/read"),
+            "data_csv_read": self._create_mock_tool("data_csv_read"),
         }
         generator = self._create_route_generator(tools)
 
         categories = generator._get_tool_categories()
 
         assert "data" in categories
-        assert categories["data"]["tools_count"] == 1
-        # The sub_tool should be "csv/read" (everything after first /)
-        assert categories["data"]["tools"][0]["name"] == "csv/read"
-        assert categories["data"]["tools"][0]["full_name"] == "data/csv/read"
+        assert len(categories["data"]) == 1
+        assert categories["data"][0]["name"] == "csv_read"
+        assert categories["data"][0]["full_name"] == "data_csv_read"
 
     def test_empty_tools(self):
         tools = {}
@@ -115,41 +112,38 @@ class TestGetToolCategories:
 
     def test_tool_endpoint_path(self):
         tools = {
-            "calculator/add": self._create_mock_tool("calculator/add"),
+            "calculator_add": self._create_mock_tool("calculator_add"),
         }
         generator = self._create_route_generator(tools)
 
         categories = generator._get_tool_categories()
 
-        expected_endpoint = "/tools/calculator/add"
-        assert categories["calculator"]["tools"][0]["endpoint"] == expected_endpoint
+        expected_endpoint = "/tools/calculator_add"
+        assert categories["calculator"][0]["endpoint"] == expected_endpoint
 
     def test_custom_route_prefix(self):
         mock_client = MagicMock()
         generator = RouteGenerator(client=mock_client, route_prefix="/api/v1/tools")
         generator.tools = {
-            "calculator/add": self._create_mock_tool("calculator/add"),
+            "calculator_add": self._create_mock_tool("calculator_add"),
         }
 
         categories = generator._get_tool_categories()
 
-        expected_endpoint = "/api/v1/tools/calculator/add"
-        assert categories["calculator"]["tools"][0]["endpoint"] == expected_endpoint
+        expected_endpoint = "/api/v1/tools/calculator_add"
+        assert categories["calculator"][0]["endpoint"] == expected_endpoint
 
     def test_tool_description_preserved(self):
         tools = {
-            "calculator/add": self._create_mock_tool(
-                "calculator/add", description="Add two numbers together"
+            "calculator_add": self._create_mock_tool(
+                "calculator_add", description="Add two numbers together"
             ),
         }
         generator = self._create_route_generator(tools)
 
         categories = generator._get_tool_categories()
 
-        assert (
-            categories["calculator"]["tools"][0]["description"]
-            == "Add two numbers together"
-        )
+        assert categories["calculator"][0]["description"] == "Add two numbers together"
 
 
 class TestRouteGeneratorInit:

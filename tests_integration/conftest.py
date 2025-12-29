@@ -35,7 +35,16 @@ def mcp_server():
     print(f"Working directory: {PROJECT_ROOT}")
 
     process = subprocess.Popen(
-        [sys.executable, "-m", "src.server"],
+        [
+            sys.executable,
+            "-m",
+            "uvicorn",
+            "src.main:app",
+            "--host",
+            SERVER_HOST,
+            "--port",
+            str(SERVER_PORT),
+        ],
         cwd=str(PROJECT_ROOT),
         env={**dict(__import__("os").environ), "PYTHONPATH": str(PROJECT_ROOT)},
     )
