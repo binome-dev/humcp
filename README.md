@@ -61,7 +61,7 @@ uv run uvicorn src.main:app --host 0.0.0.0 --port 8080
 2. Use the `@tool` decorator:
 
 ```python
-from src.humcp import tool
+from src.humcp.decorator import tool
 
 @tool()
 async def greet(name: str) -> dict:
