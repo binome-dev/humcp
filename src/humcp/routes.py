@@ -1,5 +1,6 @@
 """REST route generation for tools."""
 
+import inspect
 import logging
 from typing import Any
 
@@ -111,7 +112,6 @@ def _categorize() -> dict[str, list[dict[str, Any]]]:
 
 def _get_schema_from_func(func: Any) -> dict[str, Any]:
     """Extract JSON schema from function type hints."""
-    import inspect
 
     sig = inspect.signature(func)
     properties: dict[str, Any] = {}
