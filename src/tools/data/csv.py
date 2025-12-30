@@ -2,7 +2,7 @@ import csv as csv_lib
 import logging
 from pathlib import Path
 
-from src.tools import tool
+from src.humcp.decorator import tool
 
 logger = logging.getLogger("humcp.tools.csv")
 
@@ -47,7 +47,7 @@ def set_csv_files(csv_files: list):
     _csv_manager = CSVManager(csv_files)
 
 
-@tool("csv_list_csv_files")
+@tool("list_csv_files")
 async def list_csv_files() -> dict:
     """List all available CSV files."""
     try:
@@ -63,7 +63,7 @@ async def list_csv_files() -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("csv_read_csv_file")
+@tool("read_csv_file")
 async def read_csv_file(csv_name: str, row_limit: int = None) -> dict:
     """Read contents of a CSV file."""
     try:
@@ -87,7 +87,7 @@ async def read_csv_file(csv_name: str, row_limit: int = None) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("csv_get_csv_columns")
+@tool("get_csv_columns")
 async def get_csv_columns(csv_name: str) -> dict:
     """Get column names from a CSV file."""
     try:
@@ -107,7 +107,7 @@ async def get_csv_columns(csv_name: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("csv_query_csv_file")
+@tool("query_csv_file")
 async def query_csv_file(csv_name: str, sql_query: str) -> dict:
     """Execute SQL query on CSV file using DuckDB."""
     try:
@@ -141,7 +141,7 @@ async def query_csv_file(csv_name: str, sql_query: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("csv_describe_csv_file")
+@tool("describe_csv_file")
 async def describe_csv_file(csv_name: str) -> dict:
     """Get detailed information about a CSV file."""
     try:
@@ -180,7 +180,7 @@ async def describe_csv_file(csv_name: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("csv_add_csv_file")
+@tool("add_csv_file")
 async def add_csv_file(file_path: str) -> dict:
     """Add a CSV file to available files."""
     try:
@@ -204,7 +204,7 @@ async def add_csv_file(file_path: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("csv_remove_csv_file")
+@tool("remove_csv_file")
 async def remove_csv_file(csv_name: str) -> dict:
     """Remove a CSV file from available files."""
     try:

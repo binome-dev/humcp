@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from src.tools import tool
+from src.humcp.decorator import tool
 
 try:
     from markitdown import MarkItDown
