@@ -5,7 +5,7 @@ import logging
 import os
 from typing import Any
 
-from src.tools import tool
+from src.humcp.decorator import tool
 
 try:
     from tavily import TavilyClient
@@ -79,7 +79,7 @@ class TavilySearchTool:
         return clean_response if clean_response else {}
 
 
-@tool("web_search")
+@tool("tavily_web_search")
 async def tavily_web_search(
     query: str,
     max_results: int = 5,
