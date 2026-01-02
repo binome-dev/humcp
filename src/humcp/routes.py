@@ -9,6 +9,16 @@ from fastapi import Body, FastAPI, HTTPException
 from pydantic import BaseModel, Field, create_model
 
 from src.humcp.registry import TOOL_REGISTRY, ToolRegistration
+from src.humcp.schemas import (
+    CategorySummary,
+    GetCategoryResponse,
+    GetToolResponse,
+    InputSchema,
+    ListToolsResponse,
+    SkillFull,
+    SkillMetadata,
+    ToolSummary,
+)
 from src.humcp.skills import discover_skills
 
 logger = logging.getLogger("humcp.routes")
@@ -45,45 +55,47 @@ def register_routes(app: FastAPI, tools_path: Path | None = None) -> None:
     skills = discover_skills(tools_path)
 
     # Info endpoints
-    @app.get("/tools", tags=["Info"])
-    async def list_tools():
-        return {
-            "total_tools": total_tools,
-            "categories": {
-                k: {
-                    "count": len(v),
-                    "tools": v,
-                    "skill": {
-                        "name": skills[k].name,
-                        "description": skills[k].description,
-                    }
+    @app.get("/tools", tags=["Info"], response_model=ListToolsResponse)
+    async def list_tools() -> ListToolsResponse:
+        return ListToolsResponse(
+            total_tools=total_tools,
+            categories={
+                k: CategorySummary(
+                    count=len(v),
+                    tools=[ToolSummary(**t) for t in v],
+                    skill=SkillMetadata(
+                        name=skills[k].name,
+                        description=skills[k].description,
+                    )
                     if k in skills
                     else None,
-                }
+                )
                 for k, v in sorted(categories.items())
             },
-        }
+        )
 
-    @app.get("/tools/{category}", tags=["Info"])
-    async def get_category(category: str):
+    @app.get("/tools/{category}", tags=["Info"], response_model=GetCategoryResponse)
+    async def get_category(category: str) -> GetCategoryResponse:
         if category not in categories:
             raise HTTPException(404, f"Category '{category}' not found")
         skill = skills.get(category)
-        return {
-            "category": category,
-            "count": len(categories[category]),
-            "tools": categories[category],
-            "skill": {
-                "name": skill.name,
-                "description": skill.description,
-                "content": skill.content,
-            }
+        return GetCategoryResponse(
+            category=category,
+            count=len(categories[category]),
+            tools=[ToolSummary(**t) for t in categories[category]],
+            skill=SkillFull(
+                name=skill.name,
+                description=skill.description,
+                content=skill.content,
+            )
             if skill
             else None,
-        }
+        )
 
-    @app.get("/tools/{category}/{tool_name}", tags=["Info"])
-    async def get_tool(category: str, tool_name: str):
+    @app.get(
+        "/tools/{category}/{tool_name}", tags=["Info"], response_model=GetToolResponse
+    )
+    async def get_tool(category: str, tool_name: str) -> GetToolResponse:
         # Try exact match first, then with category prefix
         reg = tool_lookup.get((category, tool_name)) or tool_lookup.get(
             (category, f"{category}_{tool_name}")
@@ -92,13 +104,14 @@ def register_routes(app: FastAPI, tools_path: Path | None = None) -> None:
             raise HTTPException(
                 404, f"Tool '{tool_name}' not found in category '{category}'"
             )
-        return {
-            "name": reg.name,
-            "category": reg.category,
-            "description": reg.func.__doc__,
-            "endpoint": f"/tools/{reg.name}",
-            "input_schema": _get_schema_from_func(reg.func),
-        }
+        schema = _get_schema_from_func(reg.func)
+        return GetToolResponse(
+            name=reg.name,
+            category=reg.category,
+            description=reg.func.__doc__,
+            endpoint=f"/tools/{reg.name}",
+            input_schema=InputSchema(**schema),
+        )
 
 
 def _add_tool_route(app: FastAPI, reg: ToolRegistration) -> None:
