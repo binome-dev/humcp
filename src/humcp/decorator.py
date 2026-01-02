@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, NamedTuple
 
-from fastmcp.tools import Tool
+from fastmcp.tools import FunctionTool
 
 __all__ = [
     "tool",
@@ -36,11 +36,11 @@ class RegisteredTool(NamedTuple):
     """A tool registered with FastMCP, with category for grouping.
 
     Attributes:
-        tool: The FastMCP Tool object (has name, description, parameters, fn).
+        tool: The FastMCP FunctionTool object (has name, description, parameters, fn).
         category: Category for REST endpoint grouping.
     """
 
-    tool: Tool
+    tool: FunctionTool
     category: str
 
 
