@@ -12,6 +12,15 @@ from src.humcp.registry import TOOL_REGISTRY, ToolRegistration
 logger = logging.getLogger("humcp.routes")
 
 
+def _format_tag(category: str) -> str:
+    """Format category name as a display-friendly tag.
+
+    Converts snake_case or lowercase to Title Case.
+    E.g., "google" -> "Google", "local_files" -> "Local Files"
+    """
+    return category.replace("_", " ").title()
+
+
 def register_routes(app: FastAPI) -> None:
     """Register REST routes from TOOL_REGISTRY.
 
@@ -88,7 +97,7 @@ def _add_tool_route(app: FastAPI, reg: ToolRegistration) -> None:
         endpoint,
         methods=["POST"],
         summary=reg.func.__doc__ or reg.name,
-        tags=["Tools"],
+        tags=[_format_tag(reg.category)],
         name=reg.name,
     )
 
@@ -105,6 +114,33 @@ def _build_categories() -> dict[str, list[dict[str, Any]]]:
             }
         )
     return cats
+
+
+def build_openapi_tags() -> list[dict[str, str]]:
+    """Build OpenAPI tag metadata for all tool categories.
+
+    Returns a list of tag definitions with name and description,
+    sorted alphabetically by tag name. Includes the "Info" tag first.
+    """
+    # Collect unique categories
+    categories = sorted({reg.category for reg in TOOL_REGISTRY})
+
+    # Build tag metadata
+    tags = [
+        {"name": "Info", "description": "Server and tool information endpoints"},
+    ]
+
+    for category in categories:
+        # Count tools in this category
+        tool_count = sum(1 for reg in TOOL_REGISTRY if reg.category == category)
+        tags.append(
+            {
+                "name": _format_tag(category),
+                "description": f"{_format_tag(category)} tools ({tool_count} endpoints)",
+            }
+        )
+
+    return tags
 
 
 def _build_tool_lookup() -> dict[tuple[str, str], ToolRegistration]:

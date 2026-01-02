@@ -153,6 +153,27 @@ class TestCreateApp:
         app = create_app()
         assert isinstance(app, FastAPI)
 
+    def test_create_app_has_openapi_tags(self, tmp_path, register_sample_tools):
+        """Should include OpenAPI tags for categories."""
+        app = create_app(tools_path=str(tmp_path))
+
+        openapi = app.openapi()
+        assert "tags" in openapi
+
+        tag_names = [t["name"] for t in openapi["tags"]]
+        assert "Info" in tag_names
+        assert "Test" in tag_names  # From register_sample_tools fixture
+        assert "Other" in tag_names
+
+    def test_openapi_tags_have_descriptions(self, tmp_path, register_sample_tools):
+        """OpenAPI tags should have descriptions."""
+        app = create_app(tools_path=str(tmp_path))
+
+        openapi = app.openapi()
+        for tag in openapi["tags"]:
+            assert "name" in tag
+            assert "description" in tag
+
 
 class TestCreateAppWithTools:
     """Tests for create_app with registered tools."""

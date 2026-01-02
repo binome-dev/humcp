@@ -8,9 +8,95 @@ from src.humcp.registry import ToolRegistration
 from src.humcp.routes import (
     _build_categories,
     _build_tool_lookup,
+    _format_tag,
     _get_schema_from_func,
+    build_openapi_tags,
     register_routes,
 )
+
+
+class TestFormatTag:
+    """Tests for the _format_tag function."""
+
+    def test_lowercase_to_title(self):
+        """Should convert lowercase to title case."""
+        assert _format_tag("google") == "Google"
+
+    def test_snake_case_to_title(self):
+        """Should convert snake_case to Title Case with spaces."""
+        assert _format_tag("local_files") == "Local Files"
+
+    def test_multiple_underscores(self):
+        """Should handle multiple underscores."""
+        assert _format_tag("my_long_category_name") == "My Long Category Name"
+
+    def test_already_capitalized(self):
+        """Should handle already capitalized strings."""
+        assert _format_tag("Google") == "Google"
+
+    def test_empty_string(self):
+        """Should handle empty string."""
+        assert _format_tag("") == ""
+
+    def test_single_letter(self):
+        """Should handle single letter."""
+        assert _format_tag("a") == "A"
+
+
+class TestBuildOpenapiTags:
+    """Tests for the build_openapi_tags function."""
+
+    def test_returns_list(self, register_sample_tools):
+        """Should return a list of tag definitions."""
+        tags = build_openapi_tags()
+        assert isinstance(tags, list)
+
+    def test_includes_info_tag_first(self, register_sample_tools):
+        """Should include Info tag as first element."""
+        tags = build_openapi_tags()
+        assert tags[0]["name"] == "Info"
+        assert "description" in tags[0]
+
+    def test_includes_category_tags(self, register_sample_tools):
+        """Should include tags for each category."""
+        tags = build_openapi_tags()
+        tag_names = [t["name"] for t in tags]
+
+        assert "Test" in tag_names  # "test" -> "Test"
+        assert "Other" in tag_names  # "other" -> "Other"
+
+    def test_tag_has_name_and_description(self, register_sample_tools):
+        """Each tag should have name and description."""
+        tags = build_openapi_tags()
+
+        for tag in tags:
+            assert "name" in tag
+            assert "description" in tag
+
+    def test_category_tags_sorted(self, register_sample_tools):
+        """Category tags should be sorted alphabetically."""
+        tags = build_openapi_tags()
+
+        # Skip Info tag (first)
+        category_tags = tags[1:]
+        tag_names = [t["name"] for t in category_tags]
+        assert tag_names == sorted(tag_names)
+
+    def test_description_includes_tool_count(self, register_sample_tools):
+        """Category descriptions should include tool count."""
+        tags = build_openapi_tags()
+
+        test_tag = next(t for t in tags if t["name"] == "Test")
+        assert "2 endpoints" in test_tag["description"]
+
+        other_tag = next(t for t in tags if t["name"] == "Other")
+        assert "1 endpoints" in other_tag["description"]
+
+    def test_empty_registry(self):
+        """Should return only Info tag when registry is empty."""
+        tags = build_openapi_tags()
+        assert len(tags) == 1
+        assert tags[0]["name"] == "Info"
 
 
 class TestGetSchemaFromFunc:
@@ -340,6 +426,56 @@ class TestToolInfoEndpointSchema:
         schema = data["input_schema"]
         assert "a" in schema["required"]
         assert "b" not in schema["required"]
+
+
+class TestOpenApiCategoryTags:
+    """Tests for OpenAPI category tags in tool endpoints."""
+
+    def test_tool_routes_use_category_tags(self, register_sample_tools):
+        """Tool routes should use formatted category as tag."""
+        app = FastAPI()
+        register_routes(app)
+
+        # Get OpenAPI schema
+        openapi = app.openapi()
+        paths = openapi["paths"]
+
+        # Check test_tool_one uses "Test" tag
+        tool_one_path = paths.get("/tools/test_tool_one")
+        assert tool_one_path is not None
+        assert "Test" in tool_one_path["post"]["tags"]
+
+        # Check other_category_tool uses "Other" tag
+        other_tool_path = paths.get("/tools/other_category_tool")
+        assert other_tool_path is not None
+        assert "Other" in other_tool_path["post"]["tags"]
+
+    def test_info_endpoints_use_info_tag(self, register_sample_tools):
+        """Info endpoints should use 'Info' tag."""
+        app = FastAPI()
+        register_routes(app)
+
+        openapi = app.openapi()
+        paths = openapi["paths"]
+
+        # Check /tools uses Info tag
+        tools_path = paths.get("/tools")
+        assert tools_path is not None
+        assert "Info" in tools_path["get"]["tags"]
+
+    def test_openapi_tags_metadata(self, register_sample_tools):
+        """App with openapi_tags should have tag descriptions."""
+        tags = build_openapi_tags()
+        app = FastAPI(openapi_tags=tags)
+        register_routes(app)
+
+        openapi = app.openapi()
+        assert "tags" in openapi
+
+        tag_names = [t["name"] for t in openapi["tags"]]
+        assert "Info" in tag_names
+        assert "Test" in tag_names
+        assert "Other" in tag_names
 
 
 class TestListToolsEndpoint:

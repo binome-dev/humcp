@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from fastmcp import FastMCP
 
 from src.humcp.registry import TOOL_REGISTRY
-from src.humcp.routes import register_routes
+from src.humcp.routes import build_openapi_tags, register_routes
 
 logger = logging.getLogger("humcp")
 
@@ -101,11 +101,15 @@ def create_app(
         async with mcp_http_app.router.lifespan_context(mcp_http_app):
             yield
 
+    # Build OpenAPI tags from discovered categories
+    openapi_tags = build_openapi_tags()
+
     app = FastAPI(
         title=title,
         description=description,
         version=version,
         lifespan=lifespan,
+        openapi_tags=openapi_tags,
     )
 
     # Register REST routes from TOOL_REGISTRY
