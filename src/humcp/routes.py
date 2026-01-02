@@ -2,12 +2,14 @@
 
 import inspect
 import logging
+from pathlib import Path
 from typing import Any
 
 from fastapi import Body, FastAPI, HTTPException
 from pydantic import BaseModel, Field, create_model
 
 from src.humcp.registry import TOOL_REGISTRY, ToolRegistration
+from src.humcp.skills import discover_skills
 
 logger = logging.getLogger("humcp.routes")
 
@@ -21,11 +23,12 @@ def _format_tag(category: str) -> str:
     return category.replace("_", " ").title()
 
 
-def register_routes(app: FastAPI) -> None:
+def register_routes(app: FastAPI, tools_path: Path | None = None) -> None:
     """Register REST routes from TOOL_REGISTRY.
 
     Args:
         app: FastAPI application.
+        tools_path: Path to tools directory for skill discovery.
     """
     # Tool execution endpoints
     for reg in TOOL_REGISTRY:
@@ -36,13 +39,28 @@ def register_routes(app: FastAPI) -> None:
     tool_lookup = _build_tool_lookup()
     total_tools = len(TOOL_REGISTRY)
 
+    # Discover skills from SKILL.md files
+    if tools_path is None:
+        tools_path = Path(__file__).parent.parent / "tools"
+    skills = discover_skills(tools_path)
+
     # Info endpoints
     @app.get("/tools", tags=["Info"])
     async def list_tools():
         return {
             "total_tools": total_tools,
             "categories": {
-                k: {"count": len(v), "tools": v} for k, v in sorted(categories.items())
+                k: {
+                    "count": len(v),
+                    "tools": v,
+                    "skill": {
+                        "name": skills[k].name,
+                        "description": skills[k].description,
+                    }
+                    if k in skills
+                    else None,
+                }
+                for k, v in sorted(categories.items())
             },
         }
 
@@ -50,10 +68,18 @@ def register_routes(app: FastAPI) -> None:
     async def get_category(category: str):
         if category not in categories:
             raise HTTPException(404, f"Category '{category}' not found")
+        skill = skills.get(category)
         return {
             "category": category,
             "count": len(categories[category]),
             "tools": categories[category],
+            "skill": {
+                "name": skill.name,
+                "description": skill.description,
+                "content": skill.content,
+            }
+            if skill
+            else None,
         }
 
     @app.get("/tools/{category}/{tool_name}", tags=["Info"])
