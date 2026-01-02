@@ -1,10 +1,31 @@
+"""CSV file tools with DuckDB query support.
+
+Security Note:
+    The query_csv_file tool only allows SELECT queries for safety.
+    All queries are validated before execution.
+"""
+
 import csv as csv_lib
 import logging
+import re
 from pathlib import Path
 
 from src.humcp.decorator import tool
 
 logger = logging.getLogger("humcp.tools.csv")
+
+# Allowed SQL operations (read-only)
+_ALLOWED_SQL_PATTERN = re.compile(
+    r"^\s*SELECT\s+.+\s+FROM\s+",
+    re.IGNORECASE | re.DOTALL,
+)
+
+# Disallowed SQL keywords that could modify data or execute dangerous operations
+_DISALLOWED_KEYWORDS = re.compile(
+    r"\b(INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|EXEC|EXECUTE|"
+    r"ATTACH|DETACH|COPY|LOAD|INSTALL|PRAGMA)\b",
+    re.IGNORECASE,
+)
 
 try:
     import duckdb
@@ -15,7 +36,7 @@ except ImportError:
 
 
 class CSVManager:
-    def __init__(self, csv_files: list = None):
+    def __init__(self, csv_files: list[str] | None = None):
         self.csv_files = []
         self.csv_map = {}
         if csv_files:
@@ -64,7 +85,7 @@ async def list_csv_files() -> dict:
 
 
 @tool("read_csv_file")
-async def read_csv_file(csv_name: str, row_limit: int = None) -> dict:
+async def read_csv_file(csv_name: str, row_limit: int | None = None) -> dict:
     """Read contents of a CSV file."""
     try:
         manager = get_csv_manager()
@@ -107,9 +128,33 @@ async def get_csv_columns(csv_name: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+def _validate_sql_query(query: str) -> tuple[bool, str]:
+    """Validate SQL query for safety.
+
+    Args:
+        query: SQL query to validate.
+
+    Returns:
+        Tuple of (is_valid, error_message).
+    """
+    # Check for disallowed keywords
+    if _DISALLOWED_KEYWORDS.search(query):
+        return False, "Query contains disallowed SQL keywords (only SELECT allowed)"
+
+    # Check if query starts with SELECT
+    if not _ALLOWED_SQL_PATTERN.match(query):
+        return False, "Only SELECT queries are allowed"
+
+    return True, ""
+
+
 @tool("query_csv_file")
 async def query_csv_file(csv_name: str, sql_query: str) -> dict:
-    """Execute SQL query on CSV file using DuckDB."""
+    """Execute SQL query on CSV file using DuckDB.
+
+    Security: Only SELECT queries are allowed. Queries with INSERT, UPDATE,
+    DELETE, DROP, or other data-modifying statements will be rejected.
+    """
     try:
         if not DUCKDB_AVAILABLE:
             return {"success": False, "error": "DuckDB required: pip install duckdb"}
@@ -118,12 +163,29 @@ async def query_csv_file(csv_name: str, sql_query: str) -> dict:
         file_path = manager.get_file_path(csv_name)
         if not file_path:
             return {"success": False, "error": f"CSV '{csv_name}' not found"}
+
+        # Sanitize and validate query
+        query = sql_query.strip().split(";")[0]  # Only first statement
+        is_valid, error_msg = _validate_sql_query(query)
+        if not is_valid:
+            logger.warning("SQL query rejected name=%s reason=%s", csv_name, error_msg)
+            return {"success": False, "error": error_msg}
+
         logger.info("Querying CSV file name=%s", csv_name)
 
-        query = sql_query.strip().replace("`", "").split(";")[0]
+        # Use parameterized table creation with sanitized table name
+        safe_table_name = re.sub(r"[^a-zA-Z0-9_]", "_", csv_name)
         conn = duckdb.connect(":memory:")
         conn.execute(
-            f"CREATE TABLE {csv_name} AS SELECT * FROM read_csv_auto('{file_path}')"
+            f"CREATE TABLE {safe_table_name} AS SELECT * FROM read_csv_auto(?)",
+            [str(file_path)],
+        )
+        # Replace table name in query
+        query = re.sub(
+            rf"\b{re.escape(csv_name)}\b",
+            safe_table_name,
+            query,
+            flags=re.IGNORECASE,
         )
         result = conn.execute(query).fetchall()
         columns = [desc[0] for desc in conn.description]

@@ -96,7 +96,7 @@ class TestCreatePandasDataframe:
             function_parameters={},
         )
         assert result["success"] is False
-        assert "does not exist" in result["error"].lower()
+        assert "not allowed" in result["error"].lower()
 
 
 class TestRunDataframeOperation:

@@ -20,7 +20,9 @@ def mock_env_api_key():
 
 class TestTavilySearchTool:
     def test_init(self, mock_tavily_client):
-        tool = TavilySearchTool(api_key="test-key", search_depth="advanced", max_tokens=5000)
+        tool = TavilySearchTool(
+            api_key="test-key", search_depth="advanced", max_tokens=5000
+        )
         mock_tavily_client.assert_called_once_with(api_key="test-key")
         assert tool.search_depth == "advanced"
         assert tool.max_tokens == 5000
@@ -189,7 +191,9 @@ class TestTavilyWebSearch:
         assert "rate limit" in result["error"].lower()
 
     @pytest.mark.asyncio
-    async def test_search_with_custom_params(self, mock_tavily_client, mock_env_api_key):
+    async def test_search_with_custom_params(
+        self, mock_tavily_client, mock_env_api_key
+    ):
         mock_client = MagicMock()
         mock_client.search.return_value = {
             "results": [

@@ -1,9 +1,86 @@
+"""Local file system tools for reading, writing, and managing files.
+
+Security Note:
+    These tools operate on the local file system. By default, operations are
+    restricted to the current working directory and its subdirectories to
+    prevent path traversal attacks. Set HUMCP_ALLOW_ABSOLUTE_PATHS=true to
+    allow absolute paths (use with caution).
+"""
+
 from __future__ import annotations
 
+import logging
+import os
 from pathlib import Path
 from uuid import uuid4
 
 from src.humcp.decorator import tool
+
+logger = logging.getLogger("humcp.tools.filesystem")
+
+
+def _allow_absolute_paths() -> bool:
+    """Check if absolute paths are allowed (evaluated at runtime for testing)."""
+    return os.getenv("HUMCP_ALLOW_ABSOLUTE_PATHS", "").lower() == "true"
+
+
+def _validate_path(path: Path, base_dir: Path | None = None) -> tuple[bool, str]:
+    """Validate a path for security.
+
+    Args:
+        path: Path to validate.
+        base_dir: Base directory to restrict operations to.
+
+    Returns:
+        Tuple of (is_valid, error_message).
+    """
+    # Resolve to absolute path
+    try:
+        resolved = path.resolve()
+    except (OSError, ValueError) as e:
+        return False, f"Invalid path: {e}"
+
+    # If absolute paths are allowed, skip containment check
+    if _allow_absolute_paths():
+        return True, ""
+
+    # Default base is current working directory
+    if base_dir is None:
+        base_dir = Path.cwd()
+
+    base_resolved = base_dir.resolve()
+
+    # Check if path is within base directory
+    try:
+        resolved.relative_to(base_resolved)
+        return True, ""
+    except ValueError:
+        return False, (
+            f"Path '{path}' is outside allowed directory '{base_resolved}'. "
+            "Set HUMCP_ALLOW_ABSOLUTE_PATHS=true to allow absolute paths."
+        )
+
+
+def _get_safe_path(
+    filename: str, directory: str = ""
+) -> tuple[Path | None, str | None]:
+    """Get a validated safe path.
+
+    Args:
+        filename: File name.
+        directory: Directory (defaults to cwd).
+
+    Returns:
+        Tuple of (path, error_message). Path is None if validation fails.
+    """
+    directory = directory if directory else str(Path.cwd())
+    file_path = Path(directory) / filename
+
+    is_valid, error = _validate_path(file_path)
+    if not is_valid:
+        return None, error
+
+    return file_path.resolve(), None
 
 
 @tool("filesystem_write_file")
@@ -44,13 +121,23 @@ async def write_file(
         directory = directory if directory else str(Path.cwd())
         extension = (extension if extension else "txt").lstrip(".")
 
-        # Create directory if it doesn't exist
-        dir_path = Path(directory)
-        dir_path.mkdir(parents=True, exist_ok=True)
-
         # Construct full filename with extension
         full_filename = f"{filename}.{extension}"
+        dir_path = Path(directory)
         file_path = dir_path / full_filename
+
+        # Validate path
+        is_valid, error = _validate_path(file_path)
+        if not is_valid:
+            logger.warning("Path validation failed: %s", error)
+            return {"success": False, "error": error}
+
+        # Resolve paths
+        file_path = file_path.resolve()
+        dir_path = file_path.parent
+
+        # Create directory if it doesn't exist
+        dir_path.mkdir(parents=True, exist_ok=True)
 
         # Write content to file
         file_path.write_text(content, encoding="utf-8")
@@ -86,8 +173,10 @@ async def read_file(
         File content and metadata
     """
     try:
-        directory = directory if directory else str(Path.cwd())
-        file_path = Path(directory) / filename
+        file_path, error = _get_safe_path(filename, directory)
+        if error or file_path is None:
+            logger.warning("Path validation failed: %s", error)
+            return {"success": False, "error": error or "Invalid path"}
 
         if not file_path.exists():
             return {"success": False, "error": f"File not found: {file_path}"}
@@ -131,6 +220,14 @@ async def list_files(
     try:
         directory = directory if directory else str(Path.cwd())
         dir_path = Path(directory)
+
+        # Validate directory path
+        is_valid, error = _validate_path(dir_path)
+        if not is_valid:
+            logger.warning("Path validation failed: %s", error)
+            return {"success": False, "error": error}
+
+        dir_path = dir_path.resolve()
 
         if not dir_path.exists():
             return {"success": False, "error": f"Directory not found: {dir_path}"}
@@ -185,8 +282,10 @@ async def delete_file(
         Confirmation of deletion
     """
     try:
-        directory = directory if directory else str(Path.cwd())
-        file_path = Path(directory) / filename
+        file_path, error = _get_safe_path(filename, directory)
+        if error or file_path is None:
+            logger.warning("Path validation failed: %s", error)
+            return {"success": False, "error": error or "Invalid path"}
 
         if not file_path.exists():
             return {"success": False, "error": f"File not found: {file_path}"}
@@ -226,6 +325,14 @@ async def create_directory(
     """
     try:
         dir_path = Path(directory)
+
+        # Validate directory path
+        is_valid, error = _validate_path(dir_path)
+        if not is_valid:
+            logger.warning("Path validation failed: %s", error)
+            return {"success": False, "error": error}
+
+        dir_path = dir_path.resolve()
 
         if dir_path.exists():
             if dir_path.is_dir():
@@ -269,8 +376,10 @@ async def file_exists(
         Boolean indicating whether the file exists
     """
     try:
-        directory = directory if directory else str(Path.cwd())
-        file_path = Path(directory) / filename
+        file_path, error = _get_safe_path(filename, directory)
+        if error or file_path is None:
+            logger.warning("Path validation failed: %s", error)
+            return {"success": False, "error": error or "Invalid path"}
 
         exists = file_path.exists() and file_path.is_file()
 
@@ -302,8 +411,10 @@ async def get_file_info(
         Detailed file information including size, timestamps, etc.
     """
     try:
-        directory = directory if directory else str(Path.cwd())
-        file_path = Path(directory) / filename
+        file_path, error = _get_safe_path(filename, directory)
+        if error or file_path is None:
+            logger.warning("Path validation failed: %s", error)
+            return {"success": False, "error": error or "Invalid path"}
 
         if not file_path.exists():
             return {"success": False, "error": f"File not found: {file_path}"}
@@ -349,8 +460,10 @@ async def append_to_file(
         Confirmation of append operation
     """
     try:
-        directory = directory if directory else str(Path.cwd())
-        file_path = Path(directory) / filename
+        file_path, error = _get_safe_path(filename, directory)
+        if error or file_path is None:
+            logger.warning("Path validation failed: %s", error)
+            return {"success": False, "error": error or "Invalid path"}
 
         if not file_path.exists():
             return {"success": False, "error": f"File not found: {file_path}"}
@@ -394,13 +507,20 @@ async def copy_file(
     try:
         import shutil
 
-        source_directory = source_directory if source_directory else str(Path.cwd())
-        destination_directory = (
-            destination_directory if destination_directory else str(Path.cwd())
-        )
+        # Validate source path
+        source_path, error = _get_safe_path(source_filename, source_directory)
+        if error or source_path is None:
+            logger.warning("Source path validation failed: %s", error)
+            return {"success": False, "error": f"Source: {error or 'Invalid path'}"}
 
-        source_path = Path(source_directory) / source_filename
-        dest_path = Path(destination_directory) / destination_filename
+        # Validate destination path
+        dest_path, error = _get_safe_path(destination_filename, destination_directory)
+        if error or dest_path is None:
+            logger.warning("Destination path validation failed: %s", error)
+            return {
+                "success": False,
+                "error": f"Destination: {error or 'Invalid path'}",
+            }
 
         if not source_path.exists():
             return {"success": False, "error": f"Source file not found: {source_path}"}

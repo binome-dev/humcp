@@ -47,6 +47,7 @@ SCOPES = {
     "chat_messages_readonly": "https://www.googleapis.com/auth/chat.messages.readonly",
 }
 
+
 def _ensure_config_dir() -> None:
     """Ensure the config directory exists."""
     TOKEN_PATH.parent.mkdir(parents=True, exist_ok=True)

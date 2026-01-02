@@ -1,10 +1,12 @@
+"""Google Drive tools for listing, searching, and reading files."""
+
 import asyncio
 import io
 import logging
 
-from fastmcp import FastMCP
 from googleapiclient.http import MediaIoBaseDownload
 
+from src.humcp.decorator import tool
 from src.tools.google.auth import SCOPES, get_google_service
 
 logger = logging.getLogger("humcp.tools.google.drive")
@@ -13,12 +15,24 @@ logger = logging.getLogger("humcp.tools.google.drive")
 DRIVE_READONLY_SCOPES = [SCOPES["drive_readonly"]]
 
 
+@tool("google_drive_list")
 async def list_files(
     folder_id: str = "root",
     max_results: int = 50,
     file_type: str = "",
 ) -> dict:
-    """List files in a Google Drive folder."""
+    """List files in a Google Drive folder.
+
+    Returns files in the specified folder, optionally filtered by type.
+
+    Args:
+        folder_id: Folder ID to list (default: "root" for root folder).
+        max_results: Maximum number of files to return (default: 50).
+        file_type: Optional MIME type filter (e.g., "image", "document").
+
+    Returns:
+        List of files with id, name, mime_type, size, modified date, and web_link.
+    """
     try:
 
         def _list():
@@ -63,8 +77,19 @@ async def list_files(
         return {"success": False, "error": str(e)}
 
 
+@tool("google_drive_search")
 async def search(query: str, max_results: int = 50) -> dict:
-    """Search for files in Google Drive."""
+    """Search for files in Google Drive.
+
+    Performs a full-text search across all accessible files.
+
+    Args:
+        query: Search query to match against file contents and names.
+        max_results: Maximum number of files to return (default: 50).
+
+    Returns:
+        List of matching files with metadata including owner information.
+    """
     try:
 
         def _search():
@@ -113,8 +138,18 @@ async def search(query: str, max_results: int = 50) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_drive_get_file")
 async def get_file(file_id: str) -> dict:
-    """Get detailed metadata for a file."""
+    """Get detailed metadata for a file.
+
+    Retrieves comprehensive information about a specific file.
+
+    Args:
+        file_id: ID of the file to get metadata for.
+
+    Returns:
+        Detailed file metadata including owners, parents, and download link.
+    """
     try:
 
         def _get():
@@ -155,8 +190,19 @@ async def get_file(file_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_drive_read_text_file")
 async def read_text_file(file_id: str) -> dict:
-    """Read the content of a text-based file from Google Drive."""
+    """Read the content of a text-based file from Google Drive.
+
+    Supports Google Docs (exported as plain text), Google Sheets (exported as CSV),
+    and regular text files.
+
+    Args:
+        file_id: ID of the file to read.
+
+    Returns:
+        File content with name, mime_type, content text, and length.
+    """
     try:
 
         def _read():
@@ -223,11 +269,3 @@ async def read_text_file(file_id: str) -> dict:
     except Exception as e:
         logger.exception("drive_read_text_file failed")
         return {"success": False, "error": str(e)}
-
-
-def register_tools(mcp: FastMCP) -> None:
-    """Register all Google Drive tools with the MCP server."""
-    mcp.tool(name="drive_list")(list_files)
-    mcp.tool(name="drive_search")(search)
-    mcp.tool(name="drive_get_file")(get_file)
-    mcp.tool(name="drive_read_text_file")(read_text_file)

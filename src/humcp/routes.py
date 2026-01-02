@@ -2,21 +2,43 @@
 
 import inspect
 import logging
+from pathlib import Path
 from typing import Any
 
 from fastapi import Body, FastAPI, HTTPException
 from pydantic import BaseModel, Field, create_model
 
 from src.humcp.registry import TOOL_REGISTRY, ToolRegistration
+from src.humcp.schemas import (
+    CategorySummary,
+    GetCategoryResponse,
+    GetToolResponse,
+    InputSchema,
+    ListToolsResponse,
+    SkillFull,
+    SkillMetadata,
+    ToolSummary,
+)
+from src.humcp.skills import discover_skills
 
 logger = logging.getLogger("humcp.routes")
 
 
-def register_routes(app: FastAPI) -> None:
+def _format_tag(category: str) -> str:
+    """Format category name as a display-friendly tag.
+
+    Converts snake_case or lowercase to Title Case.
+    E.g., "google" -> "Google", "local_files" -> "Local Files"
+    """
+    return category.replace("_", " ").title()
+
+
+def register_routes(app: FastAPI, tools_path: Path | None = None) -> None:
     """Register REST routes from TOOL_REGISTRY.
 
     Args:
         app: FastAPI application.
+        tools_path: Path to tools directory for skill discovery.
     """
     # Tool execution endpoints
     for reg in TOOL_REGISTRY:
@@ -27,28 +49,53 @@ def register_routes(app: FastAPI) -> None:
     tool_lookup = _build_tool_lookup()
     total_tools = len(TOOL_REGISTRY)
 
-    # Info endpoints
-    @app.get("/tools", tags=["Info"])
-    async def list_tools():
-        return {
-            "total_tools": total_tools,
-            "categories": {
-                k: {"count": len(v), "tools": v} for k, v in sorted(categories.items())
-            },
-        }
+    # Discover skills from SKILL.md files
+    if tools_path is None:
+        tools_path = Path(__file__).parent.parent / "tools"
+    skills = discover_skills(tools_path)
 
-    @app.get("/tools/{category}", tags=["Info"])
-    async def get_category(category: str):
+    # Info endpoints
+    @app.get("/tools", tags=["Info"], response_model=ListToolsResponse)
+    async def list_tools() -> ListToolsResponse:
+        return ListToolsResponse(
+            total_tools=total_tools,
+            categories={
+                k: CategorySummary(
+                    count=len(v),
+                    tools=[ToolSummary(**t) for t in v],
+                    skill=SkillMetadata(
+                        name=skills[k].name,
+                        description=skills[k].description,
+                    )
+                    if k in skills
+                    else None,
+                )
+                for k, v in sorted(categories.items())
+            },
+        )
+
+    @app.get("/tools/{category}", tags=["Info"], response_model=GetCategoryResponse)
+    async def get_category(category: str) -> GetCategoryResponse:
         if category not in categories:
             raise HTTPException(404, f"Category '{category}' not found")
-        return {
-            "category": category,
-            "count": len(categories[category]),
-            "tools": categories[category],
-        }
+        skill = skills.get(category)
+        return GetCategoryResponse(
+            category=category,
+            count=len(categories[category]),
+            tools=[ToolSummary(**t) for t in categories[category]],
+            skill=SkillFull(
+                name=skill.name,
+                description=skill.description,
+                content=skill.content,
+            )
+            if skill
+            else None,
+        )
 
-    @app.get("/tools/{category}/{tool_name}", tags=["Info"])
-    async def get_tool(category: str, tool_name: str):
+    @app.get(
+        "/tools/{category}/{tool_name}", tags=["Info"], response_model=GetToolResponse
+    )
+    async def get_tool(category: str, tool_name: str) -> GetToolResponse:
         # Try exact match first, then with category prefix
         reg = tool_lookup.get((category, tool_name)) or tool_lookup.get(
             (category, f"{category}_{tool_name}")
@@ -57,13 +104,14 @@ def register_routes(app: FastAPI) -> None:
             raise HTTPException(
                 404, f"Tool '{tool_name}' not found in category '{category}'"
             )
-        return {
-            "name": reg.name,
-            "category": reg.category,
-            "description": reg.func.__doc__,
-            "endpoint": f"/tools/{reg.name}",
-            "input_schema": _get_schema_from_func(reg.func),
-        }
+        schema = _get_schema_from_func(reg.func)
+        return GetToolResponse(
+            name=reg.name,
+            category=reg.category,
+            description=reg.func.__doc__,
+            endpoint=f"/tools/{reg.name}",
+            input_schema=InputSchema(**schema),
+        )
 
 
 def _add_tool_route(app: FastAPI, reg: ToolRegistration) -> None:
@@ -80,7 +128,8 @@ def _add_tool_route(app: FastAPI, reg: ToolRegistration) -> None:
             raise
         except Exception as e:
             logger.exception("Tool %s failed", reg.name)
-            raise HTTPException(500, f"Tool failed: {e}") from e
+            # Don't expose internal error details to users
+            raise HTTPException(500, "Tool execution failed") from e
 
     endpoint.__annotations__["data"] = InputModel
     app.add_api_route(
@@ -88,7 +137,7 @@ def _add_tool_route(app: FastAPI, reg: ToolRegistration) -> None:
         endpoint,
         methods=["POST"],
         summary=reg.func.__doc__ or reg.name,
-        tags=["Tools"],
+        tags=[_format_tag(reg.category)],
         name=reg.name,
     )
 
@@ -105,6 +154,33 @@ def _build_categories() -> dict[str, list[dict[str, Any]]]:
             }
         )
     return cats
+
+
+def build_openapi_tags() -> list[dict[str, str]]:
+    """Build OpenAPI tag metadata for all tool categories.
+
+    Returns a list of tag definitions with name and description,
+    sorted alphabetically by tag name. Includes the "Info" tag first.
+    """
+    # Collect unique categories
+    categories = sorted({reg.category for reg in TOOL_REGISTRY})
+
+    # Build tag metadata
+    tags = [
+        {"name": "Info", "description": "Server and tool information endpoints"},
+    ]
+
+    for category in categories:
+        # Count tools in this category
+        tool_count = sum(1 for reg in TOOL_REGISTRY if reg.category == category)
+        tags.append(
+            {
+                "name": _format_tag(category),
+                "description": f"{_format_tag(category)} tools ({tool_count} endpoints)",
+            }
+        )
+
+    return tags
 
 
 def _build_tool_lookup() -> dict[tuple[str, str], ToolRegistration]:
@@ -142,7 +218,14 @@ def _get_schema_from_func(func: Any) -> dict[str, Any]:
             if args:
                 ann = next((a for a in args if a is not type(None)), ann)
 
-            json_type = type_map.get(ann, "string")
+            json_type = type_map.get(ann)
+            if json_type is None:
+                logger.warning(
+                    "Unknown type annotation %s for parameter %s, defaulting to string",
+                    ann,
+                    name,
+                )
+                json_type = "string"
             properties[name] = {"type": json_type}
 
             if param.default == inspect.Parameter.empty:

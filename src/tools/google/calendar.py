@@ -1,9 +1,10 @@
+"""Google Calendar tools for listing, creating, and managing calendar events."""
+
 import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
 
-from fastmcp import FastMCP
-
+from src.humcp.decorator import tool
 from src.tools.google.auth import SCOPES, get_google_service
 
 logger = logging.getLogger("humcp.tools.google.calendar")
@@ -13,8 +14,17 @@ CALENDAR_READONLY_SCOPES = [SCOPES["calendar_readonly"]]
 CALENDAR_FULL_SCOPES = [SCOPES["calendar"]]
 
 
+@tool("google_calendar_list")
 async def list_calendars() -> dict:
-    """List all calendars accessible to the user."""
+    """List all calendars accessible to the user.
+
+    Returns a list of calendars with their IDs, names, descriptions,
+    and access roles. Useful for finding the correct calendar ID
+    before listing events or creating new ones.
+
+    Returns:
+        List of calendars with id, name, description, primary status, and access_role.
+    """
     try:
 
         def _list():
@@ -43,12 +53,25 @@ async def list_calendars() -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_calendar_events")
 async def events(
     calendar_id: str = "primary",
     days_ahead: int = 7,
     max_results: int = 50,
 ) -> dict:
-    """List upcoming events from a calendar."""
+    """List upcoming events from a calendar.
+
+    Retrieves events starting from now up to the specified number of days ahead.
+    Events are returned in chronological order by start time.
+
+    Args:
+        calendar_id: Calendar ID to list events from (default: "primary").
+        days_ahead: Number of days to look ahead (default: 7).
+        max_results: Maximum number of events to return (default: 50).
+
+    Returns:
+        List of events with id, title, description, start/end times, location, and status.
+    """
     try:
 
         def _list_events():
@@ -103,6 +126,7 @@ async def events(
         return {"success": False, "error": str(e)}
 
 
+@tool("google_calendar_create_event")
 async def create_event(
     title: str,
     start_time: str,
@@ -112,7 +136,22 @@ async def create_event(
     location: str = "",
     attendees: str = "",
 ) -> dict:
-    """Create a new calendar event."""
+    """Create a new calendar event.
+
+    Creates an event with the specified details. Times should be in ISO 8601 format.
+
+    Args:
+        title: Event title/summary.
+        start_time: Start time in ISO 8601 format (e.g., "2024-01-15T09:00:00Z").
+        end_time: End time in ISO 8601 format.
+        calendar_id: Calendar ID to create event in (default: "primary").
+        description: Optional event description.
+        location: Optional event location.
+        attendees: Optional comma-separated list of attendee email addresses.
+
+    Returns:
+        Created event details including id, title, times, and html_link.
+    """
     try:
 
         def _create():
@@ -153,18 +192,27 @@ async def create_event(
         return {"success": False, "error": str(e)}
 
 
+@tool("google_calendar_delete_event")
 async def delete_event(
     event_id: str,
     calendar_id: str = "primary",
 ) -> dict:
-    """Delete a calendar event."""
+    """Delete a calendar event.
+
+    Permanently removes an event from the specified calendar.
+
+    Args:
+        event_id: ID of the event to delete.
+        calendar_id: Calendar ID containing the event (default: "primary").
+
+    Returns:
+        Confirmation with the deleted event ID.
+    """
     try:
 
         def _delete():
             service = get_google_service("calendar", "v3", CALENDAR_FULL_SCOPES)
-            service.events().delete(
-                calendarId=calendar_id, eventId=event_id
-            ).execute()
+            service.events().delete(calendarId=calendar_id, eventId=event_id).execute()
             return {"deleted_event_id": event_id}
 
         logger.info("calendar_delete_event event_id=%s", event_id)
@@ -173,13 +221,3 @@ async def delete_event(
     except Exception as e:
         logger.exception("calendar_delete_event failed")
         return {"success": False, "error": str(e)}
-
-
-def register_tools(mcp: FastMCP) -> None:
-    """Register all Google Calendar tools with the MCP server."""
-    logger.info("Registering Google Calendar tools")
-
-    mcp.tool(name="calendar_list")(list_calendars)
-    mcp.tool(name="calendar_events")(events)
-    mcp.tool(name="calendar_create_event")(create_event)
-    mcp.tool(name="calendar_delete_event")(delete_event)

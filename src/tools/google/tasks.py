@@ -1,8 +1,9 @@
+"""Google Tasks tools for managing task lists and tasks."""
+
 import asyncio
 import logging
 
-from fastmcp import FastMCP
-
+from src.humcp.decorator import tool
 from src.tools.google.auth import SCOPES, get_google_service
 
 logger = logging.getLogger("humcp.tools.google.tasks")
@@ -11,8 +12,18 @@ TASKS_READONLY_SCOPES = [SCOPES["tasks_readonly"]]
 TASKS_FULL_SCOPES = [SCOPES["tasks"]]
 
 
+@tool("google_tasks_list_task_lists")
 async def list_task_lists(max_results: int = 100) -> dict:
-    """List all task lists for the user."""
+    """List all task lists for the user.
+
+    Returns all task lists including the default list.
+
+    Args:
+        max_results: Maximum number of task lists to return (default: 100).
+
+    Returns:
+        List of task lists with id, title, and updated timestamp.
+    """
     try:
 
         def _list():
@@ -39,8 +50,16 @@ async def list_task_lists(max_results: int = 100) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_tasks_get_task_list")
 async def get_task_list(task_list_id: str) -> dict:
-    """Get details of a specific task list."""
+    """Get details of a specific task list.
+
+    Args:
+        task_list_id: ID of the task list.
+
+    Returns:
+        Task list details with id, title, and updated timestamp.
+    """
     try:
 
         def _get():
@@ -60,8 +79,16 @@ async def get_task_list(task_list_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_tasks_create_task_list")
 async def create_task_list(title: str) -> dict:
-    """Create a new task list."""
+    """Create a new task list.
+
+    Args:
+        title: Title for the new task list.
+
+    Returns:
+        Created task list with id, title, and updated timestamp.
+    """
     try:
 
         def _create():
@@ -81,8 +108,18 @@ async def create_task_list(title: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_tasks_delete_task_list")
 async def delete_task_list(task_list_id: str) -> dict:
-    """Delete a task list."""
+    """Delete a task list.
+
+    Permanently removes the task list and all its tasks.
+
+    Args:
+        task_list_id: ID of the task list to delete.
+
+    Returns:
+        Confirmation with deleted_task_list_id.
+    """
     try:
 
         def _delete():
@@ -98,13 +135,26 @@ async def delete_task_list(task_list_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_tasks_list_tasks")
 async def list_tasks(
     task_list_id: str = "@default",
     show_completed: bool = True,
     show_hidden: bool = False,
     max_results: int = 100,
 ) -> dict:
-    """List tasks in a task list."""
+    """List tasks in a task list.
+
+    Returns tasks with their status, due dates, and hierarchy information.
+
+    Args:
+        task_list_id: Task list ID (default: "@default" for the default list).
+        show_completed: Include completed tasks (default: True).
+        show_hidden: Include hidden tasks (default: False).
+        max_results: Maximum number of tasks to return (default: 100).
+
+    Returns:
+        List of tasks with id, title, notes, status, due date, and parent info.
+    """
     try:
 
         def _list():
@@ -145,8 +195,17 @@ async def list_tasks(
         return {"success": False, "error": str(e)}
 
 
+@tool("google_tasks_get_task")
 async def get_task(task_list_id: str, task_id: str) -> dict:
-    """Get details of a specific task."""
+    """Get details of a specific task.
+
+    Args:
+        task_list_id: ID of the task list containing the task.
+        task_id: ID of the task.
+
+    Returns:
+        Task details with id, title, notes, status, due, completed, parent, position, links.
+    """
     try:
 
         def _get():
@@ -172,6 +231,7 @@ async def get_task(task_list_id: str, task_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_tasks_create_task")
 async def create_task(
     task_list_id: str = "@default",
     title: str = "",
@@ -179,7 +239,20 @@ async def create_task(
     due: str = "",
     parent: str = "",
 ) -> dict:
-    """Create a new task."""
+    """Create a new task.
+
+    Creates a task in the specified task list.
+
+    Args:
+        task_list_id: Task list ID (default: "@default").
+        title: Task title.
+        notes: Optional task notes/description.
+        due: Optional due date in RFC 3339 format.
+        parent: Optional parent task ID for subtasks.
+
+    Returns:
+        Created task with id, title, notes, status, and due date.
+    """
     try:
 
         def _create():
@@ -211,6 +284,7 @@ async def create_task(
         return {"success": False, "error": str(e)}
 
 
+@tool("google_tasks_update_task")
 async def update_task(
     task_list_id: str,
     task_id: str,
@@ -219,15 +293,27 @@ async def update_task(
     status: str = "",
     due: str = "",
 ) -> dict:
-    """Update an existing task."""
+    """Update an existing task.
+
+    Updates the specified fields of a task. Only provided fields are changed.
+
+    Args:
+        task_list_id: ID of the task list containing the task.
+        task_id: ID of the task to update.
+        title: New title (optional).
+        notes: New notes (optional).
+        status: New status - "needsAction" or "completed" (optional).
+        due: New due date in RFC 3339 format (optional).
+
+    Returns:
+        Updated task with id, title, notes, status, due, and completed.
+    """
     try:
 
         def _update():
             service = get_google_service("tasks", "v1", TASKS_FULL_SCOPES)
             # Get current task first
-            current = (
-                service.tasks().get(tasklist=task_list_id, task=task_id).execute()
-            )
+            current = service.tasks().get(tasklist=task_list_id, task=task_id).execute()
 
             # Update only provided fields
             if title:
@@ -261,8 +347,19 @@ async def update_task(
         return {"success": False, "error": str(e)}
 
 
+@tool("google_tasks_delete_task")
 async def delete_task(task_list_id: str, task_id: str) -> dict:
-    """Delete a task."""
+    """Delete a task.
+
+    Permanently removes a task from the task list.
+
+    Args:
+        task_list_id: ID of the task list containing the task.
+        task_id: ID of the task to delete.
+
+    Returns:
+        Confirmation with deleted_task_id.
+    """
     try:
 
         def _delete():
@@ -278,13 +375,34 @@ async def delete_task(task_list_id: str, task_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_tasks_complete_task")
 async def complete_task(task_list_id: str, task_id: str) -> dict:
-    """Mark a task as completed."""
+    """Mark a task as completed.
+
+    Convenience function to set a task's status to completed.
+
+    Args:
+        task_list_id: ID of the task list containing the task.
+        task_id: ID of the task to complete.
+
+    Returns:
+        Updated task with completion status.
+    """
     return await update_task(task_list_id, task_id, status="completed")
 
 
+@tool("google_tasks_clear_completed")
 async def clear_completed_tasks(task_list_id: str = "@default") -> dict:
-    """Clear all completed tasks from a task list."""
+    """Clear all completed tasks from a task list.
+
+    Removes all tasks marked as completed from the specified list.
+
+    Args:
+        task_list_id: Task list ID (default: "@default").
+
+    Returns:
+        Confirmation with cleared status and task_list_id.
+    """
     try:
 
         def _clear():
@@ -298,18 +416,3 @@ async def clear_completed_tasks(task_list_id: str = "@default") -> dict:
     except Exception as e:
         logger.exception("tasks_clear_completed failed")
         return {"success": False, "error": str(e)}
-
-
-def register_tools(mcp: FastMCP) -> None:
-    """Register all Google Tasks tools with the MCP server."""
-    mcp.tool(name="tasks_list_task_lists")(list_task_lists)
-    mcp.tool(name="tasks_get_task_list")(get_task_list)
-    mcp.tool(name="tasks_create_task_list")(create_task_list)
-    mcp.tool(name="tasks_delete_task_list")(delete_task_list)
-    mcp.tool(name="tasks_list_tasks")(list_tasks)
-    mcp.tool(name="tasks_get_task")(get_task)
-    mcp.tool(name="tasks_create_task")(create_task)
-    mcp.tool(name="tasks_update_task")(update_task)
-    mcp.tool(name="tasks_delete_task")(delete_task)
-    mcp.tool(name="tasks_complete_task")(complete_task)
-    mcp.tool(name="tasks_clear_completed")(clear_completed_tasks)
