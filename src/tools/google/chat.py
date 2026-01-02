@@ -1,8 +1,9 @@
+"""Google Chat tools for managing spaces and messages."""
+
 import asyncio
 import logging
 
-from fastmcp import FastMCP
-
+from src.humcp.decorator import tool
 from src.tools.google.auth import SCOPES, get_google_service
 
 logger = logging.getLogger("humcp.tools.google.chat")
@@ -11,8 +12,19 @@ CHAT_READONLY_SCOPES = [SCOPES["chat_spaces"], SCOPES["chat_messages_readonly"]]
 CHAT_FULL_SCOPES = [SCOPES["chat_spaces"], SCOPES["chat_messages"]]
 
 
+@tool("google_chat_list_spaces")
 async def list_spaces(space_type: str = "all", max_results: int = 100) -> dict:
-    """List Google Chat spaces (rooms and direct messages)."""
+    """List Google Chat spaces (rooms and direct messages).
+
+    Returns all accessible spaces, optionally filtered by type.
+
+    Args:
+        space_type: Filter by type - "all", "room", or "dm" (default: "all").
+        max_results: Maximum number of spaces to return (default: 100).
+
+    Returns:
+        List of spaces with name, display_name, type, and settings.
+    """
     try:
 
         def _list():
@@ -47,12 +59,57 @@ async def list_spaces(space_type: str = "all", max_results: int = 100) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_chat_get_space")
+async def get_space(space_name: str) -> dict:
+    """Get details about a specific space.
+
+    Args:
+        space_name: Resource name of the space (e.g., "spaces/ABC123").
+
+    Returns:
+        Space details with name, display_name, type, and settings.
+    """
+    try:
+
+        def _get():
+            service = get_google_service("chat", "v1", CHAT_READONLY_SCOPES)
+            space = service.spaces().get(name=space_name).execute()
+
+            return {
+                "name": space["name"],
+                "display_name": space.get("displayName", ""),
+                "type": space.get("type", ""),
+                "single_user_bot_dm": space.get("singleUserBotDm", False),
+                "threaded": space.get("threaded", False),
+                "external_user_allowed": space.get("externalUserAllowed", False),
+            }
+
+        logger.info("chat_get_space space=%s", space_name)
+        result = await asyncio.to_thread(_get)
+        return {"success": True, "data": result}
+    except Exception as e:
+        logger.exception("chat_get_space failed")
+        return {"success": False, "error": str(e)}
+
+
+@tool("google_chat_get_messages")
 async def get_messages(
     space_name: str,
     max_results: int = 25,
     order_by: str = "createTime desc",
 ) -> dict:
-    """Get messages from a Google Chat space."""
+    """Get messages from a Google Chat space.
+
+    Returns recent messages from the specified space.
+
+    Args:
+        space_name: Resource name of the space.
+        max_results: Maximum number of messages to return (default: 25).
+        order_by: Sort order (default: "createTime desc").
+
+    Returns:
+        List of messages with name, text, sender info, created time, and thread.
+    """
     try:
 
         def _get():
@@ -88,12 +145,58 @@ async def get_messages(
         return {"success": False, "error": str(e)}
 
 
+@tool("google_chat_get_message")
+async def get_message(message_name: str) -> dict:
+    """Get a specific message by name.
+
+    Args:
+        message_name: Resource name of the message.
+
+    Returns:
+        Message details with name, text, sender, created time, thread, and space.
+    """
+    try:
+
+        def _get():
+            service = get_google_service("chat", "v1", CHAT_READONLY_SCOPES)
+            message = service.spaces().messages().get(name=message_name).execute()
+
+            return {
+                "name": message["name"],
+                "text": message.get("text", ""),
+                "sender": message.get("sender", {}).get("displayName", ""),
+                "sender_type": message.get("sender", {}).get("type", ""),
+                "created": message.get("createTime", ""),
+                "thread_name": message.get("thread", {}).get("name", ""),
+                "space_name": message.get("space", {}).get("name", ""),
+            }
+
+        logger.info("chat_get_message message=%s", message_name)
+        result = await asyncio.to_thread(_get)
+        return {"success": True, "data": result}
+    except Exception as e:
+        logger.exception("chat_get_message failed")
+        return {"success": False, "error": str(e)}
+
+
+@tool("google_chat_send_message")
 async def send_message(
     space_name: str,
     text: str,
     thread_key: str = "",
 ) -> dict:
-    """Send a message to a Google Chat space."""
+    """Send a message to a Google Chat space.
+
+    Sends a text message to the specified space, optionally in a thread.
+
+    Args:
+        space_name: Resource name of the space.
+        text: Message text content.
+        thread_key: Optional thread key for replies.
+
+    Returns:
+        Sent message details with name, text, created time, and thread.
+    """
     try:
 
         def _send():
@@ -121,63 +224,3 @@ async def send_message(
     except Exception as e:
         logger.exception("chat_send_message failed")
         return {"success": False, "error": str(e)}
-
-
-async def get_space(space_name: str) -> dict:
-    """Get details about a specific space."""
-    try:
-
-        def _get():
-            service = get_google_service("chat", "v1", CHAT_READONLY_SCOPES)
-            space = service.spaces().get(name=space_name).execute()
-
-            return {
-                "name": space["name"],
-                "display_name": space.get("displayName", ""),
-                "type": space.get("type", ""),
-                "single_user_bot_dm": space.get("singleUserBotDm", False),
-                "threaded": space.get("threaded", False),
-                "external_user_allowed": space.get("externalUserAllowed", False),
-            }
-
-        logger.info("chat_get_space space=%s", space_name)
-        result = await asyncio.to_thread(_get)
-        return {"success": True, "data": result}
-    except Exception as e:
-        logger.exception("chat_get_space failed")
-        return {"success": False, "error": str(e)}
-
-
-async def get_message(message_name: str) -> dict:
-    """Get a specific message by name."""
-    try:
-
-        def _get():
-            service = get_google_service("chat", "v1", CHAT_READONLY_SCOPES)
-            message = service.spaces().messages().get(name=message_name).execute()
-
-            return {
-                "name": message["name"],
-                "text": message.get("text", ""),
-                "sender": message.get("sender", {}).get("displayName", ""),
-                "sender_type": message.get("sender", {}).get("type", ""),
-                "created": message.get("createTime", ""),
-                "thread_name": message.get("thread", {}).get("name", ""),
-                "space_name": message.get("space", {}).get("name", ""),
-            }
-
-        logger.info("chat_get_message message=%s", message_name)
-        result = await asyncio.to_thread(_get)
-        return {"success": True, "data": result}
-    except Exception as e:
-        logger.exception("chat_get_message failed")
-        return {"success": False, "error": str(e)}
-
-
-def register_tools(mcp: FastMCP) -> None:
-    """Register all Google Chat tools with the MCP server."""
-    mcp.tool(name="chat_list_spaces")(list_spaces)
-    mcp.tool(name="chat_get_space")(get_space)
-    mcp.tool(name="chat_get_messages")(get_messages)
-    mcp.tool(name="chat_get_message")(get_message)
-    mcp.tool(name="chat_send_message")(send_message)

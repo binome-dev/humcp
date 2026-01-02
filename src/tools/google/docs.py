@@ -1,8 +1,9 @@
+"""Google Docs tools for searching, reading, creating, and editing documents."""
+
 import asyncio
 import logging
 
-from fastmcp import FastMCP
-
+from src.humcp.decorator import tool
 from src.tools.google.auth import SCOPES, get_google_service
 
 logger = logging.getLogger("humcp.tools.google.docs")
@@ -11,8 +12,19 @@ DOCS_READONLY_SCOPES = [SCOPES["docs_readonly"], SCOPES["drive_readonly"]]
 DOCS_FULL_SCOPES = [SCOPES["docs"], SCOPES["drive"]]
 
 
+@tool("google_docs_search")
 async def search_docs(query: str, max_results: int = 25) -> dict:
-    """Search for Google Docs by name."""
+    """Search for Google Docs by name.
+
+    Searches for documents whose names contain the query string.
+
+    Args:
+        query: Search string to match against document names.
+        max_results: Maximum number of documents to return (default: 25).
+
+    Returns:
+        List of matching documents with id, name, modified date, and web_link.
+    """
     try:
 
         def _search():
@@ -53,8 +65,18 @@ async def search_docs(query: str, max_results: int = 25) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_docs_get_content")
 async def get_doc_content(document_id: str) -> dict:
-    """Get the content of a Google Doc."""
+    """Get the content of a Google Doc.
+
+    Extracts all text content from a document.
+
+    Args:
+        document_id: ID of the document to read.
+
+    Returns:
+        Document content with id, title, full text content, and revision_id.
+    """
     try:
 
         def _get():
@@ -84,8 +106,19 @@ async def get_doc_content(document_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_docs_create")
 async def create_doc(title: str, content: str = "") -> dict:
-    """Create a new Google Doc."""
+    """Create a new Google Doc.
+
+    Creates an empty document with the specified title, optionally with initial content.
+
+    Args:
+        title: Title for the new document.
+        content: Optional initial text content.
+
+    Returns:
+        Created document details with id, title, and web_link.
+    """
     try:
 
         def _create():
@@ -97,9 +130,7 @@ async def create_doc(title: str, content: str = "") -> dict:
 
             # Add initial content if provided
             if content:
-                requests = [
-                    {"insertText": {"location": {"index": 1}, "text": content}}
-                ]
+                requests = [{"insertText": {"location": {"index": 1}, "text": content}}]
                 service.documents().batchUpdate(
                     documentId=doc_id, body={"requests": requests}
                 ).execute()
@@ -118,8 +149,19 @@ async def create_doc(title: str, content: str = "") -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_docs_append_text")
 async def append_text(document_id: str, text: str) -> dict:
-    """Append text to the end of a Google Doc."""
+    """Append text to the end of a Google Doc.
+
+    Adds text content at the end of the document.
+
+    Args:
+        document_id: ID of the document to append to.
+        text: Text to append.
+
+    Returns:
+        Confirmation with updated status and document_id.
+    """
     try:
 
         def _append():
@@ -146,10 +188,23 @@ async def append_text(document_id: str, text: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_docs_find_replace")
 async def find_and_replace(
     document_id: str, find_text: str, replace_text: str, match_case: bool = False
 ) -> dict:
-    """Find and replace text in a Google Doc."""
+    """Find and replace text in a Google Doc.
+
+    Replaces all occurrences of the search text with the replacement text.
+
+    Args:
+        document_id: ID of the document to modify.
+        find_text: Text to search for.
+        replace_text: Text to replace with.
+        match_case: Whether to match case exactly (default: False).
+
+    Returns:
+        Operation result with document_id, find/replace texts, and replacement count.
+    """
     try:
 
         def _replace():
@@ -171,9 +226,7 @@ async def find_and_replace(
             replacements = 0
             for reply in result.get("replies", []):
                 if "replaceAllText" in reply:
-                    replacements = reply["replaceAllText"].get(
-                        "occurrencesChanged", 0
-                    )
+                    replacements = reply["replaceAllText"].get("occurrencesChanged", 0)
 
             return {
                 "document_id": document_id,
@@ -190,8 +243,19 @@ async def find_and_replace(
         return {"success": False, "error": str(e)}
 
 
+@tool("google_docs_list_in_folder")
 async def list_docs_in_folder(folder_id: str, max_results: int = 50) -> dict:
-    """List all Google Docs in a specific folder."""
+    """List all Google Docs in a specific folder.
+
+    Returns all documents within the specified Drive folder.
+
+    Args:
+        folder_id: ID of the folder to list documents from.
+        max_results: Maximum number of documents to return (default: 50).
+
+    Returns:
+        List of documents with id, name, modified date, and web_link.
+    """
     try:
 
         def _list():
@@ -231,13 +295,3 @@ async def list_docs_in_folder(folder_id: str, max_results: int = 50) -> dict:
     except Exception as e:
         logger.exception("docs_list_in_folder failed")
         return {"success": False, "error": str(e)}
-
-
-def register_tools(mcp: FastMCP) -> None:
-    """Register all Google Docs tools with the MCP server."""
-    mcp.tool(name="docs_search")(search_docs)
-    mcp.tool(name="docs_get_content")(get_doc_content)
-    mcp.tool(name="docs_create")(create_doc)
-    mcp.tool(name="docs_append_text")(append_text)
-    mcp.tool(name="docs_find_replace")(find_and_replace)
-    mcp.tool(name="docs_list_in_folder")(list_docs_in_folder)

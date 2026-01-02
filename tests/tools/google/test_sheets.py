@@ -213,7 +213,9 @@ class TestCreateSpreadsheet:
             ],
         }
 
-        result = await create_spreadsheet("Multi Sheet", sheet_names=["Data", "Summary"])
+        result = await create_spreadsheet(
+            "Multi Sheet", sheet_names=["Data", "Summary"]
+        )
         assert result["success"] is True
         assert len(result["data"]["sheets"]) == 2
 
@@ -231,7 +233,9 @@ class TestAddSheet:
     @pytest.mark.asyncio
     async def test_add_sheet_success(self, mock_sheets_service):
         mock_sheets_service.spreadsheets().batchUpdate().execute.return_value = {
-            "replies": [{"addSheet": {"properties": {"sheetId": 123, "title": "New Tab"}}}]
+            "replies": [
+                {"addSheet": {"properties": {"sheetId": 123, "title": "New Tab"}}}
+            ]
         }
 
         result = await add_sheet("sheet1", "New Tab")

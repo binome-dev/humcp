@@ -1,8 +1,9 @@
+"""Google Slides tools for creating and managing presentations."""
+
 import asyncio
 import logging
 
-from fastmcp import FastMCP
-
+from src.humcp.decorator import tool
 from src.tools.google.auth import SCOPES, get_google_service
 
 logger = logging.getLogger("humcp.tools.google.slides")
@@ -11,8 +12,18 @@ SLIDES_READONLY_SCOPES = [SCOPES["slides_readonly"], SCOPES["drive_readonly"]]
 SLIDES_FULL_SCOPES = [SCOPES["slides"], SCOPES["drive"]]
 
 
+@tool("google_slides_list_presentations")
 async def list_presentations(max_results: int = 25) -> dict:
-    """List Google Slides presentations accessible to the user."""
+    """List Google Slides presentations accessible to the user.
+
+    Returns recent presentations ordered by modification time.
+
+    Args:
+        max_results: Maximum number of presentations to return (default: 25).
+
+    Returns:
+        List of presentations with id, name, modified date, and web_link.
+    """
     try:
 
         def _list():
@@ -52,8 +63,18 @@ async def list_presentations(max_results: int = 25) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_slides_get_presentation")
 async def get_presentation(presentation_id: str) -> dict:
-    """Get details about a presentation including slides content."""
+    """Get details about a presentation including slides content.
+
+    Returns presentation metadata and text content from all slides.
+
+    Args:
+        presentation_id: ID of the presentation.
+
+    Returns:
+        Presentation info with id, title, slide_count, slides with text elements, dimensions.
+    """
     try:
 
         def _get():
@@ -73,9 +94,8 @@ async def get_presentation(presentation_id: str) -> dict:
                 for element in slide.get("pageElements", []):
                     if "shape" in element and "text" in element.get("shape", {}):
                         text_content = []
-                        for text_element in (
-                            element["shape"]["text"]
-                            .get("textElements", [])
+                        for text_element in element["shape"]["text"].get(
+                            "textElements", []
                         ):
                             if "textRun" in text_element:
                                 text_content.append(
@@ -112,8 +132,18 @@ async def get_presentation(presentation_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_slides_create_presentation")
 async def create_presentation(title: str) -> dict:
-    """Create a new Google Slides presentation."""
+    """Create a new Google Slides presentation.
+
+    Creates an empty presentation with one blank slide.
+
+    Args:
+        title: Title for the new presentation.
+
+    Returns:
+        Created presentation with id, title, slide_count, and web_link.
+    """
     try:
 
         def _create():
@@ -136,12 +166,24 @@ async def create_presentation(title: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_slides_add_slide")
 async def add_slide(
     presentation_id: str,
     layout: str = "BLANK",
     insert_at: int = -1,
 ) -> dict:
-    """Add a new slide to a presentation."""
+    """Add a new slide to a presentation.
+
+    Creates a slide with the specified layout at the given position.
+
+    Args:
+        presentation_id: ID of the presentation.
+        layout: Slide layout type (default: "BLANK"). Options include BLANK, TITLE, etc.
+        insert_at: Position to insert slide (-1 for end).
+
+    Returns:
+        New slide info with slide_id, presentation_id, and layout.
+    """
     try:
 
         def _add():
@@ -179,8 +221,8 @@ async def add_slide(
                 .execute()
             )
 
-            new_slide_id = result.get("replies", [{}])[0].get("createSlide", {}).get(
-                "objectId"
+            new_slide_id = (
+                result.get("replies", [{}])[0].get("createSlide", {}).get("objectId")
             )
 
             return {
@@ -197,6 +239,7 @@ async def add_slide(
         return {"success": False, "error": str(e)}
 
 
+@tool("google_slides_add_text")
 async def add_text_to_slide(
     presentation_id: str,
     slide_id: str,
@@ -206,7 +249,22 @@ async def add_text_to_slide(
     width: float = 400,
     height: float = 100,
 ) -> dict:
-    """Add a text box to a slide."""
+    """Add a text box to a slide.
+
+    Creates a text box at the specified position with the given dimensions.
+
+    Args:
+        presentation_id: ID of the presentation.
+        slide_id: ID of the slide to add text to.
+        text: Text content for the text box.
+        x: X position in points (default: 100).
+        y: Y position in points (default: 100).
+        width: Width in points (default: 400).
+        height: Height in points (default: 100).
+
+    Returns:
+        Created text box info with shape_id, slide_id, and text.
+    """
     try:
 
         def _add_text():
@@ -263,12 +321,24 @@ async def add_text_to_slide(
         return {"success": False, "error": str(e)}
 
 
+@tool("google_slides_get_thumbnail")
 async def get_slide_thumbnail(
     presentation_id: str,
     slide_id: str,
     size: str = "MEDIUM",
 ) -> dict:
-    """Get a thumbnail image URL for a slide."""
+    """Get a thumbnail image URL for a slide.
+
+    Returns a URL to a thumbnail image of the specified slide.
+
+    Args:
+        presentation_id: ID of the presentation.
+        slide_id: ID of the slide.
+        size: Thumbnail size - "SMALL", "MEDIUM", or "LARGE" (default: "MEDIUM").
+
+    Returns:
+        Thumbnail info with slide_id, content_url, width, and height.
+    """
     try:
 
         def _get_thumbnail():
@@ -305,13 +375,3 @@ async def get_slide_thumbnail(
     except Exception as e:
         logger.exception("slides_get_thumbnail failed")
         return {"success": False, "error": str(e)}
-
-
-def register_tools(mcp: FastMCP) -> None:
-    """Register all Google Slides tools with the MCP server."""
-    mcp.tool(name="slides_list_presentations")(list_presentations)
-    mcp.tool(name="slides_get_presentation")(get_presentation)
-    mcp.tool(name="slides_create_presentation")(create_presentation)
-    mcp.tool(name="slides_add_slide")(add_slide)
-    mcp.tool(name="slides_add_text")(add_text_to_slide)
-    mcp.tool(name="slides_get_thumbnail")(get_slide_thumbnail)

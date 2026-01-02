@@ -111,7 +111,9 @@ class TestEvents:
     async def test_events_with_custom_params(self, mock_calendar_service):
         mock_calendar_service.events().list().execute.return_value = {"items": []}
 
-        result = await events(calendar_id="work@group.calendar.google.com", days_ahead=14)
+        result = await events(
+            calendar_id="work@group.calendar.google.com", days_ahead=14
+        )
         assert result["success"] is True
 
     @pytest.mark.asyncio

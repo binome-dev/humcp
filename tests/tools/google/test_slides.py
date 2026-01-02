@@ -218,8 +218,8 @@ class TestGetSlideThumbnail:
 
     @pytest.mark.asyncio
     async def test_get_slide_thumbnail_error(self, mock_slides_service):
-        mock_slides_service.presentations().pages().getThumbnail().execute.side_effect = (
-            Exception("Slide not found")
+        mock_slides_service.presentations().pages().getThumbnail().execute.side_effect = Exception(
+            "Slide not found"
         )
 
         result = await get_slide_thumbnail("pres1", "invalid")

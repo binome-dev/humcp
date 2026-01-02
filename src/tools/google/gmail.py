@@ -1,10 +1,11 @@
+"""Google Gmail tools for searching, reading, and sending emails."""
+
 import asyncio
 import base64
 import logging
 from email.mime.text import MIMEText
 
-from fastmcp import FastMCP
-
+from src.humcp.decorator import tool
 from src.tools.google.auth import SCOPES, get_google_service
 
 logger = logging.getLogger("humcp.tools.google.gmail")
@@ -14,8 +15,20 @@ GMAIL_READONLY_SCOPES = [SCOPES["gmail_readonly"]]
 GMAIL_SEND_SCOPES = [SCOPES["gmail_send"]]
 
 
+@tool("google_gmail_search")
 async def search(query: str = "", max_results: int = 10) -> dict:
-    """Search Gmail messages."""
+    """Search Gmail messages.
+
+    Searches for emails matching the query using Gmail's search syntax.
+    Examples: "from:john@example.com", "subject:meeting", "is:unread".
+
+    Args:
+        query: Gmail search query (default: "" returns recent emails).
+        max_results: Maximum number of messages to return (default: 10, max: 100).
+
+    Returns:
+        List of messages with id, thread_id, subject, from, to, date, and snippet.
+    """
     try:
         max_results = min(max_results, 100)
 
@@ -66,8 +79,18 @@ async def search(query: str = "", max_results: int = 10) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_gmail_read")
 async def read(message_id: str) -> dict:
-    """Read the full content of a Gmail message."""
+    """Read the full content of a Gmail message.
+
+    Retrieves the complete email including headers, body text, and labels.
+
+    Args:
+        message_id: ID of the message to read.
+
+    Returns:
+        Full message with id, thread_id, subject, from, to, cc, date, body, and labels.
+    """
     try:
 
         def _read():
@@ -123,6 +146,7 @@ async def read(message_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_gmail_send")
 async def send(
     to: str,
     subject: str,
@@ -130,7 +154,20 @@ async def send(
     cc: str = "",
     bcc: str = "",
 ) -> dict:
-    """Send an email via Gmail."""
+    """Send an email via Gmail.
+
+    Composes and sends an email to the specified recipients.
+
+    Args:
+        to: Recipient email address.
+        subject: Email subject line.
+        body: Plain text email body.
+        cc: Optional CC recipients (comma-separated).
+        bcc: Optional BCC recipients (comma-separated).
+
+    Returns:
+        Sent message details with message_id and thread_id.
+    """
     try:
 
         def _send():
@@ -165,8 +202,16 @@ async def send(
         return {"success": False, "error": str(e)}
 
 
+@tool("google_gmail_labels")
 async def labels() -> dict:
-    """List all Gmail labels."""
+    """List all Gmail labels.
+
+    Returns all labels in the user's mailbox including system labels
+    (INBOX, SENT, etc.) and user-created labels.
+
+    Returns:
+        List of labels with id and name.
+    """
     try:
 
         def _list_labels():
@@ -174,7 +219,9 @@ async def labels() -> dict:
             results = service.users().labels().list(userId="me").execute()
             items = results.get("labels", [])
             return {
-                "labels": [{"id": label["id"], "name": label["name"]} for label in items],
+                "labels": [
+                    {"id": label["id"], "name": label["name"]} for label in items
+                ],
                 "total": len(items),
             }
 
@@ -184,11 +231,3 @@ async def labels() -> dict:
     except Exception as e:
         logger.exception("gmail_labels failed")
         return {"success": False, "error": str(e)}
-
-
-def register_tools(mcp: FastMCP) -> None:
-    """Register all Gmail tools with the MCP server."""
-    mcp.tool(name="gmail_search")(search)
-    mcp.tool(name="gmail_read")(read)
-    mcp.tool(name="gmail_send")(send)
-    mcp.tool(name="gmail_labels")(labels)

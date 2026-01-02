@@ -80,7 +80,10 @@ class TestGetForm:
                     "itemId": "q2",
                     "title": "Any comments?",
                     "questionItem": {
-                        "question": {"required": False, "textQuestion": {"paragraph": True}}
+                        "question": {
+                            "required": False,
+                            "textQuestion": {"paragraph": True},
+                        }
                     },
                 },
             ],

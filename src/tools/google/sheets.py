@@ -1,8 +1,9 @@
+"""Google Sheets tools for reading, writing, and managing spreadsheets."""
+
 import asyncio
 import logging
 
-from fastmcp import FastMCP
-
+from src.humcp.decorator import tool
 from src.tools.google.auth import SCOPES, get_google_service
 
 logger = logging.getLogger("humcp.tools.google.sheets")
@@ -11,8 +12,18 @@ SHEETS_READONLY_SCOPES = [SCOPES["sheets_readonly"], SCOPES["drive_readonly"]]
 SHEETS_FULL_SCOPES = [SCOPES["sheets"], SCOPES["drive"]]
 
 
+@tool("google_sheets_list_spreadsheets")
 async def list_spreadsheets(max_results: int = 25) -> dict:
-    """List Google Spreadsheets accessible to the user."""
+    """List Google Spreadsheets accessible to the user.
+
+    Returns recent spreadsheets ordered by modification time.
+
+    Args:
+        max_results: Maximum number of spreadsheets to return (default: 25).
+
+    Returns:
+        List of spreadsheets with id, name, modified date, and web_link.
+    """
     try:
 
         def _list():
@@ -52,8 +63,18 @@ async def list_spreadsheets(max_results: int = 25) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_sheets_get_info")
 async def get_spreadsheet_info(spreadsheet_id: str) -> dict:
-    """Get metadata about a spreadsheet."""
+    """Get metadata about a spreadsheet.
+
+    Returns information about all sheets in the spreadsheet including dimensions.
+
+    Args:
+        spreadsheet_id: ID of the spreadsheet.
+
+    Returns:
+        Spreadsheet info with id, title, locale, sheets list, and web_link.
+    """
     try:
 
         def _get():
@@ -91,10 +112,21 @@ async def get_spreadsheet_info(spreadsheet_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_sheets_read_values")
 async def read_sheet_values(
     spreadsheet_id: str, range_notation: str = "Sheet1"
 ) -> dict:
-    """Read values from a spreadsheet range."""
+    """Read values from a spreadsheet range.
+
+    Reads cell values from the specified range using A1 notation.
+
+    Args:
+        spreadsheet_id: ID of the spreadsheet.
+        range_notation: Range in A1 notation (default: "Sheet1", e.g., "Sheet1!A1:D10").
+
+    Returns:
+        Values with range, rows (2D array), row_count, and column_count.
+    """
     try:
 
         def _read():
@@ -121,13 +153,26 @@ async def read_sheet_values(
         return {"success": False, "error": str(e)}
 
 
+@tool("google_sheets_write_values")
 async def write_sheet_values(
     spreadsheet_id: str,
     range_notation: str,
     values: list,
     input_option: str = "USER_ENTERED",
 ) -> dict:
-    """Write values to a spreadsheet range."""
+    """Write values to a spreadsheet range.
+
+    Updates cells in the specified range with the provided values.
+
+    Args:
+        spreadsheet_id: ID of the spreadsheet.
+        range_notation: Range in A1 notation (e.g., "Sheet1!A1:D10").
+        values: 2D array of values to write.
+        input_option: How to interpret input ("USER_ENTERED" or "RAW").
+
+    Returns:
+        Update result with updated_range, updated_rows, updated_columns, updated_cells.
+    """
     try:
 
         def _write():
@@ -151,7 +196,9 @@ async def write_sheet_values(
                 "updated_cells": result.get("updatedCells", 0),
             }
 
-        logger.info("sheets_write_values id=%s range=%s", spreadsheet_id, range_notation)
+        logger.info(
+            "sheets_write_values id=%s range=%s", spreadsheet_id, range_notation
+        )
         result = await asyncio.to_thread(_write)
         return {"success": True, "data": result}
     except Exception as e:
@@ -159,13 +206,26 @@ async def write_sheet_values(
         return {"success": False, "error": str(e)}
 
 
+@tool("google_sheets_append_values")
 async def append_sheet_values(
     spreadsheet_id: str,
     range_notation: str,
     values: list,
     input_option: str = "USER_ENTERED",
 ) -> dict:
-    """Append values to a spreadsheet (adds rows after existing data)."""
+    """Append values to a spreadsheet (adds rows after existing data).
+
+    Appends rows to the end of the data in the specified range.
+
+    Args:
+        spreadsheet_id: ID of the spreadsheet.
+        range_notation: Range to append to (e.g., "Sheet1!A:D").
+        values: 2D array of values to append.
+        input_option: How to interpret input ("USER_ENTERED" or "RAW").
+
+    Returns:
+        Append result with updated_range, updated_rows, updated_cells.
+    """
     try:
 
         def _append():
@@ -190,7 +250,9 @@ async def append_sheet_values(
                 "updated_cells": updates.get("updatedCells", 0),
             }
 
-        logger.info("sheets_append_values id=%s range=%s", spreadsheet_id, range_notation)
+        logger.info(
+            "sheets_append_values id=%s range=%s", spreadsheet_id, range_notation
+        )
         result = await asyncio.to_thread(_append)
         return {"success": True, "data": result}
     except Exception as e:
@@ -198,8 +260,19 @@ async def append_sheet_values(
         return {"success": False, "error": str(e)}
 
 
+@tool("google_sheets_create_spreadsheet")
 async def create_spreadsheet(title: str, sheet_names: list = None) -> dict:
-    """Create a new Google Spreadsheet."""
+    """Create a new Google Spreadsheet.
+
+    Creates a spreadsheet with optional named sheets.
+
+    Args:
+        title: Title for the new spreadsheet.
+        sheet_names: Optional list of sheet names to create.
+
+    Returns:
+        Created spreadsheet with id, title, sheets list, and web_link.
+    """
     try:
 
         def _create():
@@ -231,8 +304,19 @@ async def create_spreadsheet(title: str, sheet_names: list = None) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_sheets_add_sheet")
 async def add_sheet(spreadsheet_id: str, sheet_title: str) -> dict:
-    """Add a new sheet to an existing spreadsheet."""
+    """Add a new sheet to an existing spreadsheet.
+
+    Creates a new tab/sheet within the spreadsheet.
+
+    Args:
+        spreadsheet_id: ID of the spreadsheet.
+        sheet_title: Title for the new sheet.
+
+    Returns:
+        New sheet details with sheet_id, title, and spreadsheet_id.
+    """
     try:
 
         def _add():
@@ -258,8 +342,19 @@ async def add_sheet(spreadsheet_id: str, sheet_title: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_sheets_clear_values")
 async def clear_sheet_values(spreadsheet_id: str, range_notation: str) -> dict:
-    """Clear values from a spreadsheet range."""
+    """Clear values from a spreadsheet range.
+
+    Removes all values from cells in the specified range without deleting the cells.
+
+    Args:
+        spreadsheet_id: ID of the spreadsheet.
+        range_notation: Range to clear in A1 notation.
+
+    Returns:
+        Clear result with cleared_range and spreadsheet_id.
+    """
     try:
 
         def _clear():
@@ -275,21 +370,11 @@ async def clear_sheet_values(spreadsheet_id: str, range_notation: str) -> dict:
                 "spreadsheet_id": spreadsheet_id,
             }
 
-        logger.info("sheets_clear_values id=%s range=%s", spreadsheet_id, range_notation)
+        logger.info(
+            "sheets_clear_values id=%s range=%s", spreadsheet_id, range_notation
+        )
         result = await asyncio.to_thread(_clear)
         return {"success": True, "data": result}
     except Exception as e:
         logger.exception("sheets_clear_values failed")
         return {"success": False, "error": str(e)}
-
-
-def register_tools(mcp: FastMCP) -> None:
-    """Register all Google Sheets tools with the MCP server."""
-    mcp.tool(name="sheets_list_spreadsheets")(list_spreadsheets)
-    mcp.tool(name="sheets_get_info")(get_spreadsheet_info)
-    mcp.tool(name="sheets_read_values")(read_sheet_values)
-    mcp.tool(name="sheets_write_values")(write_sheet_values)
-    mcp.tool(name="sheets_append_values")(append_sheet_values)
-    mcp.tool(name="sheets_create_spreadsheet")(create_spreadsheet)
-    mcp.tool(name="sheets_add_sheet")(add_sheet)
-    mcp.tool(name="sheets_clear_values")(clear_sheet_values)

@@ -49,7 +49,9 @@ class TestSearchDocs:
 
     @pytest.mark.asyncio
     async def test_search_docs_error(self, mock_docs_service):
-        mock_docs_service.files().list().execute.side_effect = Exception("Search failed")
+        mock_docs_service.files().list().execute.side_effect = Exception(
+            "Search failed"
+        )
 
         result = await search_docs("test")
         assert result["success"] is False
@@ -71,7 +73,9 @@ class TestGetDocContent:
                     },
                     {
                         "paragraph": {
-                            "elements": [{"textRun": {"content": "Second paragraph.\n"}}]
+                            "elements": [
+                                {"textRun": {"content": "Second paragraph.\n"}}
+                            ]
                         }
                     },
                 ]

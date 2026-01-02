@@ -23,7 +23,9 @@ class TestConvertToMarkdown:
     @pytest.mark.asyncio
     async def test_convert_success(self, sample_pdf, mock_markitdown):
         mock_result = MagicMock()
-        mock_result.text_content = "# Converted Document\n\nThis is the markdown content."
+        mock_result.text_content = (
+            "# Converted Document\n\nThis is the markdown content."
+        )
         mock_markitdown.return_value.convert.return_value = mock_result
 
         result = await convert_to_markdown(str(sample_pdf))

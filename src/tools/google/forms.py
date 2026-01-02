@@ -1,8 +1,9 @@
+"""Google Forms tools for managing forms and responses."""
+
 import asyncio
 import logging
 
-from fastmcp import FastMCP
-
+from src.humcp.decorator import tool
 from src.tools.google.auth import SCOPES, get_google_service
 
 logger = logging.getLogger("humcp.tools.google.forms")
@@ -12,8 +13,18 @@ FORMS_FULL_SCOPES = [SCOPES["forms"], SCOPES["drive"]]
 FORMS_RESPONSES_SCOPES = [SCOPES["forms_responses"]]
 
 
+@tool("google_forms_list_forms")
 async def list_forms(max_results: int = 25) -> dict:
-    """List Google Forms accessible to the user."""
+    """List Google Forms accessible to the user.
+
+    Returns recent forms ordered by modification time.
+
+    Args:
+        max_results: Maximum number of forms to return (default: 25).
+
+    Returns:
+        List of forms with id, name, modified date, and web_link.
+    """
     try:
 
         def _list():
@@ -51,8 +62,18 @@ async def list_forms(max_results: int = 25) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_forms_get_form")
 async def get_form(form_id: str) -> dict:
-    """Get details about a form including questions."""
+    """Get details about a form including questions.
+
+    Returns form metadata and all questions with their types and options.
+
+    Args:
+        form_id: ID of the form.
+
+    Returns:
+        Form details with id, title, description, responder_uri, questions list.
+    """
     try:
 
         def _get():
@@ -113,8 +134,19 @@ async def get_form(form_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_forms_create_form")
 async def create_form(title: str, document_title: str = "") -> dict:
-    """Create a new Google Form."""
+    """Create a new Google Form.
+
+    Creates an empty form with the specified title.
+
+    Args:
+        title: Display title for the form.
+        document_title: Document name in Drive (defaults to title).
+
+    Returns:
+        Created form with id, title, document_title, responder_uri, and edit_uri.
+    """
     try:
 
         def _create():
@@ -143,8 +175,19 @@ async def create_form(title: str, document_title: str = "") -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_forms_list_responses")
 async def list_form_responses(form_id: str, max_results: int = 100) -> dict:
-    """List responses submitted to a form."""
+    """List responses submitted to a form.
+
+    Returns summary information about form responses.
+
+    Args:
+        form_id: ID of the form.
+        max_results: Maximum number of responses to return (default: 100).
+
+    Returns:
+        List of responses with id, created time, last_submitted, and answer_count.
+    """
     try:
 
         def _list():
@@ -178,8 +221,19 @@ async def list_form_responses(form_id: str, max_results: int = 100) -> dict:
         return {"success": False, "error": str(e)}
 
 
+@tool("google_forms_get_response")
 async def get_form_response(form_id: str, response_id: str) -> dict:
-    """Get a specific form response with all answers."""
+    """Get a specific form response with all answers.
+
+    Returns detailed answer data for a single form submission.
+
+    Args:
+        form_id: ID of the form.
+        response_id: ID of the response.
+
+    Returns:
+        Response details with response_id, created, last_submitted, and answers list.
+    """
     try:
 
         def _get():
@@ -219,18 +273,11 @@ async def get_form_response(form_id: str, response_id: str) -> dict:
                 "answers": answers,
             }
 
-        logger.info("forms_get_response form_id=%s response_id=%s", form_id, response_id)
+        logger.info(
+            "forms_get_response form_id=%s response_id=%s", form_id, response_id
+        )
         result = await asyncio.to_thread(_get)
         return {"success": True, "data": result}
     except Exception as e:
         logger.exception("forms_get_response failed")
         return {"success": False, "error": str(e)}
-
-
-def register_tools(mcp: FastMCP) -> None:
-    """Register all Google Forms tools with the MCP server."""
-    mcp.tool(name="forms_list_forms")(list_forms)
-    mcp.tool(name="forms_get_form")(get_form)
-    mcp.tool(name="forms_create_form")(create_form)
-    mcp.tool(name="forms_list_responses")(list_form_responses)
-    mcp.tool(name="forms_get_response")(get_form_response)
