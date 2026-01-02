@@ -38,7 +38,7 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 pythonpath = ["."]
 asyncio_mode = "auto"
-testpaths = ["tests"]
+testpaths = ["tests", "tests_integration"]
 addopts = "-v --tb=short"
 filterwarnings = [
     "ignore::DeprecationWarning",
