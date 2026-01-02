@@ -1,3 +1,11 @@
+"""Pandas DataFrame tools for data manipulation.
+
+Security Note:
+    The create_pandas_dataframe and run_dataframe_operation functions use
+    allowlists to prevent arbitrary code execution. Only explicitly allowed
+    pandas functions and DataFrame methods can be called.
+"""
+
 from __future__ import annotations
 
 from typing import Any
@@ -10,6 +18,174 @@ except ImportError as err:
     raise ImportError(
         "pandas is required for Pandas tools. Install with: pip install pandas"
     ) from err
+
+# Allowlist of safe pandas module functions for creating DataFrames
+_ALLOWED_CREATE_FUNCTIONS = frozenset(
+    {
+        "DataFrame",
+        "read_csv",
+        "read_json",
+        "read_excel",
+        "read_parquet",
+        "read_feather",
+        "read_orc",
+        "read_html",
+        "read_xml",
+        "read_clipboard",
+        "read_fwf",
+        "read_table",
+        "read_sql",
+        "read_sql_query",
+        "read_sql_table",
+    }
+)
+
+# Allowlist of safe DataFrame operations (read-only or non-destructive)
+_ALLOWED_DATAFRAME_OPERATIONS = frozenset(
+    {
+        # Inspection
+        "head",
+        "tail",
+        "describe",
+        "info",
+        "dtypes",
+        "columns",
+        "index",
+        "shape",
+        "size",
+        "ndim",
+        "empty",
+        "values",
+        "memory_usage",
+        "sample",
+        # Selection
+        "loc",
+        "iloc",
+        "at",
+        "iat",
+        "get",
+        "xs",
+        # Filtering and querying
+        "query",
+        "filter",
+        "where",
+        "mask",
+        "isin",
+        "between",
+        "duplicated",
+        "drop_duplicates",
+        "nlargest",
+        "nsmallest",
+        # Sorting
+        "sort_values",
+        "sort_index",
+        "rank",
+        # Aggregation
+        "sum",
+        "mean",
+        "median",
+        "mode",
+        "std",
+        "var",
+        "min",
+        "max",
+        "count",
+        "nunique",
+        "value_counts",
+        "agg",
+        "aggregate",
+        "groupby",
+        # Transformation
+        "apply",
+        "map",
+        "transform",
+        "pipe",
+        "assign",
+        "rename",
+        "reset_index",
+        "set_index",
+        "reindex",
+        "drop",
+        "dropna",
+        "fillna",
+        "replace",
+        "astype",
+        "copy",
+        "T",
+        "transpose",
+        # String operations
+        "str",
+        # Datetime operations
+        "dt",
+        # Combining
+        "merge",
+        "join",
+        "concat",
+        "append",
+        # Reshaping
+        "pivot",
+        "pivot_table",
+        "melt",
+        "stack",
+        "unstack",
+        "explode",
+        # Missing data
+        "isna",
+        "isnull",
+        "notna",
+        "notnull",
+        # Conversion
+        "to_dict",
+        "to_list",
+        "to_numpy",
+        "to_string",
+        "to_markdown",
+        "to_records",
+        "items",
+        "iterrows",
+        "itertuples",
+        # Comparison
+        "eq",
+        "ne",
+        "lt",
+        "le",
+        "gt",
+        "ge",
+        "equals",
+        "compare",
+        # Math operations
+        "abs",
+        "round",
+        "clip",
+        "corr",
+        "cov",
+        "cumsum",
+        "cumprod",
+        "cummax",
+        "cummin",
+        "diff",
+        "pct_change",
+    }
+)
+
+# Allowlist of safe export functions
+_ALLOWED_EXPORT_FUNCTIONS = frozenset(
+    {
+        "to_csv",
+        "to_json",
+        "to_excel",
+        "to_parquet",
+        "to_feather",
+        "to_html",
+        "to_xml",
+        "to_markdown",
+        "to_string",
+        "to_dict",
+        "to_records",
+        "to_clipboard",
+        "to_latex",
+    }
+)
 
 
 class DataFrameManager:
@@ -89,6 +265,14 @@ async def create_pandas_dataframe(
             return {
                 "success": False,
                 "error": f"DataFrame '{dataframe_name}' already exists. Use a different name or delete the existing one.",
+            }
+
+        # Validate function is in allowlist
+        if create_using_function not in _ALLOWED_CREATE_FUNCTIONS:
+            return {
+                "success": False,
+                "error": f"Function 'pd.{create_using_function}' is not allowed. "
+                f"Allowed functions: {', '.join(sorted(_ALLOWED_CREATE_FUNCTIONS))}",
             }
 
         # Check if the function exists in pandas
@@ -176,6 +360,14 @@ async def run_dataframe_operation(
                 "error": f"DataFrame '{dataframe_name}' not found. Create it first using create_pandas_dataframe.",
             }
 
+        # Validate operation is in allowlist
+        if operation not in _ALLOWED_DATAFRAME_OPERATIONS:
+            return {
+                "success": False,
+                "error": f"Operation '{operation}' is not allowed. "
+                f"Use allowed operations like: head, tail, describe, query, etc.",
+            }
+
         # Check if the operation exists
         if not hasattr(dataframe, operation):
             return {
@@ -184,7 +376,15 @@ async def run_dataframe_operation(
             }
 
         # Run the operation
-        result = getattr(dataframe, operation)(**operation_parameters)
+        result = getattr(dataframe, operation)
+        # Handle both method calls and property access
+        if callable(result):
+            result = result(**operation_parameters)
+        elif operation_parameters:
+            return {
+                "success": False,
+                "error": f"Operation '{operation}' is a property and does not accept parameters",
+            }
 
         # Convert result to string representation
         try:
@@ -344,6 +544,14 @@ async def export_dataframe(
             return {
                 "success": False,
                 "error": f"DataFrame '{dataframe_name}' not found",
+            }
+
+        # Validate export function is in allowlist
+        if export_function not in _ALLOWED_EXPORT_FUNCTIONS:
+            return {
+                "success": False,
+                "error": f"Export function '{export_function}' is not allowed. "
+                f"Allowed functions: {', '.join(sorted(_ALLOWED_EXPORT_FUNCTIONS))}",
             }
 
         # Check if the export function exists

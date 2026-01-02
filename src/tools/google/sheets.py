@@ -261,7 +261,7 @@ async def append_sheet_values(
 
 
 @tool("google_sheets_create_spreadsheet")
-async def create_spreadsheet(title: str, sheet_names: list = None) -> dict:
+async def create_spreadsheet(title: str, sheet_names: list[str] | None = None) -> dict:
     """Create a new Google Spreadsheet.
 
     Creates a spreadsheet with optional named sheets.

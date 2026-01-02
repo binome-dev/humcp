@@ -57,8 +57,12 @@ def _discover_tools(tools_path: Path) -> int:
             spec.loader.exec_module(module)
             loaded += 1
             logger.debug("Loaded tool module: %s", module_name)
+        except ImportError as e:
+            logger.warning("Import error loading %s: %s", file_path.name, e)
+        except SyntaxError as e:
+            logger.warning("Syntax error in %s: %s", file_path.name, e)
         except Exception as e:
-            logger.warning("Failed to load %s: %s", file_path.name, e)
+            logger.warning("Unexpected error loading %s: %s", file_path.name, e)
 
     return loaded
 

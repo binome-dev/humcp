@@ -6,6 +6,17 @@ from src.humcp.registry import _TOOL_NAMES, TOOL_REGISTRY
 
 
 @pytest.fixture(autouse=True)
+def allow_absolute_paths_for_tests(monkeypatch):
+    """Allow absolute paths in filesystem tools during tests.
+
+    Tests use tmp_path fixtures which create temporary directories outside
+    the current working directory. This fixture enables absolute path access
+    during test execution.
+    """
+    monkeypatch.setenv("HUMCP_ALLOW_ABSOLUTE_PATHS", "true")
+
+
+@pytest.fixture(autouse=True)
 def clear_tool_registry():
     """Clear the tool registry before and after each test.
 

@@ -154,8 +154,8 @@ class TestAddSlide:
 
     @pytest.mark.asyncio
     async def test_add_slide_error(self, mock_slides_service):
-        mock_slides_service.presentations().get().execute.side_effect = Exception(
-            "Presentation not found"
+        mock_slides_service.presentations().batchUpdate().execute.side_effect = (
+            Exception("Presentation not found")
         )
 
         result = await add_slide("invalid")

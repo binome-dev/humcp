@@ -89,7 +89,8 @@ def _add_tool_route(app: FastAPI, reg: ToolRegistration) -> None:
             raise
         except Exception as e:
             logger.exception("Tool %s failed", reg.name)
-            raise HTTPException(500, f"Tool failed: {e}") from e
+            # Don't expose internal error details to users
+            raise HTTPException(500, "Tool execution failed") from e
 
     endpoint.__annotations__["data"] = InputModel
     app.add_api_route(
@@ -178,7 +179,14 @@ def _get_schema_from_func(func: Any) -> dict[str, Any]:
             if args:
                 ann = next((a for a in args if a is not type(None)), ann)
 
-            json_type = type_map.get(ann, "string")
+            json_type = type_map.get(ann)
+            if json_type is None:
+                logger.warning(
+                    "Unknown type annotation %s for parameter %s, defaulting to string",
+                    ann,
+                    name,
+                )
+                json_type = "string"
             properties[name] = {"type": json_type}
 
             if param.default == inspect.Parameter.empty:

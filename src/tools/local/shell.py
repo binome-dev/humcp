@@ -1,3 +1,18 @@
+"""Shell command execution tools.
+
+Security Warning:
+    These tools allow arbitrary shell command execution. They are intended for
+    trusted internal use cases only. In production environments, consider:
+
+    1. Restricting which commands can be executed via an allowlist
+    2. Running the server in a sandboxed environment (container, VM)
+    3. Using proper authentication and authorization
+    4. Monitoring and logging all command executions
+
+    The run_shell_command function is an internal helper and is not exposed
+    as an MCP tool directly.
+"""
+
 from __future__ import annotations
 
 import logging

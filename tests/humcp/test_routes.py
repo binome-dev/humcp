@@ -331,7 +331,7 @@ class TestRegisterRoutes:
 
         response = client.post("/tools/failing_tool", json={})
         assert response.status_code == 500
-        assert "Tool failed" in response.json()["detail"]
+        assert "Tool execution failed" in response.json()["detail"]
 
     def test_category_endpoint(self, register_sample_tools):
         """Should list tools in category."""

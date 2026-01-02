@@ -189,21 +189,6 @@ async def add_slide(
         def _add():
             service = get_google_service("slides", "v1", SLIDES_FULL_SCOPES)
 
-            # Get presentation to find layout ID
-            presentation = (
-                service.presentations().get(presentationId=presentation_id).execute()
-            )
-
-            # Find layout
-            layout_id = None
-            for master in presentation.get("masters", []):
-                for lo in master.get("layouts", []):
-                    if lo.get("layoutProperties", {}).get("name", "") == layout:
-                        layout_id = lo["objectId"]
-                        break
-                if layout_id:
-                    break
-
             request = {
                 "createSlide": {
                     "slideLayoutReference": {"predefinedLayout": layout},
