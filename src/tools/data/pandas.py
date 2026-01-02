@@ -229,7 +229,7 @@ def get_dataframe_manager():
     return _dataframe_manager
 
 
-@tool("create_pandas_dataframe")
+@tool()
 async def create_pandas_dataframe(
     dataframe_name: str,
     create_using_function: str,
@@ -322,7 +322,7 @@ async def create_pandas_dataframe(
         return {"success": False, "error": f"Error creating DataFrame: {str(e)}"}
 
 
-@tool("run_dataframe_operation")
+@tool()
 async def run_dataframe_operation(
     dataframe_name: str,
     operation: str,
@@ -412,7 +412,7 @@ async def run_dataframe_operation(
         return {"success": False, "error": f"Error running operation: {str(e)}"}
 
 
-@tool("list_dataframes")
+@tool()
 async def list_dataframes() -> dict:
     """
     List all DataFrames currently stored in memory.
@@ -443,7 +443,7 @@ async def list_dataframes() -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("get_dataframe_info")
+@tool()
 async def get_dataframe_info(dataframe_name: str) -> dict:
     """
     Get detailed information about a specific DataFrame.
@@ -480,7 +480,7 @@ async def get_dataframe_info(dataframe_name: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("delete_dataframe")
+@tool()
 async def delete_dataframe(dataframe_name: str) -> dict:
     """
     Delete a DataFrame from memory.
@@ -511,7 +511,7 @@ async def delete_dataframe(dataframe_name: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("export_dataframe")
+@tool()
 async def export_dataframe(
     dataframe_name: str,
     export_function: str,

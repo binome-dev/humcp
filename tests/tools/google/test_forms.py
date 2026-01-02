@@ -3,11 +3,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.tools.google.forms import (
-    create_form,
-    get_form,
-    get_form_response,
-    list_form_responses,
-    list_forms,
+    google_forms_create_form,
+    google_forms_get_form,
+    google_forms_get_response,
+    google_forms_list_forms,
+    google_forms_list_responses,
 )
 
 
@@ -33,7 +33,7 @@ class TestListForms:
             ]
         }
 
-        result = await list_forms()
+        result = await google_forms_list_forms()
         assert result["success"] is True
         assert result["data"]["total"] == 1
         assert result["data"]["forms"][0]["name"] == "Customer Survey"
@@ -42,7 +42,7 @@ class TestListForms:
     async def test_list_forms_empty(self, mock_forms_service):
         mock_forms_service.files().list().execute.return_value = {"files": []}
 
-        result = await list_forms()
+        result = await google_forms_list_forms()
         assert result["success"] is True
         assert result["data"]["total"] == 0
 
@@ -50,7 +50,7 @@ class TestListForms:
     async def test_list_forms_error(self, mock_forms_service):
         mock_forms_service.files().list().execute.side_effect = Exception("API error")
 
-        result = await list_forms()
+        result = await google_forms_list_forms()
         assert result["success"] is False
 
 
@@ -89,7 +89,7 @@ class TestGetForm:
             ],
         }
 
-        result = await get_form("form1")
+        result = await google_forms_get_form("form1")
         assert result["success"] is True
         assert result["data"]["id"] == "form1"
         assert result["data"]["title"] == "Customer Survey"
@@ -124,7 +124,7 @@ class TestGetForm:
             ],
         }
 
-        result = await get_form("form2")
+        result = await google_forms_get_form("form2")
         assert result["success"] is True
         assert result["data"]["questions"][0]["type"] == "radio"
         assert len(result["data"]["questions"][0]["options"]) == 3
@@ -133,7 +133,7 @@ class TestGetForm:
     async def test_get_form_error(self, mock_forms_service):
         mock_forms_service.forms().get().execute.side_effect = Exception("Not found")
 
-        result = await get_form("invalid")
+        result = await google_forms_get_form("invalid")
         assert result["success"] is False
 
 
@@ -146,7 +146,7 @@ class TestCreateForm:
             "responderUri": "https://docs.google.com/forms/d/new_form/viewform",
         }
 
-        result = await create_form("New Form")
+        result = await google_forms_create_form("New Form")
         assert result["success"] is True
         assert result["data"]["id"] == "new_form"
         assert result["data"]["title"] == "New Form"
@@ -160,7 +160,9 @@ class TestCreateForm:
             "responderUri": "https://docs.google.com/forms/d/new_form/viewform",
         }
 
-        result = await create_form("Survey Title", document_title="Survey Doc")
+        result = await google_forms_create_form(
+            "Survey Title", document_title="Survey Doc"
+        )
         assert result["success"] is True
         assert result["data"]["document_title"] == "Survey Doc"
 
@@ -170,7 +172,7 @@ class TestCreateForm:
             "Creation failed"
         )
 
-        result = await create_form("Test")
+        result = await google_forms_create_form("Test")
         assert result["success"] is False
 
 
@@ -194,7 +196,7 @@ class TestListFormResponses:
             ]
         }
 
-        result = await list_form_responses("form1")
+        result = await google_forms_list_responses("form1")
         assert result["success"] is True
         assert result["data"]["total"] == 2
         assert result["data"]["responses"][0]["id"] == "resp1"
@@ -206,7 +208,7 @@ class TestListFormResponses:
             "responses": []
         }
 
-        result = await list_form_responses("form1")
+        result = await google_forms_list_responses("form1")
         assert result["success"] is True
         assert result["data"]["total"] == 0
 
@@ -216,7 +218,7 @@ class TestListFormResponses:
             "Not found"
         )
 
-        result = await list_form_responses("invalid")
+        result = await google_forms_list_responses("invalid")
         assert result["success"] is False
 
 
@@ -233,7 +235,7 @@ class TestGetFormResponse:
             },
         }
 
-        result = await get_form_response("form1", "resp1")
+        result = await google_forms_get_response("form1", "resp1")
         assert result["success"] is True
         assert result["data"]["response_id"] == "resp1"
         assert len(result["data"]["answers"]) == 2
@@ -254,7 +256,7 @@ class TestGetFormResponse:
             },
         }
 
-        result = await get_form_response("form1", "resp2")
+        result = await google_forms_get_response("form1", "resp2")
         assert result["success"] is True
         assert result["data"]["answers"][0]["type"] == "file"
         assert result["data"]["answers"][0]["files"][0]["name"] == "document.pdf"
@@ -265,5 +267,5 @@ class TestGetFormResponse:
             "Not found"
         )
 
-        result = await get_form_response("form1", "invalid")
+        result = await google_forms_get_response("form1", "invalid")
         assert result["success"] is False

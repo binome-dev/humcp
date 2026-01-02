@@ -12,8 +12,8 @@ SLIDES_READONLY_SCOPES = [SCOPES["slides_readonly"], SCOPES["drive_readonly"]]
 SLIDES_FULL_SCOPES = [SCOPES["slides"], SCOPES["drive"]]
 
 
-@tool("google_slides_list_presentations")
-async def list_presentations(max_results: int = 25) -> dict:
+@tool()
+async def google_slides_list_presentations(max_results: int = 25) -> dict:
     """List Google Slides presentations accessible to the user.
 
     Returns recent presentations ordered by modification time.
@@ -63,8 +63,8 @@ async def list_presentations(max_results: int = 25) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_slides_get_presentation")
-async def get_presentation(presentation_id: str) -> dict:
+@tool()
+async def google_slides_get_presentation(presentation_id: str) -> dict:
     """Get details about a presentation including slides content.
 
     Returns presentation metadata and text content from all slides.
@@ -132,8 +132,8 @@ async def get_presentation(presentation_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_slides_create_presentation")
-async def create_presentation(title: str) -> dict:
+@tool()
+async def google_slides_create_presentation(title: str) -> dict:
     """Create a new Google Slides presentation.
 
     Creates an empty presentation with one blank slide.
@@ -166,8 +166,8 @@ async def create_presentation(title: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_slides_add_slide")
-async def add_slide(
+@tool()
+async def google_slides_add_slide(
     presentation_id: str,
     layout: str = "BLANK",
     insert_at: int = -1,
@@ -224,8 +224,8 @@ async def add_slide(
         return {"success": False, "error": str(e)}
 
 
-@tool("google_slides_add_text")
-async def add_text_to_slide(
+@tool()
+async def google_slides_add_text(
     presentation_id: str,
     slide_id: str,
     text: str,
@@ -306,8 +306,8 @@ async def add_text_to_slide(
         return {"success": False, "error": str(e)}
 
 
-@tool("google_slides_get_thumbnail")
-async def get_slide_thumbnail(
+@tool()
+async def google_slides_get_thumbnail(
     presentation_id: str,
     slide_id: str,
     size: str = "MEDIUM",

@@ -3,11 +3,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.tools.google.chat import (
-    get_message,
-    get_messages,
-    get_space,
-    list_spaces,
-    send_message,
+    google_chat_get_message,
+    google_chat_get_messages,
+    google_chat_get_space,
+    google_chat_list_spaces,
+    google_chat_send_message,
 )
 
 
@@ -41,7 +41,7 @@ class TestListSpaces:
             ]
         }
 
-        result = await list_spaces()
+        result = await google_chat_list_spaces()
         assert result["success"] is True
         assert result["data"]["total"] == 2
         assert result["data"]["spaces"][0]["display_name"] == "Engineering Team"
@@ -56,7 +56,7 @@ class TestListSpaces:
             ]
         }
 
-        result = await list_spaces(space_type="room")
+        result = await google_chat_list_spaces(space_type="room")
         assert result["success"] is True
         assert result["data"]["total"] == 1
 
@@ -64,7 +64,7 @@ class TestListSpaces:
     async def test_list_spaces_empty(self, mock_chat_service):
         mock_chat_service.spaces().list().execute.return_value = {"spaces": []}
 
-        result = await list_spaces()
+        result = await google_chat_list_spaces()
         assert result["success"] is True
         assert result["data"]["total"] == 0
 
@@ -72,7 +72,7 @@ class TestListSpaces:
     async def test_list_spaces_error(self, mock_chat_service):
         mock_chat_service.spaces().list().execute.side_effect = Exception("API error")
 
-        result = await list_spaces()
+        result = await google_chat_list_spaces()
         assert result["success"] is False
 
 
@@ -88,7 +88,7 @@ class TestGetSpace:
             "externalUserAllowed": False,
         }
 
-        result = await get_space("spaces/space1")
+        result = await google_chat_get_space("spaces/space1")
         assert result["success"] is True
         assert result["data"]["name"] == "spaces/space1"
         assert result["data"]["display_name"] == "Project Alpha"
@@ -98,7 +98,7 @@ class TestGetSpace:
     async def test_get_space_error(self, mock_chat_service):
         mock_chat_service.spaces().get().execute.side_effect = Exception("Not found")
 
-        result = await get_space("spaces/invalid")
+        result = await google_chat_get_space("spaces/invalid")
         assert result["success"] is False
 
 
@@ -124,7 +124,7 @@ class TestGetMessages:
             ]
         }
 
-        result = await get_messages("spaces/space1")
+        result = await google_chat_get_messages("spaces/space1")
         assert result["success"] is True
         assert result["data"]["total"] == 2
         assert result["data"]["messages"][0]["text"] == "Hello everyone!"
@@ -136,7 +136,7 @@ class TestGetMessages:
             "messages": []
         }
 
-        result = await get_messages("spaces/space1")
+        result = await google_chat_get_messages("spaces/space1")
         assert result["success"] is True
         assert result["data"]["total"] == 0
 
@@ -146,7 +146,7 @@ class TestGetMessages:
             "Space not found"
         )
 
-        result = await get_messages("spaces/invalid")
+        result = await google_chat_get_messages("spaces/invalid")
         assert result["success"] is False
 
 
@@ -162,7 +162,7 @@ class TestGetMessage:
             "space": {"name": "spaces/space1"},
         }
 
-        result = await get_message("spaces/space1/messages/msg1")
+        result = await google_chat_get_message("spaces/space1/messages/msg1")
         assert result["success"] is True
         assert result["data"]["text"] == "Important update"
         assert result["data"]["sender_type"] == "BOT"
@@ -173,7 +173,7 @@ class TestGetMessage:
             "Message not found"
         )
 
-        result = await get_message("spaces/space1/messages/invalid")
+        result = await google_chat_get_message("spaces/space1/messages/invalid")
         assert result["success"] is False
 
 
@@ -187,7 +187,7 @@ class TestSendMessage:
             "thread": {"name": "spaces/space1/threads/new_thread"},
         }
 
-        result = await send_message("spaces/space1", "Hello from the bot!")
+        result = await google_chat_send_message("spaces/space1", "Hello from the bot!")
         assert result["success"] is True
         assert result["data"]["text"] == "Hello from the bot!"
         assert "new_msg" in result["data"]["name"]
@@ -201,7 +201,7 @@ class TestSendMessage:
             "thread": {"name": "spaces/space1/threads/existing_thread"},
         }
 
-        result = await send_message(
+        result = await google_chat_send_message(
             "spaces/space1", "This is a reply", thread_key="existing_thread"
         )
         assert result["success"] is True
@@ -213,5 +213,5 @@ class TestSendMessage:
             "Permission denied"
         )
 
-        result = await send_message("spaces/space1", "Test message")
+        result = await google_chat_send_message("spaces/space1", "Test message")
         assert result["success"] is False

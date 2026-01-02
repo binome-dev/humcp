@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel
 
-from src.humcp.routes import _create_model, _pascal
+from src.humcp.routes import _create_model_from_schema, _pascal
 
 
 class TestPascalCase:
@@ -29,7 +29,7 @@ class TestPascalCase:
         assert _pascal("") == "Model"
 
 
-class TestCreateModel:
+class TestCreateModelFromSchema:
     def test_simple_object_schema(self):
         schema = {
             "type": "object",
@@ -40,7 +40,7 @@ class TestCreateModel:
             "required": ["name"],
         }
 
-        Model = _create_model(schema, "TestModel")
+        Model = _create_model_from_schema(schema, "TestModel")
 
         assert issubclass(Model, BaseModel)
         assert "name" in Model.model_fields
@@ -56,7 +56,7 @@ class TestCreateModel:
             "required": ["required_field"],
         }
 
-        Model = _create_model(schema, "TestModel")
+        Model = _create_model_from_schema(schema, "TestModel")
 
         assert Model.model_fields["required_field"].is_required()
         assert not Model.model_fields["optional_field"].is_required()
@@ -75,7 +75,7 @@ class TestCreateModel:
             "required": [],
         }
 
-        Model = _create_model(schema, "AllTypesModel")
+        Model = _create_model_from_schema(schema, "AllTypesModel")
 
         assert issubclass(Model, BaseModel)
         assert len(Model.model_fields) == 6
@@ -83,7 +83,7 @@ class TestCreateModel:
     def test_non_object_schema(self):
         schema = {"type": "string"}
 
-        Model = _create_model(schema, "SimpleModel")
+        Model = _create_model_from_schema(schema, "SimpleModel")
 
         assert issubclass(Model, BaseModel)
         assert "value" in Model.model_fields
@@ -91,7 +91,7 @@ class TestCreateModel:
     def test_empty_schema(self):
         schema = {}
 
-        Model = _create_model(schema, "EmptyModel")
+        Model = _create_model_from_schema(schema, "EmptyModel")
 
         assert issubclass(Model, BaseModel)
         assert "value" in Model.model_fields
@@ -106,7 +106,7 @@ class TestCreateModel:
             "required": ["a", "b"],
         }
 
-        Model = _create_model(schema, "CalcInput")
+        Model = _create_model_from_schema(schema, "CalcInput")
 
         instance = Model(a=5.0, b=3.0)
         assert instance.a == 5.0
@@ -122,7 +122,7 @@ class TestCreateModel:
             "required": ["required_field"],
         }
 
-        Model = _create_model(schema, "DumpModel")
+        Model = _create_model_from_schema(schema, "DumpModel")
 
         instance = Model(required_field="value", optional_field=None)
         dumped = instance.model_dump(exclude_none=True)

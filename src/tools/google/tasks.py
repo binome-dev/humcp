@@ -12,8 +12,8 @@ TASKS_READONLY_SCOPES = [SCOPES["tasks_readonly"]]
 TASKS_FULL_SCOPES = [SCOPES["tasks"]]
 
 
-@tool("google_tasks_list_task_lists")
-async def list_task_lists(max_results: int = 100) -> dict:
+@tool()
+async def google_tasks_list_task_lists(max_results: int = 100) -> dict:
     """List all task lists for the user.
 
     Returns all task lists including the default list.
@@ -50,8 +50,8 @@ async def list_task_lists(max_results: int = 100) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_tasks_get_task_list")
-async def get_task_list(task_list_id: str) -> dict:
+@tool()
+async def google_tasks_get_task_list(task_list_id: str) -> dict:
     """Get details of a specific task list.
 
     Args:
@@ -79,8 +79,8 @@ async def get_task_list(task_list_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_tasks_create_task_list")
-async def create_task_list(title: str) -> dict:
+@tool()
+async def google_tasks_create_task_list(title: str) -> dict:
     """Create a new task list.
 
     Args:
@@ -108,8 +108,8 @@ async def create_task_list(title: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_tasks_delete_task_list")
-async def delete_task_list(task_list_id: str) -> dict:
+@tool()
+async def google_tasks_delete_task_list(task_list_id: str) -> dict:
     """Delete a task list.
 
     Permanently removes the task list and all its tasks.
@@ -135,8 +135,8 @@ async def delete_task_list(task_list_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_tasks_list_tasks")
-async def list_tasks(
+@tool()
+async def google_tasks_list_tasks(
     task_list_id: str = "@default",
     show_completed: bool = True,
     show_hidden: bool = False,
@@ -195,8 +195,8 @@ async def list_tasks(
         return {"success": False, "error": str(e)}
 
 
-@tool("google_tasks_get_task")
-async def get_task(task_list_id: str, task_id: str) -> dict:
+@tool()
+async def google_tasks_get_task(task_list_id: str, task_id: str) -> dict:
     """Get details of a specific task.
 
     Args:
@@ -231,8 +231,8 @@ async def get_task(task_list_id: str, task_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_tasks_create_task")
-async def create_task(
+@tool()
+async def google_tasks_create_task(
     task_list_id: str = "@default",
     title: str = "",
     notes: str = "",
@@ -284,8 +284,8 @@ async def create_task(
         return {"success": False, "error": str(e)}
 
 
-@tool("google_tasks_update_task")
-async def update_task(
+@tool()
+async def google_tasks_update_task(
     task_list_id: str,
     task_id: str,
     title: str = "",
@@ -347,8 +347,8 @@ async def update_task(
         return {"success": False, "error": str(e)}
 
 
-@tool("google_tasks_delete_task")
-async def delete_task(task_list_id: str, task_id: str) -> dict:
+@tool()
+async def google_tasks_delete_task(task_list_id: str, task_id: str) -> dict:
     """Delete a task.
 
     Permanently removes a task from the task list.
@@ -375,8 +375,8 @@ async def delete_task(task_list_id: str, task_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_tasks_complete_task")
-async def complete_task(task_list_id: str, task_id: str) -> dict:
+@tool()
+async def google_tasks_complete_task(task_list_id: str, task_id: str) -> dict:
     """Mark a task as completed.
 
     Convenience function to set a task's status to completed.
@@ -388,11 +388,11 @@ async def complete_task(task_list_id: str, task_id: str) -> dict:
     Returns:
         Updated task with completion status.
     """
-    return await update_task(task_list_id, task_id, status="completed")
+    return await google_tasks_update_task(task_list_id, task_id, status="completed")
 
 
-@tool("google_tasks_clear_completed")
-async def clear_completed_tasks(task_list_id: str = "@default") -> dict:
+@tool()
+async def google_tasks_clear_completed(task_list_id: str = "@default") -> dict:
     """Clear all completed tasks from a task list.
 
     Removes all tasks marked as completed from the specified list.

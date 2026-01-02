@@ -26,44 +26,82 @@ uv run ruff check
 # Type checking
 uv run mypy src/
 
+# Pre-commit hooks
+uv run pre-commit run --all-files
+
 # Docker
 docker compose up --build
 ```
 
 ## Architecture
 
-HuMCP is a FastMCP server with a FastAPI adapter that exposes MCP tools as REST endpoints.
+HuMCP exposes tools via both MCP (Model Context Protocol) at `/mcp` and REST at `/tools/*`.
 
-### Core Components
+### Core Library (`src/humcp/`)
 
-**Entry Points:**
-- `src/main.py` - FastAPI application that mounts MCP at `/mcp` and auto-generates REST endpoints
-- `src/mcp_register.py` - Creates the FastMCP server, auto-discovers and registers tools from `src/tools/`
+- **`server.py`** - `create_app()` creates FastAPI app, loads tool modules, registers with FastMCP
+- **`decorator.py`** - `@tool(category="...")` marks functions for discovery. Category auto-detects from parent folder if not specified. Tool name = function name (used by FastMCP)
+- **`registry.py`** - `RegisteredTool` NamedTuple wraps FastMCP's `FunctionTool` with category
+- **`routes.py`** - Generates REST endpoints from registered tools using `FunctionTool.parameters`
+- **`config.py`** - Tool filtering via `config/tools.yaml` (include/exclude with wildcard support)
+- **`skills.py`** - Discovers `SKILL.md` files for category metadata
+- **`schemas.py`** - Pydantic response models for API endpoints
 
-**Adapter Layer (`src/adapter/`):**
-- `fast_mcp_fast_api_adapter.py` - `FastMCPFastAPIAdapter` bridges FastMCP and FastAPI
-- `routes.py` - `RouteGenerator` creates REST endpoints from MCP tool schemas
-- `models.py` - Dynamically generates Pydantic models from MCP tool input schemas
+### Tool Discovery Flow
 
-**Tool Registration System:**
-- Tools use `@tool(name, category)` decorator from `src/tools/__init__.py`
-- Decorator adds tools to `TOOL_REGISTRY` for auto-discovery
-- `src/mcp_register.py` walks `src/tools/` modules and registers all decorated functions with FastMCP
+1. `create_app()` loads Python modules from `src/tools/` recursively
+2. Functions with `@tool()` decorator are discovered via `_humcp_tool` attribute
+3. Each tool is registered with FastMCP via `mcp.tool()(func)` which creates a `FunctionTool`
+4. `RegisteredTool(tool=fn_tool, category=...)` pairs the FunctionTool with its category
+5. REST routes are generated from `FunctionTool.parameters` (JSON Schema)
 
 ### Adding New Tools
 
-1. Create a `.py` file anywhere under `src/tools/` (no `__init__.py` required)
-2. Import and use the `@tool` decorator:
+Create a `.py` file in `src/tools/<category>/`:
+
 ```python
-from src.tools import tool
+from src.humcp.decorator import tool
 
-@tool("my_tool_name")
+@tool()  # category auto-detected from folder name
 async def my_tool(param: str) -> dict:
-    """Tool description."""
-    return {"success": True, "data": result}
+    """Tool description (used by FastMCP and Swagger)."""
+    return {"success": True, "data": {"result": param}}
 ```
-3. Tools are auto-discovered on server startup via filesystem scan - no manual registration needed
 
-### Tool Response Pattern
+The function name becomes the tool name. Tools are auto-discovered on server startup.
 
-Tools return `{"success": True, "data": ...}` or `{"success": False, "error": "..."}`.
+### Response Pattern
+
+```python
+# Success
+return {"success": True, "data": {...}}
+
+# Error
+return {"success": False, "error": "Error message"}
+```
+
+### Skills
+
+Add `SKILL.md` in tool category folders with YAML frontmatter:
+
+```markdown
+---
+name: skill-name
+description: When and how to use these tools
+---
+# Content for AI assistants
+```
+
+### Tool Configuration
+
+`config/tools.yaml` controls which tools are exposed:
+
+```yaml
+include:
+  categories: [local, data]
+  tools: [tavily_web_search]
+exclude:
+  tools: [shell_*]  # wildcards supported
+```
+
+Empty config = load all tools.

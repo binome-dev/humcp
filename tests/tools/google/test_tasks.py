@@ -3,17 +3,17 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.tools.google.tasks import (
-    clear_completed_tasks,
-    complete_task,
-    create_task,
-    create_task_list,
-    delete_task,
-    delete_task_list,
-    get_task,
-    get_task_list,
-    list_task_lists,
-    list_tasks,
-    update_task,
+    google_tasks_clear_completed,
+    google_tasks_complete_task,
+    google_tasks_create_task,
+    google_tasks_create_task_list,
+    google_tasks_delete_task,
+    google_tasks_delete_task_list,
+    google_tasks_get_task,
+    google_tasks_get_task_list,
+    google_tasks_list_task_lists,
+    google_tasks_list_tasks,
+    google_tasks_update_task,
 )
 
 
@@ -35,7 +35,7 @@ class TestListTaskLists:
             ]
         }
 
-        result = await list_task_lists()
+        result = await google_tasks_list_task_lists()
         assert result["success"] is True
         assert result["data"]["total"] == 2
         assert result["data"]["task_lists"][0]["title"] == "My Tasks"
@@ -44,7 +44,7 @@ class TestListTaskLists:
     async def test_list_task_lists_empty(self, mock_tasks_service):
         mock_tasks_service.tasklists().list().execute.return_value = {"items": []}
 
-        result = await list_task_lists()
+        result = await google_tasks_list_task_lists()
         assert result["success"] is True
         assert result["data"]["total"] == 0
 
@@ -54,7 +54,7 @@ class TestListTaskLists:
             "API error"
         )
 
-        result = await list_task_lists()
+        result = await google_tasks_list_task_lists()
         assert result["success"] is False
 
 
@@ -67,7 +67,7 @@ class TestGetTaskList:
             "updated": "2024-01-01T00:00:00Z",
         }
 
-        result = await get_task_list("list1")
+        result = await google_tasks_get_task_list("list1")
         assert result["success"] is True
         assert result["data"]["id"] == "list1"
         assert result["data"]["title"] == "My Tasks"
@@ -78,7 +78,7 @@ class TestGetTaskList:
             "Not found"
         )
 
-        result = await get_task_list("invalid")
+        result = await google_tasks_get_task_list("invalid")
         assert result["success"] is False
 
 
@@ -91,7 +91,7 @@ class TestCreateTaskList:
             "updated": "2024-01-15T00:00:00Z",
         }
 
-        result = await create_task_list("New List")
+        result = await google_tasks_create_task_list("New List")
         assert result["success"] is True
         assert result["data"]["id"] == "new_list"
         assert result["data"]["title"] == "New List"
@@ -102,7 +102,7 @@ class TestCreateTaskList:
             "Creation failed"
         )
 
-        result = await create_task_list("Test")
+        result = await google_tasks_create_task_list("Test")
         assert result["success"] is False
 
 
@@ -111,7 +111,7 @@ class TestDeleteTaskList:
     async def test_delete_task_list_success(self, mock_tasks_service):
         mock_tasks_service.tasklists().delete().execute.return_value = None
 
-        result = await delete_task_list("list1")
+        result = await google_tasks_delete_task_list("list1")
         assert result["success"] is True
         assert result["data"]["deleted_task_list_id"] == "list1"
 
@@ -121,7 +121,7 @@ class TestDeleteTaskList:
             "Not found"
         )
 
-        result = await delete_task_list("invalid")
+        result = await google_tasks_delete_task_list("invalid")
         assert result["success"] is False
 
 
@@ -146,7 +146,7 @@ class TestListTasks:
             ]
         }
 
-        result = await list_tasks()
+        result = await google_tasks_list_tasks()
         assert result["success"] is True
         assert result["data"]["total"] == 2
         assert result["data"]["tasks"][0]["title"] == "Buy groceries"
@@ -155,7 +155,7 @@ class TestListTasks:
     async def test_list_tasks_empty(self, mock_tasks_service):
         mock_tasks_service.tasks().list().execute.return_value = {"items": []}
 
-        result = await list_tasks()
+        result = await google_tasks_list_tasks()
         assert result["success"] is True
         assert result["data"]["total"] == 0
 
@@ -163,7 +163,7 @@ class TestListTasks:
     async def test_list_tasks_error(self, mock_tasks_service):
         mock_tasks_service.tasks().list().execute.side_effect = Exception("API error")
 
-        result = await list_tasks()
+        result = await google_tasks_list_tasks()
         assert result["success"] is False
 
 
@@ -179,7 +179,7 @@ class TestGetTask:
             "links": [],
         }
 
-        result = await get_task("list1", "task1")
+        result = await google_tasks_get_task("list1", "task1")
         assert result["success"] is True
         assert result["data"]["id"] == "task1"
         assert result["data"]["title"] == "Important task"
@@ -188,7 +188,7 @@ class TestGetTask:
     async def test_get_task_error(self, mock_tasks_service):
         mock_tasks_service.tasks().get().execute.side_effect = Exception("Not found")
 
-        result = await get_task("list1", "invalid")
+        result = await google_tasks_get_task("list1", "invalid")
         assert result["success"] is False
 
 
@@ -203,7 +203,7 @@ class TestCreateTask:
             "due": "2024-01-25T00:00:00Z",
         }
 
-        result = await create_task(title="New task", notes="Notes here")
+        result = await google_tasks_create_task(title="New task", notes="Notes here")
         assert result["success"] is True
         assert result["data"]["id"] == "new_task"
         assert result["data"]["title"] == "New task"
@@ -214,7 +214,7 @@ class TestCreateTask:
             "Creation failed"
         )
 
-        result = await create_task(title="Test")
+        result = await google_tasks_create_task(title="Test")
         assert result["success"] is False
 
 
@@ -232,7 +232,7 @@ class TestUpdateTask:
             "status": "needsAction",
         }
 
-        result = await update_task("list1", "task1", title="Updated title")
+        result = await google_tasks_update_task("list1", "task1", title="Updated title")
         assert result["success"] is True
         assert result["data"]["title"] == "Updated title"
 
@@ -240,7 +240,7 @@ class TestUpdateTask:
     async def test_update_task_error(self, mock_tasks_service):
         mock_tasks_service.tasks().get().execute.side_effect = Exception("Not found")
 
-        result = await update_task("list1", "invalid", title="New title")
+        result = await google_tasks_update_task("list1", "invalid", title="New title")
         assert result["success"] is False
 
 
@@ -249,7 +249,7 @@ class TestDeleteTask:
     async def test_delete_task_success(self, mock_tasks_service):
         mock_tasks_service.tasks().delete().execute.return_value = None
 
-        result = await delete_task("list1", "task1")
+        result = await google_tasks_delete_task("list1", "task1")
         assert result["success"] is True
         assert result["data"]["deleted_task_id"] == "task1"
 
@@ -257,7 +257,7 @@ class TestDeleteTask:
     async def test_delete_task_error(self, mock_tasks_service):
         mock_tasks_service.tasks().delete().execute.side_effect = Exception("Not found")
 
-        result = await delete_task("list1", "invalid")
+        result = await google_tasks_delete_task("list1", "invalid")
         assert result["success"] is False
 
 
@@ -276,7 +276,7 @@ class TestCompleteTask:
             "completed": "2024-01-15T00:00:00Z",
         }
 
-        result = await complete_task("list1", "task1")
+        result = await google_tasks_complete_task("list1", "task1")
         assert result["success"] is True
         assert result["data"]["status"] == "completed"
 
@@ -286,7 +286,7 @@ class TestClearCompletedTasks:
     async def test_clear_completed_tasks_success(self, mock_tasks_service):
         mock_tasks_service.tasks().clear().execute.return_value = None
 
-        result = await clear_completed_tasks()
+        result = await google_tasks_clear_completed()
         assert result["success"] is True
         assert result["data"]["cleared"] is True
 
@@ -296,5 +296,5 @@ class TestClearCompletedTasks:
             "Clear failed"
         )
 
-        result = await clear_completed_tasks()
+        result = await google_tasks_clear_completed()
         assert result["success"] is False

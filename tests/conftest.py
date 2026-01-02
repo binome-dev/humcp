@@ -2,73 +2,49 @@
 
 import pytest
 
-from src.humcp.registry import _TOOL_NAMES, TOOL_REGISTRY
-
 
 @pytest.fixture(autouse=True)
 def allow_absolute_paths_for_tests(monkeypatch):
-    """Allow absolute paths in filesystem tools during tests.
-
-    Tests use tmp_path fixtures which create temporary directories outside
-    the current working directory. This fixture enables absolute path access
-    during test execution.
-    """
+    """Allow absolute paths in filesystem tools during tests."""
     monkeypatch.setenv("HUMCP_ALLOW_ABSOLUTE_PATHS", "true")
 
 
-@pytest.fixture(autouse=True)
-def clear_tool_registry():
-    """Clear the tool registry before and after each test.
-
-    This ensures tests don't interfere with each other by leaving
-    tools registered from previous tests.
-    """
-    # Store original state
-    original_registry = TOOL_REGISTRY.copy()
-    original_names = _TOOL_NAMES.copy()
-
-    # Clear for test
-    TOOL_REGISTRY.clear()
-    _TOOL_NAMES.clear()
-
-    yield
-
-    # Restore original state after test
-    TOOL_REGISTRY.clear()
-    TOOL_REGISTRY.extend(original_registry)
-    _TOOL_NAMES.clear()
-    _TOOL_NAMES.update(original_names)
-
-
 @pytest.fixture
-def sample_tool_func():
-    """Create a sample async tool function for testing."""
+def sample_tools(tmp_path):
+    """Create sample tool files for testing."""
+    # test category
+    test_dir = tmp_path / "test"
+    test_dir.mkdir()
 
-    async def sample_func(param: str) -> dict:
-        """A sample tool function."""
-        return {"success": True, "data": {"param": param}}
+    (test_dir / "tool_one.py").write_text('''
+from src.humcp.decorator import tool
 
-    return sample_func
+@tool(category="test")
+async def test_tool_one(value: str) -> dict:
+    """First test tool."""
+    return {"success": True, "data": {"value": value}}
+''')
 
+    (test_dir / "tool_two.py").write_text('''
+from src.humcp.decorator import tool
 
-@pytest.fixture
-def register_sample_tools():
-    """Register sample tools for testing routes and server."""
-    from src.humcp.decorator import tool
+@tool(category="test")
+async def test_tool_two(a: int, b: int = 10) -> dict:
+    """Second test tool."""
+    return {"success": True, "data": {"result": a + b}}
+''')
 
-    @tool("test_tool_one", category="test")
-    async def tool_one(value: str) -> dict:
-        """First test tool."""
-        return {"success": True, "data": {"value": value}}
+    # other category
+    other_dir = tmp_path / "other"
+    other_dir.mkdir()
 
-    @tool("test_tool_two", category="test")
-    async def tool_two(a: int, b: int = 10) -> dict:
-        """Second test tool with optional param."""
-        return {"success": True, "data": {"result": a + b}}
+    (other_dir / "tool_three.py").write_text('''
+from src.humcp.decorator import tool
 
-    @tool("other_category_tool", category="other")
-    async def tool_three() -> dict:
-        """Tool in different category."""
-        return {"success": True, "data": {}}
+@tool(category="other")
+async def other_tool() -> dict:
+    """Tool in other category."""
+    return {"success": True, "data": {}}
+''')
 
-    return [tool_one, tool_two, tool_three]
+    return tmp_path
