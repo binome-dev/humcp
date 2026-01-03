@@ -184,8 +184,10 @@ class TestRegisterRoutes:
         # Check categories are sorted
         names = [c["name"] for c in data["categories"]]
         assert names == ["other", "test"]
-        # Check tool counts
+        # Check tool counts and skill field
         test_cat = next(c for c in data["categories"] if c["name"] == "test")
         assert test_cat["tool_count"] == 2
+        assert test_cat["skill"] is None  # No SKILL.md in tmp_path
         other_cat = next(c for c in data["categories"] if c["name"] == "other")
         assert other_cat["tool_count"] == 1
+        assert other_cat["skill"] is None  # No SKILL.md in tmp_path
