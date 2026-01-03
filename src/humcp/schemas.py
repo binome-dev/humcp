@@ -79,3 +79,19 @@ class GetToolResponse(BaseModel):
     output_schema: dict[str, Any] | None = Field(
         description="JSON schema for tool output", default=None
     )
+
+
+# GET /categories response
+class CategoryInfo(BaseModel):
+    """Information about a category."""
+
+    name: str = Field(..., description="Category name")
+    tool_count: int = Field(..., description="Number of tools in category")
+    skill: SkillFull | None = Field(None, description="Skill information if available")
+
+
+class ListCategoriesResponse(BaseModel):
+    """Response schema for GET /categories."""
+
+    total_categories: int = Field(..., description="Total number of categories")
+    categories: list[CategoryInfo] = Field(..., description="List of categories")

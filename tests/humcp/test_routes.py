@@ -170,3 +170,22 @@ class TestRegisterRoutes:
         resp = client.post("/tools/test_tool_two", json={"a": 5})
         assert resp.status_code == 200
         assert resp.json()["result"]["data"]["result"] == 15
+
+    def test_categories_endpoint(self, sample_registrations, tmp_path):
+        app = FastAPI()
+        register_routes(app, tmp_path, sample_registrations)
+        client = TestClient(app)
+
+        resp = client.get("/categories")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total_categories"] == 2
+        assert len(data["categories"]) == 2
+        # Check categories are sorted
+        names = [c["name"] for c in data["categories"]]
+        assert names == ["other", "test"]
+        # Check tool counts
+        test_cat = next(c for c in data["categories"] if c["name"] == "test")
+        assert test_cat["tool_count"] == 2
+        other_cat = next(c for c in data["categories"] if c["name"] == "other")
+        assert other_cat["tool_count"] == 1

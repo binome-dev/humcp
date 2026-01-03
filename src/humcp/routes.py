@@ -9,10 +9,12 @@ from pydantic import BaseModel, Field, create_model
 
 from src.humcp.decorator import RegisteredTool
 from src.humcp.schemas import (
+    CategoryInfo,
     CategorySummary,
     GetCategoryResponse,
     GetToolResponse,
     InputSchema,
+    ListCategoriesResponse,
     ListToolsResponse,
     SkillFull,
     SkillMetadata,
@@ -94,6 +96,27 @@ def register_routes(
             endpoint=f"/tools/{reg.tool.name}",
             input_schema=InputSchema(**reg.tool.parameters),
             output_schema=reg.tool.output_schema,
+        )
+
+    @app.get("/categories", tags=["Info"], response_model=ListCategoriesResponse)
+    async def list_categories() -> ListCategoriesResponse:
+        category_list = [
+            CategoryInfo(
+                name=cat,
+                tool_count=len(items),
+                skill=SkillFull(
+                    name=skills[cat].name,
+                    description=skills[cat].description,
+                    content=skills[cat].content,
+                )
+                if cat in skills
+                else None,
+            )
+            for cat, items in sorted(categories.items())
+        ]
+        return ListCategoriesResponse(
+            total_categories=len(category_list),
+            categories=category_list,
         )
 
 
