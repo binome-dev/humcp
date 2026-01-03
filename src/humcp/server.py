@@ -1,46 +1,39 @@
 """HuMCP Server - app creation with REST and MCP endpoints."""
 
 import importlib.util
+import inspect
 import logging
 import os
 import sys
-from collections.abc import Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from types import ModuleType
 
 from fastapi import FastAPI
 from fastmcp import FastMCP
 
-from src.humcp.registry import TOOL_REGISTRY
+from src.humcp.config import DEFAULT_CONFIG_PATH, filter_tools, load_config
+from src.humcp.decorator import (
+    RegisteredTool,
+    get_tool_category,
+    get_tool_name,
+    is_tool,
+)
 from src.humcp.routes import build_openapi_tags, register_routes
 
 logger = logging.getLogger("humcp")
 
 
-def _discover_tools(tools_path: Path) -> int:
-    """Auto-discover and import tool modules from a directory.
-
-    Recursively scans the directory for Python files (excluding those starting
-    with '_') and imports them, triggering any @tool decorators.
-
-    Args:
-        tools_path: Directory to scan for tool modules.
-
-    Returns:
-        Number of modules successfully loaded.
-    """
+def _load_modules(tools_path: Path) -> list[ModuleType]:
+    """Load Python modules from a directory."""
     if not tools_path.exists():
-        logger.debug("Tools path does not exist: %s", tools_path)
-        return 0
+        return []
 
-    loaded = 0
+    modules: list[ModuleType] = []
     for file_path in sorted(tools_path.rglob("*.py")):
         if file_path.name.startswith("_"):
             continue
 
-        # Create unique module name based on relative path
-        # e.g., tools/local/calculator.py -> humcp_tools.local.calculator
         relative = file_path.relative_to(tools_path)
         module_name = (
             f"humcp_tools.{relative.with_suffix('').as_posix().replace('/', '.')}"
@@ -48,79 +41,97 @@ def _discover_tools(tools_path: Path) -> int:
 
         try:
             spec = importlib.util.spec_from_file_location(module_name, file_path)
-            if spec is None or spec.loader is None:
-                logger.warning("Could not create spec for %s", file_path)
+            if spec and spec.loader:
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[module_name] = module
+                spec.loader.exec_module(module)
+                modules.append(module)
+                logger.debug("Loaded module: %s", module_name)
+        except Exception as e:
+            logger.warning("Error loading %s: %s", file_path.name, e)
+
+    return modules
+
+
+def _discover_and_register(
+    mcp: FastMCP, modules: list[ModuleType]
+) -> list[RegisteredTool]:
+    """Discover @tool functions and register with FastMCP.
+
+    Returns list of RegisteredTool (FunctionTool + category).
+    """
+    tools: list[RegisteredTool] = []
+    seen_names: set[str] = set()
+
+    for module in modules:
+        for _, func in inspect.getmembers(module, inspect.isfunction):
+            if not is_tool(func):
                 continue
 
-            module = importlib.util.module_from_spec(spec)
-            sys.modules[module_name] = module
-            spec.loader.exec_module(module)
-            loaded += 1
-            logger.debug("Loaded tool module: %s", module_name)
-        except ImportError as e:
-            logger.warning("Import error loading %s: %s", file_path.name, e)
-        except SyntaxError as e:
-            logger.warning("Syntax error in %s: %s", file_path.name, e)
-        except Exception as e:
-            logger.warning("Unexpected error loading %s: %s", file_path.name, e)
+            # Get tool metadata from decorator
+            tool_name = get_tool_name(func)
+            category = get_tool_category(func)
 
-    return loaded
+            # Check for duplicates
+            if tool_name in seen_names:
+                logger.warning("Duplicate tool '%s', skipping", tool_name)
+                continue
+
+            seen_names.add(tool_name)
+
+            # Register with FastMCP using custom name - returns FunctionTool
+            fn_tool = mcp.tool(name=tool_name)(func)
+            tools.append(RegisteredTool(tool=fn_tool, category=category))
+            logger.debug("Registered: %s (category: %s)", fn_tool.name, category)
+
+    return tools
 
 
 def create_app(
     tools_path: Path | str | None = None,
+    config_path: Path | str | None = None,
     title: str = "HuMCP Server",
     description: str = "REST and MCP endpoints for tools",
     version: str = "1.0.0",
 ) -> FastAPI:
-    """Create FastAPI app with REST (/tools) and MCP (/mcp) endpoints.
-
-    Args:
-        tools_path: Path to tools directory. Defaults to src/tools/.
-        title: App title for OpenAPI docs.
-        description: App description.
-        version: App version.
-
-    Returns:
-        FastAPI app with REST at /tools/* and MCP at /mcp
-    """
-    # Auto-discover tool modules
+    """Create FastAPI app with REST (/tools) and MCP (/mcp) endpoints."""
     path = Path(tools_path) if tools_path else Path(__file__).parent.parent / "tools"
-    loaded = _discover_tools(path)
-    logger.info("Discovered %d tool modules from %s", loaded, path)
 
     # Create MCP server
     mcp = FastMCP("HuMCP Server")
-    seen: set[Callable[..., Any]] = set()
-    for reg in TOOL_REGISTRY:
-        if reg.func not in seen:
-            seen.add(reg.func)
-            mcp.tool(name=reg.name)(reg.func)
-            logger.info("Registered MCP tool: %s", reg.name)
 
+    # Load modules and register tools with FastMCP
+    modules = _load_modules(path)
+    tools = _discover_and_register(mcp, modules)
+    logger.info("Registered %d tools from %s", len(tools), path)
+
+    # Filter tools by config
+    cfg_path = Path(config_path) if config_path else DEFAULT_CONFIG_PATH
+    config = load_config(cfg_path)
+    filtered = filter_tools(config, tools, validate=True)
+    logger.info("Filtered: %d/%d tools", len(filtered), len(tools))
+
+    # Setup MCP HTTP app
     mcp_http_app = mcp.http_app(path="/")
 
     @asynccontextmanager
-    async def lifespan(_app: FastAPI):
+    async def lifespan(_: FastAPI):
         async with mcp_http_app.router.lifespan_context(mcp_http_app):
             yield
 
-    # Build OpenAPI tags from discovered categories
-    openapi_tags = build_openapi_tags()
-
+    # Create FastAPI app
     app = FastAPI(
         title=title,
         description=description,
         version=version,
         lifespan=lifespan,
-        openapi_tags=openapi_tags,
+        openapi_tags=build_openapi_tags(filtered),
     )
 
-    # Register REST routes from TOOL_REGISTRY
-    register_routes(app)
-    logger.info("Registered %d REST endpoints", len(TOOL_REGISTRY))
+    # Register REST routes
+    register_routes(app, tools_path=path, tools=filtered)
 
-    # Root info endpoint
+    # Root endpoint
     mcp_url = os.getenv("MCP_SERVER_URL", "http://0.0.0.0:8080/mcp")
 
     @app.get("/", tags=["Info"])
@@ -129,10 +140,9 @@ def create_app(
             "name": title,
             "version": version,
             "mcp_server": mcp_url,
-            "tools_count": len(TOOL_REGISTRY),
+            "tools_count": len(filtered),
             "endpoints": {"docs": "/docs", "tools": "/tools", "mcp": "/mcp"},
         }
 
-    # Mount MCP
     app.mount("/mcp", mcp_http_app)
     return app

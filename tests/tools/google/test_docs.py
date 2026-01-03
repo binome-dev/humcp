@@ -3,12 +3,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.tools.google.docs import (
-    append_text,
-    create_doc,
-    find_and_replace,
-    get_doc_content,
-    list_docs_in_folder,
-    search_docs,
+    google_docs_append_text,
+    google_docs_create,
+    google_docs_find_replace,
+    google_docs_get_content,
+    google_docs_list_in_folder,
+    google_docs_search,
 )
 
 
@@ -34,7 +34,7 @@ class TestSearchDocs:
             ]
         }
 
-        result = await search_docs("report")
+        result = await google_docs_search("report")
         assert result["success"] is True
         assert result["data"]["total"] == 1
         assert result["data"]["documents"][0]["name"] == "Project Report"
@@ -43,7 +43,7 @@ class TestSearchDocs:
     async def test_search_docs_no_results(self, mock_docs_service):
         mock_docs_service.files().list().execute.return_value = {"files": []}
 
-        result = await search_docs("nonexistent")
+        result = await google_docs_search("nonexistent")
         assert result["success"] is True
         assert result["data"]["total"] == 0
 
@@ -53,7 +53,7 @@ class TestSearchDocs:
             "Search failed"
         )
 
-        result = await search_docs("test")
+        result = await google_docs_search("test")
         assert result["success"] is False
 
 
@@ -82,7 +82,7 @@ class TestGetDocContent:
             },
         }
 
-        result = await get_doc_content("doc1")
+        result = await google_docs_get_content("doc1")
         assert result["success"] is True
         assert result["data"]["id"] == "doc1"
         assert result["data"]["title"] == "My Document"
@@ -96,7 +96,7 @@ class TestGetDocContent:
             "body": {"content": []},
         }
 
-        result = await get_doc_content("doc2")
+        result = await google_docs_get_content("doc2")
         assert result["success"] is True
         assert result["data"]["content"] == ""
 
@@ -106,7 +106,7 @@ class TestGetDocContent:
             "Document not found"
         )
 
-        result = await get_doc_content("invalid")
+        result = await google_docs_get_content("invalid")
         assert result["success"] is False
 
 
@@ -118,7 +118,7 @@ class TestCreateDoc:
             "title": "New Document",
         }
 
-        result = await create_doc("New Document")
+        result = await google_docs_create("New Document")
         assert result["success"] is True
         assert result["data"]["id"] == "new_doc"
         assert result["data"]["title"] == "New Document"
@@ -132,7 +132,9 @@ class TestCreateDoc:
         }
         mock_docs_service.documents().batchUpdate().execute.return_value = {}
 
-        result = await create_doc("Doc with Content", content="Initial content here")
+        result = await google_docs_create(
+            "Doc with Content", content="Initial content here"
+        )
         assert result["success"] is True
 
     @pytest.mark.asyncio
@@ -141,7 +143,7 @@ class TestCreateDoc:
             "Creation failed"
         )
 
-        result = await create_doc("Test")
+        result = await google_docs_create("Test")
         assert result["success"] is False
 
 
@@ -153,7 +155,7 @@ class TestAppendText:
         }
         mock_docs_service.documents().batchUpdate().execute.return_value = {}
 
-        result = await append_text("doc1", " appended text")
+        result = await google_docs_append_text("doc1", " appended text")
         assert result["success"] is True
         assert result["data"]["updated"] is True
         assert result["data"]["document_id"] == "doc1"
@@ -164,7 +166,7 @@ class TestAppendText:
             "Document not found"
         )
 
-        result = await append_text("invalid", "text")
+        result = await google_docs_append_text("invalid", "text")
         assert result["success"] is False
 
 
@@ -175,7 +177,7 @@ class TestFindAndReplace:
             "replies": [{"replaceAllText": {"occurrencesChanged": 5}}]
         }
 
-        result = await find_and_replace("doc1", "old", "new")
+        result = await google_docs_find_replace("doc1", "old", "new")
         assert result["success"] is True
         assert result["data"]["replacements"] == 5
         assert result["data"]["find_text"] == "old"
@@ -187,7 +189,7 @@ class TestFindAndReplace:
             "replies": [{"replaceAllText": {"occurrencesChanged": 0}}]
         }
 
-        result = await find_and_replace("doc1", "nonexistent", "new")
+        result = await google_docs_find_replace("doc1", "nonexistent", "new")
         assert result["success"] is True
         assert result["data"]["replacements"] == 0
 
@@ -197,7 +199,7 @@ class TestFindAndReplace:
             "Permission denied"
         )
 
-        result = await find_and_replace("doc1", "old", "new")
+        result = await google_docs_find_replace("doc1", "old", "new")
         assert result["success"] is False
 
 
@@ -221,7 +223,7 @@ class TestListDocsInFolder:
             ]
         }
 
-        result = await list_docs_in_folder("folder123")
+        result = await google_docs_list_in_folder("folder123")
         assert result["success"] is True
         assert result["data"]["total"] == 2
 
@@ -229,7 +231,7 @@ class TestListDocsInFolder:
     async def test_list_docs_in_folder_empty(self, mock_docs_service):
         mock_docs_service.files().list().execute.return_value = {"files": []}
 
-        result = await list_docs_in_folder("empty_folder")
+        result = await google_docs_list_in_folder("empty_folder")
         assert result["success"] is True
         assert result["data"]["total"] == 0
 
@@ -239,5 +241,5 @@ class TestListDocsInFolder:
             "Folder not found"
         )
 
-        result = await list_docs_in_folder("invalid")
+        result = await google_docs_list_in_folder("invalid")
         assert result["success"] is False

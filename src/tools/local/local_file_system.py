@@ -83,8 +83,8 @@ def _get_safe_path(
     return file_path.resolve(), None
 
 
-@tool("filesystem_write_file")
-async def write_file(
+@tool()
+async def filesystem_write_file(
     content: str,
     filename: str = "",
     directory: str = "",
@@ -157,8 +157,8 @@ async def write_file(
         return {"success": False, "error": f"Failed to write file: {str(e)}"}
 
 
-@tool("filesystem_read_file")
-async def read_file(
+@tool()
+async def filesystem_read_file(
     filename: str,
     directory: str = "",
 ) -> dict:
@@ -200,8 +200,8 @@ async def read_file(
         return {"success": False, "error": f"Failed to read file: {str(e)}"}
 
 
-@tool("filesystem_list_files")
-async def list_files(
+@tool()
+async def filesystem_list_files(
     directory: str = "",
     pattern: str = "*",
     recursive: bool = False,
@@ -266,8 +266,8 @@ async def list_files(
         return {"success": False, "error": f"Failed to list files: {str(e)}"}
 
 
-@tool("filesystem_delete_file")
-async def delete_file(
+@tool()
+async def filesystem_delete_file(
     filename: str,
     directory: str = "",
 ) -> dict:
@@ -308,8 +308,8 @@ async def delete_file(
         return {"success": False, "error": f"Failed to delete file: {str(e)}"}
 
 
-@tool("filesystem_create_directory")
-async def create_directory(
+@tool()
+async def filesystem_create_directory(
     directory: str,
     parents: bool = True,
 ) -> dict:
@@ -360,8 +360,8 @@ async def create_directory(
         return {"success": False, "error": f"Failed to create directory: {str(e)}"}
 
 
-@tool("filesystem_file_exists")
-async def file_exists(
+@tool()
+async def filesystem_file_exists(
     filename: str,
     directory: str = "",
 ) -> dict:
@@ -395,8 +395,8 @@ async def file_exists(
         return {"success": False, "error": str(e)}
 
 
-@tool("filesystem_get_file_info")
-async def get_file_info(
+@tool()
+async def filesystem_get_file_info(
     filename: str,
     directory: str = "",
 ) -> dict:
@@ -442,8 +442,8 @@ async def get_file_info(
         return {"success": False, "error": str(e)}
 
 
-@tool("filesystem_append_to_file")
-async def append_to_file(
+@tool()
+async def filesystem_append_to_file(
     content: str,
     filename: str,
     directory: str = "",
@@ -485,8 +485,8 @@ async def append_to_file(
         return {"success": False, "error": f"Failed to append to file: {str(e)}"}
 
 
-@tool("filesystem_copy_file")
-async def copy_file(
+@tool()
+async def filesystem_copy_file(
     source_filename: str,
     destination_filename: str,
     source_directory: str = "",

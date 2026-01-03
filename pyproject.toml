@@ -28,12 +28,17 @@ dev = [
     "pre-commit>=3.4.0",
     "grafi>=0.0.34",
     "mypy>=1.13.0",
+    "types-pyyaml>=6.0.12.20250915",
 ]
+
+[[tool.mypy.overrides]]
+module = "yaml.*"
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
 asyncio_mode = "auto"
-testpaths = ["tests"]
+testpaths = ["tests", "tests_integration"]
 addopts = "-v --tb=short"
 filterwarnings = [
     "ignore::DeprecationWarning",

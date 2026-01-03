@@ -15,8 +15,8 @@ logger = logging.getLogger("humcp.tools.google.drive")
 DRIVE_READONLY_SCOPES = [SCOPES["drive_readonly"]]
 
 
-@tool("google_drive_list")
-async def list_files(
+@tool()
+async def google_drive_list(
     folder_id: str = "root",
     max_results: int = 50,
     file_type: str = "",
@@ -77,8 +77,8 @@ async def list_files(
         return {"success": False, "error": str(e)}
 
 
-@tool("google_drive_search")
-async def search(query: str, max_results: int = 50) -> dict:
+@tool()
+async def google_drive_search(query: str, max_results: int = 50) -> dict:
     """Search for files in Google Drive.
 
     Performs a full-text search across all accessible files.
@@ -138,8 +138,8 @@ async def search(query: str, max_results: int = 50) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_drive_get_file")
-async def get_file(file_id: str) -> dict:
+@tool()
+async def google_drive_get_file(file_id: str) -> dict:
     """Get detailed metadata for a file.
 
     Retrieves comprehensive information about a specific file.
@@ -190,8 +190,8 @@ async def get_file(file_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_drive_read_text_file")
-async def read_text_file(file_id: str) -> dict:
+@tool()
+async def google_drive_read_text_file(file_id: str) -> dict:
     """Read the content of a text-based file from Google Drive.
 
     Supports Google Docs (exported as plain text), Google Sheets (exported as CSV),

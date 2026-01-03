@@ -12,8 +12,8 @@ DOCS_READONLY_SCOPES = [SCOPES["docs_readonly"], SCOPES["drive_readonly"]]
 DOCS_FULL_SCOPES = [SCOPES["docs"], SCOPES["drive"]]
 
 
-@tool("google_docs_search")
-async def search_docs(query: str, max_results: int = 25) -> dict:
+@tool()
+async def google_docs_search(query: str, max_results: int = 25) -> dict:
     """Search for Google Docs by name.
 
     Searches for documents whose names contain the query string.
@@ -65,8 +65,8 @@ async def search_docs(query: str, max_results: int = 25) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_docs_get_content")
-async def get_doc_content(document_id: str) -> dict:
+@tool()
+async def google_docs_get_content(document_id: str) -> dict:
     """Get the content of a Google Doc.
 
     Extracts all text content from a document.
@@ -106,8 +106,8 @@ async def get_doc_content(document_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_docs_create")
-async def create_doc(title: str, content: str = "") -> dict:
+@tool()
+async def google_docs_create(title: str, content: str = "") -> dict:
     """Create a new Google Doc.
 
     Creates an empty document with the specified title, optionally with initial content.
@@ -149,8 +149,8 @@ async def create_doc(title: str, content: str = "") -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_docs_append_text")
-async def append_text(document_id: str, text: str) -> dict:
+@tool()
+async def google_docs_append_text(document_id: str, text: str) -> dict:
     """Append text to the end of a Google Doc.
 
     Adds text content at the end of the document.
@@ -188,8 +188,8 @@ async def append_text(document_id: str, text: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_docs_find_replace")
-async def find_and_replace(
+@tool()
+async def google_docs_find_replace(
     document_id: str, find_text: str, replace_text: str, match_case: bool = False
 ) -> dict:
     """Find and replace text in a Google Doc.
@@ -243,8 +243,8 @@ async def find_and_replace(
         return {"success": False, "error": str(e)}
 
 
-@tool("google_docs_list_in_folder")
-async def list_docs_in_folder(folder_id: str, max_results: int = 50) -> dict:
+@tool()
+async def google_docs_list_in_folder(folder_id: str, max_results: int = 50) -> dict:
     """List all Google Docs in a specific folder.
 
     Returns all documents within the specified Drive folder.

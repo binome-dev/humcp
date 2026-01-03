@@ -3,6 +3,7 @@
 import logging
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 logger = logging.getLogger("humcp.skills")
@@ -46,8 +47,11 @@ def _parse_frontmatter(text: str) -> tuple[dict[str, str], str]:
     return frontmatter, content
 
 
+@lru_cache(maxsize=100)
 def discover_skills(tools_path: Path) -> dict[str, Skill]:
     """Discover all SKILL.md files in tool directories.
+
+    Results are cached to avoid repeated filesystem scans.
 
     Args:
         tools_path: Path to the tools directory.

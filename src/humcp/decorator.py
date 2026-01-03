@@ -1,63 +1,105 @@
-"""Tool decorator for registering MCP tools."""
+"""Tool decorator and registration types for MCP tools.
+
+The @tool decorator marks functions with name and category metadata.
+FastMCP handles description and schema generation.
+"""
 
 import inspect
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
-from src.humcp.registry import _TOOL_NAMES, TOOL_REGISTRY, ToolRegistration
+from fastmcp.tools import FunctionTool
 
-__all__ = ["tool"]
+__all__ = [
+    "tool",
+    "is_tool",
+    "get_tool_name",
+    "get_tool_category",
+    "RegisteredTool",
+    "ToolMetadata",
+]
+
+TOOL_ATTR = "_humcp_tool"
+
+
+@dataclass(frozen=True)
+class ToolMetadata:
+    """Metadata stored on decorated functions."""
+
+    name: str
+    category: str
+
+
+class RegisteredTool(NamedTuple):
+    """A tool registered with FastMCP, with category for grouping.
+
+    Attributes:
+        tool: The FastMCP FunctionTool object (has name, description, parameters, fn).
+        category: Category for REST endpoint grouping.
+    """
+
+    tool: FunctionTool
+    category: str
 
 
 def tool(
-    name: str | None = None, category: str | None = None
+    tool_name: str | None = None,
+    category: str | None = None,
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-    """Decorator to register a function as an MCP tool.
+    """Mark a function as an MCP tool.
 
     Args:
-        name: Tool name. Defaults to "{category}_{function_name}".
-        category: Tool category. Defaults to parent folder name.
-
-    Raises:
-        ValueError: If a tool with the same name already exists.
+        tool_name: Tool name for MCP registration. Defaults to function name.
+        category: Tool category for grouping. Defaults to parent folder name.
 
     Example:
-        # In src/tools/local/calculator.py
-        @tool()  # name="local_add", category="local"
+        @tool()  # name from function, category from file path
         async def add(a: float, b: float) -> dict:
-            return {"success": True, "data": {"result": a + b}}
+            return {"result": a + b}
 
-        @tool("my_tool", category="custom")  # explicit name and category
-        async def func() -> dict:
-            ...
+        @tool("calculator_add", "math")  # explicit name and category
+        async def multiply(a: float, b: float) -> dict:
+            return {"result": a * b}
     """
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        # Determine category from parent folder name
-        if category:
-            tool_category = category
-        else:
-            tool_category = _get_category_from_path(func)
+        # Resolve name (default to function name)
+        resolved_name = tool_name if tool_name is not None else func.__name__
 
-        # Determine name
-        tool_name = name or f"{tool_category}_{func.__name__}"
+        # Resolve category (default to parent folder name)
+        resolved_category = category
+        if resolved_category is None:
+            try:
+                file_path = Path(inspect.getfile(func))
+                resolved_category = file_path.parent.name
+            except (TypeError, OSError):
+                resolved_category = "uncategorized"
 
-        # Check for duplicate names
-        if tool_name in _TOOL_NAMES:
-            raise ValueError(f"Duplicate tool name: '{tool_name}' already registered")
-
-        _TOOL_NAMES.add(tool_name)
-        TOOL_REGISTRY.append(ToolRegistration(tool_name, tool_category, func))
+        metadata = ToolMetadata(name=resolved_name, category=resolved_category)
+        setattr(func, TOOL_ATTR, metadata)
         return func
 
     return decorator
 
 
-def _get_category_from_path(func: Callable[..., Any]) -> str:
-    """Get category from function's file immediate parent folder name."""
-    try:
-        file_path = Path(inspect.getfile(func))
-        return file_path.parent.name
-    except (TypeError, OSError):
-        return "uncategorized"
+def is_tool(func: Any) -> bool:
+    """Check if a function is marked as a tool."""
+    return hasattr(func, TOOL_ATTR)
+
+
+def get_tool_name(func: Callable[..., Any]) -> str:
+    """Get tool name from a decorated function."""
+    metadata = getattr(func, TOOL_ATTR, None)
+    if isinstance(metadata, ToolMetadata):
+        return metadata.name
+    return func.__name__
+
+
+def get_tool_category(func: Callable[..., Any]) -> str:
+    """Get tool category from a decorated function."""
+    metadata = getattr(func, TOOL_ATTR, None)
+    if isinstance(metadata, ToolMetadata):
+        return metadata.category
+    return "uncategorized"

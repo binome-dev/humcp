@@ -76,3 +76,6 @@ class GetToolResponse(BaseModel):
     description: str | None = Field(None, description="Tool description")
     endpoint: str = Field(..., description="API endpoint path")
     input_schema: InputSchema = Field(..., description="JSON Schema for tool input")
+    output_schema: dict[str, Any] | None = Field(
+        description="JSON schema for tool output", default=None
+    )

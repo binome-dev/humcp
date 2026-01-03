@@ -14,8 +14,8 @@ CALENDAR_READONLY_SCOPES = [SCOPES["calendar_readonly"]]
 CALENDAR_FULL_SCOPES = [SCOPES["calendar"]]
 
 
-@tool("google_calendar_list")
-async def list_calendars() -> dict:
+@tool()
+async def google_calendar_list() -> dict:
     """List all calendars accessible to the user.
 
     Returns a list of calendars with their IDs, names, descriptions,
@@ -53,8 +53,8 @@ async def list_calendars() -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_calendar_events")
-async def events(
+@tool()
+async def google_calendar_events(
     calendar_id: str = "primary",
     days_ahead: int = 7,
     max_results: int = 50,
@@ -126,8 +126,8 @@ async def events(
         return {"success": False, "error": str(e)}
 
 
-@tool("google_calendar_create_event")
-async def create_event(
+@tool()
+async def google_calendar_create_event(
     title: str,
     start_time: str,
     end_time: str,
@@ -192,8 +192,8 @@ async def create_event(
         return {"success": False, "error": str(e)}
 
 
-@tool("google_calendar_delete_event")
-async def delete_event(
+@tool()
+async def google_calendar_delete_event(
     event_id: str,
     calendar_id: str = "primary",
 ) -> dict:

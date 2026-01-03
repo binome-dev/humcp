@@ -13,8 +13,8 @@ FORMS_FULL_SCOPES = [SCOPES["forms"], SCOPES["drive"]]
 FORMS_RESPONSES_SCOPES = [SCOPES["forms_responses"]]
 
 
-@tool("google_forms_list_forms")
-async def list_forms(max_results: int = 25) -> dict:
+@tool()
+async def google_forms_list_forms(max_results: int = 25) -> dict:
     """List Google Forms accessible to the user.
 
     Returns recent forms ordered by modification time.
@@ -62,8 +62,8 @@ async def list_forms(max_results: int = 25) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_forms_get_form")
-async def get_form(form_id: str) -> dict:
+@tool()
+async def google_forms_get_form(form_id: str) -> dict:
     """Get details about a form including questions.
 
     Returns form metadata and all questions with their types and options.
@@ -134,8 +134,8 @@ async def get_form(form_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_forms_create_form")
-async def create_form(title: str, document_title: str = "") -> dict:
+@tool()
+async def google_forms_create_form(title: str, document_title: str = "") -> dict:
     """Create a new Google Form.
 
     Creates an empty form with the specified title.
@@ -175,8 +175,8 @@ async def create_form(title: str, document_title: str = "") -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_forms_list_responses")
-async def list_form_responses(form_id: str, max_results: int = 100) -> dict:
+@tool()
+async def google_forms_list_responses(form_id: str, max_results: int = 100) -> dict:
     """List responses submitted to a form.
 
     Returns summary information about form responses.
@@ -221,8 +221,8 @@ async def list_form_responses(form_id: str, max_results: int = 100) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_forms_get_response")
-async def get_form_response(form_id: str, response_id: str) -> dict:
+@tool()
+async def google_forms_get_response(form_id: str, response_id: str) -> dict:
     """Get a specific form response with all answers.
 
     Returns detailed answer data for a single form submission.

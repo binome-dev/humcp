@@ -2,7 +2,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.tools.google.drive import get_file, list_files, read_text_file, search
+from src.tools.google.drive import (
+    google_drive_get_file,
+    google_drive_list,
+    google_drive_read_text_file,
+    google_drive_search,
+)
 
 
 @pytest.fixture
@@ -29,7 +34,7 @@ class TestListFiles:
             ]
         }
 
-        result = await list_files()
+        result = await google_drive_list()
         assert result["success"] is True
         assert result["data"]["total"] == 1
         assert result["data"]["files"][0]["id"] == "file1"
@@ -39,7 +44,7 @@ class TestListFiles:
     async def test_list_files_empty(self, mock_drive_service):
         mock_drive_service.files().list().execute.return_value = {"files": []}
 
-        result = await list_files()
+        result = await google_drive_list()
         assert result["success"] is True
         assert result["data"]["total"] == 0
         assert result["data"]["files"] == []
@@ -48,21 +53,21 @@ class TestListFiles:
     async def test_list_files_with_folder_id(self, mock_drive_service):
         mock_drive_service.files().list().execute.return_value = {"files": []}
 
-        result = await list_files(folder_id="folder123")
+        result = await google_drive_list(folder_id="folder123")
         assert result["success"] is True
 
     @pytest.mark.asyncio
     async def test_list_files_with_file_type(self, mock_drive_service):
         mock_drive_service.files().list().execute.return_value = {"files": []}
 
-        result = await list_files(file_type="image")
+        result = await google_drive_list(file_type="image")
         assert result["success"] is True
 
     @pytest.mark.asyncio
     async def test_list_files_error(self, mock_drive_service):
         mock_drive_service.files().list().execute.side_effect = Exception("API error")
 
-        result = await list_files()
+        result = await google_drive_list()
         assert result["success"] is False
         assert "API error" in result["error"]
 
@@ -83,7 +88,7 @@ class TestSearch:
             ]
         }
 
-        result = await search("report")
+        result = await google_drive_search("report")
         assert result["success"] is True
         assert result["data"]["total"] == 1
         assert result["data"]["query"] == "report"
@@ -93,7 +98,7 @@ class TestSearch:
     async def test_search_no_results(self, mock_drive_service):
         mock_drive_service.files().list().execute.return_value = {"files": []}
 
-        result = await search("nonexistent")
+        result = await google_drive_search("nonexistent")
         assert result["success"] is True
         assert result["data"]["total"] == 0
 
@@ -103,7 +108,7 @@ class TestSearch:
             "Search failed"
         )
 
-        result = await search("test")
+        result = await google_drive_search("test")
         assert result["success"] is False
         assert "Search failed" in result["error"]
 
@@ -123,7 +128,7 @@ class TestGetFile:
             "parents": ["folder1"],
         }
 
-        result = await get_file("file123")
+        result = await google_drive_get_file("file123")
         assert result["success"] is True
         assert result["data"]["id"] == "file123"
         assert result["data"]["name"] == "Important.pdf"
@@ -135,7 +140,7 @@ class TestGetFile:
             "File not found"
         )
 
-        result = await get_file("nonexistent")
+        result = await google_drive_get_file("nonexistent")
         assert result["success"] is False
         assert "not found" in result["error"].lower()
 
@@ -160,7 +165,7 @@ class TestReadTextFile:
                 mock_buffer.getvalue.return_value = b"Hello, World!"
                 mock_bytesio.return_value = mock_buffer
 
-                result = await read_text_file("file123")
+                result = await google_drive_read_text_file("file123")
                 assert result["success"] is True
                 assert result["data"]["name"] == "notes.txt"
                 assert result["data"]["content"] == "Hello, World!"
@@ -182,7 +187,7 @@ class TestReadTextFile:
                 mock_buffer.getvalue.return_value = b"Document content"
                 mock_bytesio.return_value = mock_buffer
 
-                result = await read_text_file("doc123")
+                result = await google_drive_read_text_file("doc123")
                 assert result["success"] is True
 
     @pytest.mark.asyncio
@@ -191,6 +196,6 @@ class TestReadTextFile:
             "Access denied"
         )
 
-        result = await read_text_file("file123")
+        result = await google_drive_read_text_file("file123")
         assert result["success"] is False
         assert "Access denied" in result["error"]
