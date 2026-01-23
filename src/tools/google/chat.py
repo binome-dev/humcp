@@ -4,12 +4,9 @@ import asyncio
 import logging
 
 from src.humcp.decorator import tool
-from src.tools.google.auth import SCOPES, get_google_service
+from src.tools.google.auth import get_google_service_from_mcp
 
 logger = logging.getLogger("humcp.tools.google.chat")
-
-CHAT_READONLY_SCOPES = [SCOPES["chat_spaces"], SCOPES["chat_messages_readonly"]]
-CHAT_FULL_SCOPES = [SCOPES["chat_spaces"], SCOPES["chat_messages"]]
 
 
 @tool("google_chat_list_spaces")
@@ -28,7 +25,7 @@ async def list_spaces(space_type: str = "all", max_results: int = 100) -> dict:
     try:
 
         def _list():
-            service = get_google_service("chat", "v1", CHAT_READONLY_SCOPES)
+            service = get_google_service_from_mcp("chat", "v3")
             results = service.spaces().list(pageSize=max_results).execute()
             spaces = results.get("spaces", [])
 
@@ -72,7 +69,7 @@ async def get_space(space_name: str) -> dict:
     try:
 
         def _get():
-            service = get_google_service("chat", "v1", CHAT_READONLY_SCOPES)
+            service = get_google_service_from_mcp("chat", "v")
             space = service.spaces().get(name=space_name).execute()
 
             return {
@@ -113,7 +110,7 @@ async def get_messages(
     try:
 
         def _get():
-            service = get_google_service("chat", "v1", CHAT_READONLY_SCOPES)
+            service = get_google_service_from_mcp("chat", "v3")
             results = (
                 service.spaces()
                 .messages()
@@ -158,7 +155,7 @@ async def get_message(message_name: str) -> dict:
     try:
 
         def _get():
-            service = get_google_service("chat", "v1", CHAT_READONLY_SCOPES)
+            service = get_google_service_from_mcp("chat", "v3")
             message = service.spaces().messages().get(name=message_name).execute()
 
             return {
@@ -200,7 +197,7 @@ async def send_message(
     try:
 
         def _send():
-            service = get_google_service("chat", "v1", CHAT_FULL_SCOPES)
+            service = get_google_service_from_mcp("chat", "v3")
 
             body = {"text": text}
             kwargs = {"parent": space_name, "body": body}

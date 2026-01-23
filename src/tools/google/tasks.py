@@ -4,12 +4,9 @@ import asyncio
 import logging
 
 from src.humcp.decorator import tool
-from src.tools.google.auth import SCOPES, get_google_service
+from src.tools.google.auth import get_google_service_from_mcp
 
 logger = logging.getLogger("humcp.tools.google.tasks")
-
-TASKS_READONLY_SCOPES = [SCOPES["tasks_readonly"]]
-TASKS_FULL_SCOPES = [SCOPES["tasks"]]
 
 
 @tool("google_tasks_list_task_lists")
@@ -27,7 +24,7 @@ async def list_task_lists(max_results: int = 100) -> dict:
     try:
 
         def _list():
-            service = get_google_service("tasks", "v1", TASKS_READONLY_SCOPES)
+            service = get_google_service_from_mcp("tasks", "v3")
             results = service.tasklists().list(maxResults=max_results).execute()
             items = results.get("items", [])
             return {
@@ -63,7 +60,7 @@ async def get_task_list(task_list_id: str) -> dict:
     try:
 
         def _get():
-            service = get_google_service("tasks", "v1", TASKS_READONLY_SCOPES)
+            service = get_google_service_from_mcp("tasks", "v3")
             tl = service.tasklists().get(tasklist=task_list_id).execute()
             return {
                 "id": tl["id"],
@@ -92,7 +89,7 @@ async def create_task_list(title: str) -> dict:
     try:
 
         def _create():
-            service = get_google_service("tasks", "v1", TASKS_FULL_SCOPES)
+            service = get_google_service_from_mcp("tasks", "v3")
             tl = service.tasklists().insert(body={"title": title}).execute()
             return {
                 "id": tl["id"],
@@ -123,7 +120,7 @@ async def delete_task_list(task_list_id: str) -> dict:
     try:
 
         def _delete():
-            service = get_google_service("tasks", "v1", TASKS_FULL_SCOPES)
+            service = get_google_service_from_mcp("tasks", "v1")
             service.tasklists().delete(tasklist=task_list_id).execute()
             return {"deleted_task_list_id": task_list_id}
 
@@ -158,7 +155,7 @@ async def list_tasks(
     try:
 
         def _list():
-            service = get_google_service("tasks", "v1", TASKS_READONLY_SCOPES)
+            service = get_google_service_from_mcp("tasks", "v1")
             results = (
                 service.tasks()
                 .list(
@@ -209,7 +206,7 @@ async def get_task(task_list_id: str, task_id: str) -> dict:
     try:
 
         def _get():
-            service = get_google_service("tasks", "v1", TASKS_READONLY_SCOPES)
+            service = get_google_service_from_mcp("tasks", "v1")
             t = service.tasks().get(tasklist=task_list_id, task=task_id).execute()
             return {
                 "id": t["id"],
@@ -256,7 +253,7 @@ async def create_task(
     try:
 
         def _create():
-            service = get_google_service("tasks", "v1", TASKS_FULL_SCOPES)
+            service = get_google_service_from_mcp("tasks", "v1")
             body = {"title": title}
             if notes:
                 body["notes"] = notes
@@ -311,7 +308,7 @@ async def update_task(
     try:
 
         def _update():
-            service = get_google_service("tasks", "v1", TASKS_FULL_SCOPES)
+            service = get_google_service_from_mcp("tasks", "v1")
             # Get current task first
             current = service.tasks().get(tasklist=task_list_id, task=task_id).execute()
 
@@ -363,7 +360,7 @@ async def delete_task(task_list_id: str, task_id: str) -> dict:
     try:
 
         def _delete():
-            service = get_google_service("tasks", "v1", TASKS_FULL_SCOPES)
+            service = get_google_service_from_mcp("tasks", "v1")
             service.tasks().delete(tasklist=task_list_id, task=task_id).execute()
             return {"deleted_task_id": task_id}
 
@@ -406,7 +403,7 @@ async def clear_completed_tasks(task_list_id: str = "@default") -> dict:
     try:
 
         def _clear():
-            service = get_google_service("tasks", "v1", TASKS_FULL_SCOPES)
+            service = get_google_service_from_mcp("tasks", "v1")
             service.tasks().clear(tasklist=task_list_id).execute()
             return {"cleared": True, "task_list_id": task_list_id}
 

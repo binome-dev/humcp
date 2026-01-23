@@ -6,13 +6,9 @@ import logging
 from email.mime.text import MIMEText
 
 from src.humcp.decorator import tool
-from src.tools.google.auth import SCOPES, get_google_service
+from src.tools.google.auth import get_google_service_from_mcp
 
 logger = logging.getLogger("humcp.tools.google.gmail")
-
-# Scopes required for Gmail operations
-GMAIL_READONLY_SCOPES = [SCOPES["gmail_readonly"]]
-GMAIL_SEND_SCOPES = [SCOPES["gmail_send"]]
 
 
 @tool("google_gmail_search")
@@ -33,7 +29,7 @@ async def search(query: str = "", max_results: int = 10) -> dict:
         max_results = min(max_results, 100)
 
         def _search():
-            service = get_google_service("gmail", "v1", GMAIL_READONLY_SCOPES)
+            service = get_google_service_from_mcp("gmail", "v3")
             results = (
                 service.users()
                 .messages()
@@ -94,7 +90,7 @@ async def read(message_id: str) -> dict:
     try:
 
         def _read():
-            service = get_google_service("gmail", "v1", GMAIL_READONLY_SCOPES)
+            service = get_google_service_from_mcp("gmail", "v3")
             msg = (
                 service.users()
                 .messages()
@@ -171,7 +167,7 @@ async def send(
     try:
 
         def _send():
-            service = get_google_service("gmail", "v1", GMAIL_SEND_SCOPES)
+            service = get_google_service_from_mcp("gmail", "v3")
 
             message = MIMEText(body)
             message["to"] = to
@@ -215,7 +211,7 @@ async def labels() -> dict:
     try:
 
         def _list_labels():
-            service = get_google_service("gmail", "v1", GMAIL_READONLY_SCOPES)
+            service = get_google_service_from_mcp("gmail", "v3")
             results = service.users().labels().list(userId="me").execute()
             items = results.get("labels", [])
             return {
