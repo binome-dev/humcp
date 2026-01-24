@@ -214,8 +214,12 @@ class TestCreateAppWithTools:
 class TestAppIntegration:
     """Integration tests for the full app."""
 
-    def test_tool_execution_endpoint(self, tmp_path, register_sample_tools):
+    def test_tool_execution_endpoint(
+        self, tmp_path, register_sample_tools, monkeypatch
+    ):
         """Should be able to execute tools via REST."""
+        # Disable auth for this test
+        monkeypatch.setenv("AUTH_ENABLED", "false")
         app = create_app(tools_path=str(tmp_path))
         client = TestClient(app)
 
@@ -228,8 +232,12 @@ class TestAppIntegration:
         assert data["result"]["success"] is True
         assert data["result"]["data"]["value"] == "test_value"
 
-    def test_tool_with_optional_params(self, tmp_path, register_sample_tools):
+    def test_tool_with_optional_params(
+        self, tmp_path, register_sample_tools, monkeypatch
+    ):
         """Should handle optional parameters."""
+        # Disable auth for this test
+        monkeypatch.setenv("AUTH_ENABLED", "false")
         app = create_app(tools_path=str(tmp_path))
         client = TestClient(app)
 

@@ -1,17 +1,18 @@
 import base64
 import binascii
+import hmac
 import logging
 import os
-import hmac
 import time
 from urllib.parse import unquote
 
 from dotenv import load_dotenv
 from fastmcp.server.auth.providers.google import GoogleProvider
-
-from mcp.server.auth.middleware.client_auth import ClientAuthenticator
 from mcp.server.auth.handlers.token import TokenHandler
-from mcp.server.auth.middleware.client_auth import AuthenticationError
+from mcp.server.auth.middleware.client_auth import (
+    AuthenticationError,
+    ClientAuthenticator,
+)
 
 load_dotenv()
 
@@ -22,6 +23,28 @@ logging.getLogger("fastmcp.server.auth").setLevel(logging.DEBUG)
 logging.getLogger("mcp.server.auth").setLevel(logging.DEBUG)
 logging.getLogger("mcp.server.auth.middleware.client_auth").setLevel(logging.DEBUG)
 logging.getLogger("mcp.server.auth.handlers.token").setLevel(logging.DEBUG)
+
+
+def is_auth_enabled() -> bool:
+    """Check if authentication is enabled via AUTH_ENABLED env var.
+
+    Returns:
+        True if AUTH_ENABLED is not set or set to 'true'
+        False if AUTH_ENABLED is set to 'false'
+    """
+    auth_enabled = os.getenv("AUTH_ENABLED", "true").lower()
+    return auth_enabled in ("true")
+
+
+def has_google_credentials() -> bool:
+    """Check if Google OAuth credentials are configured.
+
+    Returns:
+        True if both GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET are set.
+    """
+    client_id = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
+    client_secret = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
+    return bool(client_id and client_secret)
 
 
 def apply_authentication_patches():
@@ -47,9 +70,13 @@ def apply_authentication_patches():
                     if ":" in decoded:
                         basic_client_id, _ = decoded.split(":", 1)
                         client_id = unquote(basic_client_id)
-                        logger.info("Extracted client_id from Basic Auth header: %s", client_id)
+                        logger.info(
+                            "Extracted client_id from Basic Auth header: %s", client_id
+                        )
                 except (ValueError, UnicodeDecodeError, binascii.Error) as e:
-                    logger.warning("Failed to extract client_id from Basic Auth header: %s", e)
+                    logger.warning(
+                        "Failed to extract client_id from Basic Auth header: %s", e
+                    )
 
         if not client_id:
             raise AuthenticationError("Missing client_id")
@@ -63,7 +90,9 @@ def apply_authentication_patches():
 
         if client.token_endpoint_auth_method == "client_secret_basic":
             if not auth_header.startswith("Basic "):
-                raise AuthenticationError("Missing or invalid Basic authentication in Authorization header")
+                raise AuthenticationError(
+                    "Missing or invalid Basic authentication in Authorization header"
+                )
 
             try:
                 encoded_credentials = auth_header[6:]
@@ -77,8 +106,8 @@ def apply_authentication_patches():
 
                 if basic_client_id != client_id:
                     raise AuthenticationError("Client ID mismatch in Basic auth")
-            except (ValueError, UnicodeDecodeError, binascii.Error):
-                raise AuthenticationError("Invalid Basic authentication header")
+            except (ValueError, UnicodeDecodeError, binascii.Error) as e:
+                raise AuthenticationError("Invalid Basic authentication header") from e
 
         elif client.token_endpoint_auth_method == "client_secret_post":
             raw_form_data = form_data.get("client_secret")
@@ -97,10 +126,15 @@ def apply_authentication_patches():
             if not request_client_secret:
                 raise AuthenticationError("Client secret is required")
 
-            if not hmac.compare_digest(client.client_secret.encode(), request_client_secret.encode()):
+            if not hmac.compare_digest(
+                client.client_secret.encode(), request_client_secret.encode()
+            ):
                 raise AuthenticationError("Invalid client_secret")
 
-            if client.client_secret_expires_at and client.client_secret_expires_at < int(time.time()):
+            if (
+                client.client_secret_expires_at
+                and client.client_secret_expires_at < int(time.time())
+            ):
                 raise AuthenticationError("Client secret has expired")
 
         return client
@@ -125,16 +159,24 @@ def apply_authentication_patches():
                         client_id = unquote(basic_client_id)
 
                         # Add client_id to form data dict for Pydantic validation
-                        from starlette.datastructures import FormData as StarletteFormData
+                        from starlette.datastructures import (
+                            FormData as StarletteFormData,
+                        )
+
                         mutable_form = dict(form_data)
                         mutable_form["client_id"] = client_id
 
                         # Create a new FormData object with the client_id added
                         request._form = StarletteFormData(mutable_form)
 
-                        logger.debug("Added client_id to form data for Pydantic validation: %s", client_id)
+                        logger.debug(
+                            "Added client_id to form data for Pydantic validation: %s",
+                            client_id,
+                        )
                 except (ValueError, UnicodeDecodeError, binascii.Error) as e:
-                    logger.warning("Failed to extract client_id for form validation: %s", e)
+                    logger.warning(
+                        "Failed to extract client_id for form validation: %s", e
+                    )
 
         # Call original handle method
         return await _original_token_handle(self, request)
@@ -143,25 +185,28 @@ def apply_authentication_patches():
     logger.info("Applied authentication patches for Postman compatibility")
 
 
-def create_auth_provider() -> GoogleProvider:
+def create_auth_provider() -> GoogleProvider | None:
     """Create and configure the Google OAuth authentication provider.
 
     Returns:
-        Configured GoogleProvider instance.
-
-    Raises:
-        ValueError: If required environment variables are not set.
+        Configured GoogleProvider instance if AUTH_ENABLED=true and credentials are set.
+        None if AUTH_ENABLED=false or credentials are missing.
     """
-    # Apply patches before creating provider
-    apply_authentication_patches()
+    if not is_auth_enabled():
+        logger.info("Authentication is disabled (AUTH_ENABLED=false)")
+        return None
 
     client_id = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
     client_secret = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
 
     if not client_id or not client_secret:
-        raise ValueError(
-            "GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET must be set in environment"
+        logger.warning(
+            "Google OAuth credentials not set. Authentication disabled. "
+            "Set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET to enable auth."
         )
+        return None
+
+    apply_authentication_patches()
 
     auth_provider = GoogleProvider(
         client_id=client_id,
@@ -194,7 +239,10 @@ def create_auth_provider() -> GoogleProvider:
             "https://www.googleapis.com/auth/chat.spaces.readonly",
             "https://www.googleapis.com/auth/chat.messages",
         ],
-        allowed_client_redirect_uris=["https://oauth.pstmn.io/v1/callback", "http://localhost:*"],
+        allowed_client_redirect_uris=[
+            "https://oauth.pstmn.io/v1/callback",
+            "http://localhost:*",
+        ],
     )
 
     logger.info("Created Google OAuth provider")

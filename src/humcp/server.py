@@ -2,14 +2,13 @@
 
 import importlib.util
 import logging
-import os
 import sys
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastmcp import FastMCP
 
@@ -17,8 +16,10 @@ from src.humcp.auth import create_auth_provider
 from src.humcp.registry import TOOL_REGISTRY
 from src.humcp.routes import build_openapi_tags, register_routes
 
+load_dotenv()
+
 logger = logging.getLogger("humcp")
-auth_provider = create_auth_provider()
+
 
 def _discover_tools(tools_path: Path) -> int:
     """Auto-discover and import tool modules from a directory.
@@ -91,6 +92,9 @@ def create_app(
     loaded = _discover_tools(path)
     logger.info("Discovered %d tool modules from %s", loaded, path)
 
+    # Create auth provider (respects AUTH_ENABLED env var)
+    auth_provider = create_auth_provider()
+
     # Create MCP server
     mcp = FastMCP("HuMCP Server", auth=auth_provider)
     seen: set[Callable[..., Any]] = set()
@@ -118,24 +122,17 @@ def create_app(
         openapi_tags=openapi_tags,
     )
 
-    # Register REST routes from TOOL_REGISTRY
-    register_routes(app)
+    # Register all REST routes (tools, auth, info endpoints)
+    register_routes(
+        app,
+        auth_provider=auth_provider,
+        tools_path=path,
+        title=title,
+        version=version,
+    )
     logger.info("Registered %d REST endpoints", len(TOOL_REGISTRY))
 
-    # Root info endpoint
-    mcp_url = os.getenv("MCP_SERVER_URL", "http://0.0.0.0:8080/mcp")
-
-    @app.get("/", tags=["Info"])
-    async def root():
-        return {
-            "name": title,
-            "version": version,
-            "mcp_server": mcp_url,
-            "tools_count": len(TOOL_REGISTRY),
-            "endpoints": {"docs": "/docs", "tools": "/tools", "mcp": "/mcp"},
-        }
-
-    # Mount ALL OAuth routes at root level
+    # Mount OAuth routes at root level
     # This includes: /.well-known/*, /authorize, /token, /register, /auth/callback, /consent
     if auth_provider:
         oauth_routes = auth_provider.get_routes(mcp_path="/mcp")
