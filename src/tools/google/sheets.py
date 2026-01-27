@@ -9,8 +9,8 @@ from src.tools.google.auth import get_google_service_from_mcp
 logger = logging.getLogger("humcp.tools.google.sheets")
 
 
-@tool("google_sheets_list_spreadsheets")
-async def list_spreadsheets(max_results: int = 25) -> dict:
+@tool()
+async def google_sheets_list_spreadsheets(max_results: int = 25) -> dict:
     """List Google Spreadsheets accessible to the user.
 
     Returns recent spreadsheets ordered by modification time.
@@ -60,8 +60,8 @@ async def list_spreadsheets(max_results: int = 25) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_sheets_get_info")
-async def get_spreadsheet_info(spreadsheet_id: str) -> dict:
+@tool()
+async def google_sheets_get_info(spreadsheet_id: str) -> dict:
     """Get metadata about a spreadsheet.
 
     Returns information about all sheets in the spreadsheet including dimensions.
@@ -109,8 +109,8 @@ async def get_spreadsheet_info(spreadsheet_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_sheets_read_values")
-async def read_sheet_values(
+@tool()
+async def google_sheets_read_values(
     spreadsheet_id: str, range_notation: str = "Sheet1"
 ) -> dict:
     """Read values from a spreadsheet range.
@@ -150,8 +150,8 @@ async def read_sheet_values(
         return {"success": False, "error": str(e)}
 
 
-@tool("google_sheets_write_values")
-async def write_sheet_values(
+@tool()
+async def google_sheets_write_values(
     spreadsheet_id: str,
     range_notation: str,
     values: list,
@@ -203,8 +203,8 @@ async def write_sheet_values(
         return {"success": False, "error": str(e)}
 
 
-@tool("google_sheets_append_values")
-async def append_sheet_values(
+@tool()
+async def google_sheets_append_values(
     spreadsheet_id: str,
     range_notation: str,
     values: list,
@@ -257,8 +257,10 @@ async def append_sheet_values(
         return {"success": False, "error": str(e)}
 
 
-@tool("google_sheets_create_spreadsheet")
-async def create_spreadsheet(title: str, sheet_names: list[str] | None = None) -> dict:
+@tool()
+async def google_sheets_create_spreadsheet(
+    title: str, sheet_names: list[str] | None = None
+) -> dict:
     """Create a new Google Spreadsheet.
 
     Creates a spreadsheet with optional named sheets.
@@ -301,8 +303,8 @@ async def create_spreadsheet(title: str, sheet_names: list[str] | None = None) -
         return {"success": False, "error": str(e)}
 
 
-@tool("google_sheets_add_sheet")
-async def add_sheet(spreadsheet_id: str, sheet_title: str) -> dict:
+@tool()
+async def google_sheets_add_sheet(spreadsheet_id: str, sheet_title: str) -> dict:
     """Add a new sheet to an existing spreadsheet.
 
     Creates a new tab/sheet within the spreadsheet.
@@ -339,8 +341,8 @@ async def add_sheet(spreadsheet_id: str, sheet_title: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_sheets_clear_values")
-async def clear_sheet_values(spreadsheet_id: str, range_notation: str) -> dict:
+@tool()
+async def google_sheets_clear_values(spreadsheet_id: str, range_notation: str) -> dict:
     """Clear values from a spreadsheet range.
 
     Removes all values from cells in the specified range without deleting the cells.

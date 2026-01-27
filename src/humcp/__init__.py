@@ -1,39 +1,12 @@
-"""HuMCP - Human-friendly MCP server with FastAPI adapter."""
+"""HuMCP - Human-friendly MCP server with FastAPI adapter.
 
-from src.humcp.registry import TOOL_REGISTRY, ToolRegistration
-from src.humcp.schemas import (
-    CategorySummary,
-    GetCategoryResponse,
-    GetToolResponse,
-    InputSchema,
-    ListToolsResponse,
-    SkillFull,
-    SkillMetadata,
-    ToolSummary,
-)
-from src.humcp.skills import (
-    Skill,
-    discover_skills,
-    get_skill_content,
-    get_skills_by_category,
-)
+Public API:
+    tool: Decorator to mark functions as MCP tools
+    create_app: Create FastAPI app with REST and MCP endpoints
+    RegisteredTool: Type for registered tool (for type hints)
+"""
 
-__all__ = [
-    # Registry
-    "TOOL_REGISTRY",
-    "ToolRegistration",
-    # Skills
-    "Skill",
-    "discover_skills",
-    "get_skill_content",
-    "get_skills_by_category",
-    # Schemas
-    "CategorySummary",
-    "GetCategoryResponse",
-    "GetToolResponse",
-    "InputSchema",
-    "ListToolsResponse",
-    "SkillFull",
-    "SkillMetadata",
-    "ToolSummary",
-]
+from src.humcp.decorator import RegisteredTool, tool
+from src.humcp.server import create_app
+
+__all__ = ["tool", "create_app", "RegisteredTool"]

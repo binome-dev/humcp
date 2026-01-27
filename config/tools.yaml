@@ -1,0 +1,82 @@
+# HuMCP Tool Configuration
+#
+# This file controls which tools are exposed as API endpoints.
+#
+# RULES:
+#   1. Empty file or missing config = load ALL tools (default)
+#   2. If `include` is specified, ONLY those categories/tools are loaded
+#   3. Then `exclude` removes any matching categories/tools from the result
+#
+# WILDCARDS:
+#   Tool names support glob patterns: *, ?, [seq], [!seq]
+#   Examples:
+#     - "shell_*"           matches all shell tools
+#     - "calculator_*"      matches all calculator tools
+#     - "google_sheets_*"   matches all Google Sheets tools
+#
+# AVAILABLE CATEGORIES:
+#   - data     (CSV and pandas operations)
+#   - files    (PDF conversion)
+#   - google   (Google Workspace: Sheets, Docs, Drive, Gmail, Calendar, etc.)
+#   - local    (Calculator, filesystem, shell)
+#   - search   (Web search via Tavily)
+#
+# EXAMPLES:
+#
+# 1. Load ALL tools (default - just leave file empty or comment everything):
+#    # (empty)
+#
+# 2. Load only specific categories:
+#    include:
+#      categories:
+#        - local
+#        - data
+#
+# 3. Load everything except Google tools:
+#    exclude:
+#      categories:
+#        - google
+#
+# 4. Load local category but exclude shell tools:
+#    include:
+#      categories:
+#        - local
+#    exclude:
+#      tools:
+#        - shell_*
+#
+# 5. Load only specific tools:
+#    include:
+#      tools:
+#        - calculator_add
+#        - calculator_subtract
+#        - filesystem_read_file
+#
+# 6. Complex filtering:
+#    include:
+#      categories:
+#        - local
+#        - data
+#    exclude:
+#      tools:
+#        - shell_*
+#        - query_csv_file
+#
+# ============================================================================
+# ACTIVE CONFIGURATION (uncomment and modify as needed)
+# ============================================================================
+
+# Load all tools by default
+# include:
+#   categories: []
+#   tools: []
+
+# exclude:
+#   categories: []
+#   tools: []
+
+
+# Example: exclude google tools
+# exclude:
+#   categories:
+#     - google

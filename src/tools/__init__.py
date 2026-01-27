@@ -13,9 +13,9 @@ Use the @tool decorator from src.humcp.decorator to register new tools.
 Example:
     from src.humcp.decorator import tool
 
-    @tool("my_tool", category="custom")
+    @tool(category="custom")  # or @tool() to auto-detect from folder
     async def my_tool(param: str) -> dict:
-        '''Tool description.'''
+        '''Tool description (used by FastMCP).'''
         return {"success": True, "data": param}
 """
 

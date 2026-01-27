@@ -14,25 +14,25 @@ def _err(msg: str) -> dict:
     return {"success": False, "error": msg}
 
 
-@tool("add")
+@tool()
 async def add(a: float, b: float) -> dict:
     """Add two numbers."""
     return _ok({"operation": "add", "a": a, "b": b, "result": a + b})
 
 
-@tool("subtract")
+@tool()
 async def subtract(a: float, b: float) -> dict:
     """Subtract b from a."""
     return _ok({"operation": "subtract", "a": a, "b": b, "result": a - b})
 
 
-@tool("multiply")
+@tool()
 async def multiply(a: float, b: float) -> dict:
     """Multiply two numbers."""
     return _ok({"operation": "multiply", "a": a, "b": b, "result": a * b})
 
 
-@tool("divide")
+@tool()
 async def divide(a: float, b: float) -> dict:
     """Divide a by b."""
     if b == 0:
@@ -40,7 +40,7 @@ async def divide(a: float, b: float) -> dict:
     return _ok({"operation": "divide", "a": a, "b": b, "result": a / b})
 
 
-@tool("exponentiate")
+@tool()
 async def exponentiate(a: float, b: float) -> dict:
     """Raise a to the power of b."""
     try:
@@ -50,7 +50,7 @@ async def exponentiate(a: float, b: float) -> dict:
     return _ok({"operation": "power", "a": a, "b": b, "result": result})
 
 
-@tool("factorial")
+@tool()
 async def factorial(n: int) -> dict:
     """Calculate factorial of n (must be non-negative)."""
     if n < 0:
@@ -62,7 +62,7 @@ async def factorial(n: int) -> dict:
     return _ok({"operation": "factorial", "n": n, "result": result})
 
 
-@tool("is_prime")
+@tool()
 async def is_prime(n: int) -> dict:
     """Check if n is prime."""
     if n <= 1:
@@ -73,7 +73,7 @@ async def is_prime(n: int) -> dict:
     return _ok({"n": n, "is_prime": True})
 
 
-@tool("square_root")
+@tool()
 async def square_root(n: float) -> dict:
     """Calculate square root of n (must be non-negative)."""
     if n < 0:
@@ -81,13 +81,13 @@ async def square_root(n: float) -> dict:
     return _ok({"operation": "sqrt", "n": n, "result": math.sqrt(n)})
 
 
-@tool("absolute_value")
+@tool()
 async def absolute_value(n: float) -> dict:
     """Calculate absolute value of n."""
     return _ok({"operation": "abs", "n": n, "result": abs(n)})
 
 
-@tool("logarithm")
+@tool()
 async def logarithm(n: float, base: float = 0) -> dict:
     """Calculate logarithm of n. Base defaults to e (natural log) if 0."""
     if n <= 0:
@@ -99,7 +99,7 @@ async def logarithm(n: float, base: float = 0) -> dict:
     return _ok({"operation": "log", "n": n, "base": base, "result": math.log(n, base)})
 
 
-@tool("modulo")
+@tool()
 async def modulo(a: float, b: float) -> dict:
     """Calculate a modulo b."""
     if b == 0:
@@ -107,7 +107,7 @@ async def modulo(a: float, b: float) -> dict:
     return _ok({"operation": "mod", "a": a, "b": b, "result": a % b})
 
 
-@tool("greatest_common_divisor")
+@tool()
 async def greatest_common_divisor(a: int, b: int) -> dict:
     """Calculate GCD of a and b."""
     try:

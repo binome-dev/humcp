@@ -133,8 +133,8 @@ async def run_shell_command(
         return {"success": False, "error": f"Failed to run shell command: {str(e)}"}
 
 
-@tool("shell_run_shell_script")
-async def run_shell_script(
+@tool()
+async def shell_run_shell_script(
     script: str,
     shell: str = "/bin/bash",
     base_dir: str = "",
@@ -214,8 +214,8 @@ async def run_shell_script(
         return {"success": False, "error": f"Failed to run shell script: {str(e)}"}
 
 
-@tool("shell_check_command_exists")
-async def check_command_exists(command: str) -> dict:
+@tool()
+async def shell_check_command_exists(command: str) -> dict:
     """
     Check if a command exists in the system PATH.
 
@@ -247,8 +247,8 @@ async def check_command_exists(command: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("shell_get_environment_variable")
-async def get_environment_variable(variable_name: str) -> dict:
+@tool()
+async def shell_get_environment_variable(variable_name: str) -> dict:
     """
     Get the value of an environment variable.
 
@@ -282,8 +282,8 @@ async def get_environment_variable(variable_name: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("shell_get_current_directory")
-async def get_current_directory() -> dict:
+@tool()
+async def shell_get_current_directory() -> dict:
     """
     Get the current working directory.
 
@@ -301,8 +301,8 @@ async def get_current_directory() -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("shell_get_system_info")
-async def get_system_info() -> dict:
+@tool()
+async def shell_get_system_info() -> dict:
     """
     Get basic system information.
 

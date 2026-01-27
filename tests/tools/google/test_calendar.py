@@ -3,10 +3,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.tools.google.calendar import (
-    create_event,
-    delete_event,
-    events,
-    list_calendars,
+    google_calendar_create_event,
+    google_calendar_delete_event,
+    google_calendar_events,
+    google_calendar_list,
 )
 
 
@@ -40,7 +40,7 @@ class TestListCalendars:
             ]
         }
 
-        result = await list_calendars()
+        result = await google_calendar_list()
         assert result["success"] is True
         assert result["data"]["total"] == 2
         assert result["data"]["calendars"][0]["id"] == "primary"
@@ -50,7 +50,7 @@ class TestListCalendars:
     async def test_list_calendars_empty(self, mock_calendar_service):
         mock_calendar_service.calendarList().list().execute.return_value = {"items": []}
 
-        result = await list_calendars()
+        result = await google_calendar_list()
         assert result["success"] is True
         assert result["data"]["total"] == 0
 
@@ -60,7 +60,7 @@ class TestListCalendars:
             "Auth failed"
         )
 
-        result = await list_calendars()
+        result = await google_calendar_list()
         assert result["success"] is False
         assert "Auth failed" in result["error"]
 
@@ -83,7 +83,7 @@ class TestEvents:
             ]
         }
 
-        result = await events()
+        result = await google_calendar_events()
         assert result["success"] is True
         assert result["data"]["total"] == 1
         assert result["data"]["events"][0]["title"] == "Team Meeting"
@@ -103,7 +103,7 @@ class TestEvents:
             ]
         }
 
-        result = await events()
+        result = await google_calendar_events()
         assert result["success"] is True
         assert result["data"]["events"][0]["start"] == "2024-01-01"
 
@@ -111,7 +111,7 @@ class TestEvents:
     async def test_events_with_custom_params(self, mock_calendar_service):
         mock_calendar_service.events().list().execute.return_value = {"items": []}
 
-        result = await events(
+        result = await google_calendar_events(
             calendar_id="work@group.calendar.google.com", days_ahead=14
         )
         assert result["success"] is True
@@ -122,7 +122,7 @@ class TestEvents:
             "Calendar not found"
         )
 
-        result = await events(calendar_id="invalid")
+        result = await google_calendar_events(calendar_id="invalid")
         assert result["success"] is False
 
 
@@ -137,7 +137,7 @@ class TestCreateEvent:
             "htmlLink": "https://calendar.google.com/new_event",
         }
 
-        result = await create_event(
+        result = await google_calendar_create_event(
             title="New Meeting",
             start_time="2024-01-20T14:00:00Z",
             end_time="2024-01-20T15:00:00Z",
@@ -156,7 +156,7 @@ class TestCreateEvent:
             "htmlLink": "https://calendar.google.com/team_event",
         }
 
-        result = await create_event(
+        result = await google_calendar_create_event(
             title="Team Sync",
             start_time="2024-01-20T14:00:00Z",
             end_time="2024-01-20T15:00:00Z",
@@ -170,7 +170,7 @@ class TestCreateEvent:
             "Invalid time"
         )
 
-        result = await create_event(
+        result = await google_calendar_create_event(
             title="Bad Event",
             start_time="invalid",
             end_time="invalid",
@@ -183,7 +183,7 @@ class TestDeleteEvent:
     async def test_delete_event_success(self, mock_calendar_service):
         mock_calendar_service.events().delete().execute.return_value = None
 
-        result = await delete_event("event123")
+        result = await google_calendar_delete_event("event123")
         assert result["success"] is True
         assert result["data"]["deleted_event_id"] == "event123"
 
@@ -193,5 +193,5 @@ class TestDeleteEvent:
             "Event not found"
         )
 
-        result = await delete_event("nonexistent")
+        result = await google_calendar_delete_event("nonexistent")
         assert result["success"] is False

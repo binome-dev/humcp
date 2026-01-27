@@ -2,7 +2,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.tools.google.gmail import labels, read, search, send
+from src.tools.google.gmail import (
+    google_gmail_labels,
+    google_gmail_read,
+    google_gmail_search,
+    google_gmail_send,
+)
 
 
 @pytest.fixture
@@ -33,7 +38,7 @@ class TestSearch:
             },
         }
 
-        result = await search("test")
+        result = await google_gmail_search("test")
         assert result["success"] is True
         assert result["data"]["total"] == 1
         assert result["data"]["messages"][0]["subject"] == "Test Subject"
@@ -45,7 +50,7 @@ class TestSearch:
             "messages": []
         }
 
-        result = await search("nonexistent query")
+        result = await google_gmail_search("nonexistent query")
         assert result["success"] is True
         assert result["data"]["total"] == 0
 
@@ -55,7 +60,7 @@ class TestSearch:
             "Search failed"
         )
 
-        result = await search("test")
+        result = await google_gmail_search("test")
         assert result["success"] is False
 
 
@@ -78,7 +83,7 @@ class TestRead:
             },
         }
 
-        result = await read("msg1")
+        result = await google_gmail_read("msg1")
         assert result["success"] is True
         assert result["data"]["subject"] == "Important Email"
         assert result["data"]["body"] == "Hello, World!"
@@ -108,7 +113,7 @@ class TestRead:
             },
         }
 
-        result = await read("msg2")
+        result = await google_gmail_read("msg2")
         assert result["success"] is True
         assert result["data"]["body"] == "Plain text"
 
@@ -118,7 +123,7 @@ class TestRead:
             "Message not found"
         )
 
-        result = await read("invalid_id")
+        result = await google_gmail_read("invalid_id")
         assert result["success"] is False
 
 
@@ -130,7 +135,7 @@ class TestSend:
             "threadId": "new_thread",
         }
 
-        result = await send(
+        result = await google_gmail_send(
             to="recipient@example.com",
             subject="Test Email",
             body="This is a test email body.",
@@ -145,7 +150,7 @@ class TestSend:
             "threadId": "thread2",
         }
 
-        result = await send(
+        result = await google_gmail_send(
             to="recipient@example.com",
             subject="Team Update",
             body="Update content",
@@ -160,7 +165,7 @@ class TestSend:
             "Send failed"
         )
 
-        result = await send(
+        result = await google_gmail_send(
             to="invalid",
             subject="Test",
             body="Body",
@@ -179,7 +184,7 @@ class TestLabels:
             ]
         }
 
-        result = await labels()
+        result = await google_gmail_labels()
         assert result["success"] is True
         assert result["data"]["total"] == 3
         assert result["data"]["labels"][0]["name"] == "INBOX"
@@ -190,5 +195,5 @@ class TestLabels:
             "Failed to list labels"
         )
 
-        result = await labels()
+        result = await google_gmail_labels()
         assert result["success"] is False

@@ -11,8 +11,8 @@ from src.tools.google.auth import get_google_service_from_mcp
 logger = logging.getLogger("humcp.tools.google.gmail")
 
 
-@tool("google_gmail_search")
-async def search(query: str = "", max_results: int = 10) -> dict:
+@tool()
+async def google_gmail_search(query: str = "", max_results: int = 10) -> dict:
     """Search Gmail messages.
 
     Searches for emails matching the query using Gmail's search syntax.
@@ -75,8 +75,8 @@ async def search(query: str = "", max_results: int = 10) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_gmail_read")
-async def read(message_id: str) -> dict:
+@tool()
+async def google_gmail_read(message_id: str) -> dict:
     """Read the full content of a Gmail message.
 
     Retrieves the complete email including headers, body text, and labels.
@@ -142,8 +142,8 @@ async def read(message_id: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_gmail_send")
-async def send(
+@tool()
+async def google_gmail_send(
     to: str,
     subject: str,
     body: str,
@@ -198,8 +198,8 @@ async def send(
         return {"success": False, "error": str(e)}
 
 
-@tool("google_gmail_labels")
-async def labels() -> dict:
+@tool()
+async def google_gmail_labels() -> dict:
     """List all Gmail labels.
 
     Returns all labels in the user's mailbox including system labels

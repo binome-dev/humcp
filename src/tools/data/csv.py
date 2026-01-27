@@ -68,7 +68,7 @@ def set_csv_files(csv_files: list):
     _csv_manager = CSVManager(csv_files)
 
 
-@tool("list_csv_files")
+@tool()
 async def list_csv_files() -> dict:
     """List all available CSV files."""
     try:
@@ -84,7 +84,7 @@ async def list_csv_files() -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("read_csv_file")
+@tool()
 async def read_csv_file(csv_name: str, row_limit: int | None = None) -> dict:
     """Read contents of a CSV file."""
     try:
@@ -108,7 +108,7 @@ async def read_csv_file(csv_name: str, row_limit: int | None = None) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("get_csv_columns")
+@tool()
 async def get_csv_columns(csv_name: str) -> dict:
     """Get column names from a CSV file."""
     try:
@@ -148,7 +148,7 @@ def _validate_sql_query(query: str) -> tuple[bool, str]:
     return True, ""
 
 
-@tool("query_csv_file")
+@tool()
 async def query_csv_file(csv_name: str, sql_query: str) -> dict:
     """Execute SQL query on CSV file using DuckDB.
 
@@ -203,7 +203,7 @@ async def query_csv_file(csv_name: str, sql_query: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("describe_csv_file")
+@tool()
 async def describe_csv_file(csv_name: str) -> dict:
     """Get detailed information about a CSV file."""
     try:
@@ -242,7 +242,7 @@ async def describe_csv_file(csv_name: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("add_csv_file")
+@tool()
 async def add_csv_file(file_path: str) -> dict:
     """Add a CSV file to available files."""
     try:
@@ -266,7 +266,7 @@ async def add_csv_file(file_path: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("remove_csv_file")
+@tool()
 async def remove_csv_file(csv_name: str) -> dict:
     """Remove a CSV file from available files."""
     try:

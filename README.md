@@ -8,36 +8,9 @@ HuMCP is a simple server that exposes tools via both MCP (Model Context Protocol
 - Auto-generated REST endpoints at `/tools/*`
 - MCP server at `/mcp` for AI assistant integration
 - Auto-generated Swagger/OpenAPI documentation at `/docs`
-- Tools organized by category with info endpoints
+- Tools organized by category with skill metadata
+- Configurable tool filtering via YAML config
 - Docker Compose setup for easy deployment
-
-## Prerequisites
-
-- Python >= 3.13
-- [uv](https://github.com/astral-sh/uv) (recommended)
-- Docker & Docker Compose (optional)
-
-## Project Layout
-
-```
-.
-├── docker/
-│   └── Dockerfile
-├── src/
-│   ├── humcp/                  # Core library
-│   │   ├── registry.py         # Tool registry
-│   │   ├── decorator.py        # @tool decorator
-│   │   ├── routes.py           # REST route generation
-│   │   └── server.py           # create_app() function
-│   ├── tools/                  # Your tools go here
-│   │   ├── local/              # Local utility tools
-│   │   ├── data/               # Data manipulation tools
-│   │   └── ...
-│   └── main.py                 # App entry point
-├── tests/
-├── docker-compose.yml
-└── pyproject.toml
-```
 
 ## Quick Start
 
@@ -55,7 +28,23 @@ uv run uvicorn src.main:app --host 0.0.0.0 --port 8080
 - REST API & Swagger UI: [http://localhost:8080/docs](http://localhost:8080/docs)
 - MCP endpoint: `http://localhost:8080/mcp`
 
-## Adding New Tools
+### Docker
+
+```bash
+docker compose up --build
+```
+
+## Prerequisites
+
+- Python >= 3.13
+- [uv](https://github.com/astral-sh/uv) (recommended)
+- Docker & Docker Compose (optional)
+
+---
+
+# Creating Tools
+
+## Adding a New Tool
 
 1. Create a `.py` file in `src/tools/<category>/` (e.g., `src/tools/local/my_tool.py`)
 2. Use the `@tool` decorator:
@@ -78,29 +67,28 @@ async def greet(name: str) -> dict:
 
 3. Start the server - tools are auto-discovered!
 
-### Documentation is Critical! 🚨
+## Tool Documentation
 
-**Your docstring is not just a comment - it becomes the tool's user interface:**
+**Your docstring becomes the tool's user interface:**
 
 - **REST API**: Appears in Swagger/OpenAPI docs at `/docs`
 - **MCP Protocol**: Sent to AI assistants to help them understand when and how to use your tool
 - **Type hints**: Combined with docstrings to generate input schemas
 
-**Best Practices:**
+### Best Practices
 
 ✅ **DO:**
 - Write clear, concise docstrings that explain what the tool does
 - Document all parameters with their purpose and expected format
 - Describe what the tool returns
-- Include examples for complex tools
 - Use proper Python type hints
 
 ❌ **DON'T:**
 - Leave tools without docstrings
-- Use vague descriptions like "does stuff" or "helper function"
+- Use vague descriptions like "does stuff"
 - Forget to document parameters or return values
 
-**Example of Good Documentation:**
+### Example
 
 ```python
 @tool()
@@ -116,20 +104,14 @@ async def search_files(pattern: str, directory: str = ".") -> dict:
 
     Returns:
         List of matching file paths with their sizes and modification times.
-
-    Example:
-        {"pattern": "*.json", "directory": "/app/config"}
     """
     ...
 ```
 
-### Tool Naming
-
-The `@tool` decorator supports flexible naming:
+## Tool Naming
 
 ```python
 # Auto-generated name: "{category}_{function_name}"
-# Category from parent folder, e.g., "local_greet"
 @tool()
 async def greet(name: str) -> dict:
     ...
@@ -145,7 +127,7 @@ async def greet(name: str) -> dict:
     ...
 ```
 
-### Tool Response Pattern
+## Response Pattern
 
 Tools should return a dictionary:
 
@@ -157,85 +139,137 @@ return {"success": True, "data": {"result": value}}
 return {"success": False, "error": "Error message"}
 ```
 
-## API Endpoints
+## Skills
 
-### Info Endpoints
+Skills provide metadata about tool categories for AI assistants. Create a `SKILL.md` file in your tool category folder:
+
+```markdown
+---
+name: managing-local-system
+description: Manages local filesystem operations and runs shell commands. Use when working with local files or executing commands.
+---
+
+# Local System Tools
+
+## File Operations
+
+\`\`\`python
+result = await filesystem_write_file(content="Hello", filename="test.txt")
+\`\`\`
+```
+
+### Skill Best Practices
+
+Follow the [Claude Code Skill Best Practices](https://docs.anthropic.com/en/docs/claude-code/skills#best-practices):
+
+1. **Naming**: Use gerund phrases (e.g., `managing-local-system`, `processing-data`)
+2. **Description**: Write in third person, describe what the skill does and when to use it
+3. **Content**: Include code examples, parameter tables, and usage guidance
+4. **Progressive Disclosure**: Start with common operations, then advanced options
+
+## Tool Configuration
+
+Control which tools are exposed via `config/tools.yaml`. Empty config loads all tools.
+
+```yaml
+# Include specific categories/tools
+include:
+  categories:
+    - local
+    - data
+  tools:
+    - tavily_web_search
+
+# Exclude categories/tools (supports wildcards)
+exclude:
+  tools:
+    - shell_*
+```
+
+**Rules:**
+1. Empty config = load ALL tools
+2. `include` filters to only specified categories/tools
+3. `exclude` removes from the result (supports `*`, `?` wildcards)
+
+---
+
+# API Reference
+
+## Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/` | Server info |
-| GET | `/tools` | List all tools grouped by category |
-| GET | `/tools/{category}` | List tools in a category |
-| GET | `/tools/{category}/{tool_name}` | Get tool details and input schema |
-
-### Tool Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
+| GET | `/docs` | Swagger UI |
+| GET | `/tools` | List all tools with skill metadata |
+| GET | `/tools/{category}` | Category details with full skill content |
+| GET | `/tools/{category}/{tool_name}` | Tool details and input schema |
 | POST | `/tools/{tool_name}` | Execute a tool |
+| - | `/mcp` | MCP server (SSE transport) |
 
-Example:
+## Example
+
 ```bash
 curl -X POST http://localhost:8080/tools/local_greet \
   -H "Content-Type: application/json" \
   -d '{"name": "World"}'
 ```
 
-### MCP Endpoint
-
-| Endpoint | Description |
-|----------|-------------|
-| `/mcp` | MCP server (SSE transport) |
-
-## Docker Usage
-
-```bash
-docker compose up --build
-```
-
 ## Environment Variables
 
 | Variable | Description |
 |----------|-------------|
-| `PORT` | Port to run the combined FastAPI + MCP server (default `8080`) |
-| `MCP_PORT` | Legacy override for MCP port if `PORT` is not set |
-| `MCP_SERVER_URL` | Optional display URL for the MCP server (defaults to `http://0.0.0.0:<PORT>/mcp`) |
-| `TAVILY_API_KEY` | API key for Tavily web search tools |
-| `GOOGLE_OAUTH_CLIENT_ID` | Google OAuth 2.0 Client ID for Google Workspace tools |
-| `GOOGLE_OAUTH_CLIENT_SECRET` | Google OAuth 2.0 Client Secret |
+| `PORT` | Server port (default `8080`) |
+| `MCP_SERVER_URL` | Display URL for MCP server |
+| `TAVILY_API_KEY` | Tavily web search API key |
+| `GOOGLE_OAUTH_CLIENT_ID` | Google OAuth Client ID |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | Google OAuth Client Secret |
 
-## Available Tools
+---
 
-### Local Tools (`src/tools/local/`)
-- **Calculator** - Basic math operations
-- **Shell** - Run shell commands
-- **File System** - File operations
+# Available Tools
 
-### Data Tools (`src/tools/data/`)
-- **CSV** - CSV file operations
-- **Pandas** - DataFrame operations
+> Tools are auto-discovered from `src/tools/`. This list may change.
 
-### File Tools (`src/tools/files/`)
-- **PDF to Markdown** - Convert PDFs to markdown
+| Category | Tools | Description |
+|----------|-------|-------------|
+| `local` | Calculator, Shell, File System | Local system operations |
+| `data` | CSV, Pandas | Data processing |
+| `files` | PDF to Markdown | File conversion |
+| `search` | Tavily | Web search |
+| `google` | Gmail, Calendar, Drive, Docs, Sheets, Slides, Forms, Tasks, Chat | Google Workspace |
 
-### Search Tools (`src/tools/search/`)
-- **Tavily** - Web search via Tavily API
+> **[Google Workspace Setup Guide →](src/tools/google/README.md)**
 
-### [Google Workspace Tools](src/tools/google/README.md) (`src/tools/google/`)
-Gmail, Calendar, Drive, Tasks, Docs, Sheets, Slides, Forms, Chat
+---
 
-> **[View Google Workspace Setup Guide →](src/tools/google/README.md)**
+# Development
 
-## Development
-
-**Run tests:**
 ```bash
+# Run tests
 uv run pytest
+
+# Run linter
+uv run pre-commit run --all-files
 ```
 
-**Run linter:**
-```bash
-uv run pre-commit run --all-files
+## Project Layout
+
+```
+.
+├── config/tools.yaml           # Tool filtering config
+├── src/
+│   ├── humcp/                  # Core library
+│   │   ├── decorator.py        # @tool decorator
+│   │   ├── config.py           # Config loader
+│   │   ├── routes.py           # REST routes
+│   │   └── server.py           # create_app()
+│   ├── tools/                  # Tool implementations
+│   │   └── <category>/
+│   │       ├── SKILL.md        # Category skill metadata
+│   │       └── *.py            # Tool files
+│   └── main.py
+└── tests/
 ```
 
 ## License

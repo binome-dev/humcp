@@ -3,14 +3,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.tools.google.sheets import (
-    add_sheet,
-    append_sheet_values,
-    clear_sheet_values,
-    create_spreadsheet,
-    get_spreadsheet_info,
-    list_spreadsheets,
-    read_sheet_values,
-    write_sheet_values,
+    google_sheets_add_sheet,
+    google_sheets_append_values,
+    google_sheets_clear_values,
+    google_sheets_create_spreadsheet,
+    google_sheets_get_info,
+    google_sheets_list_spreadsheets,
+    google_sheets_read_values,
+    google_sheets_write_values,
 )
 
 
@@ -36,7 +36,7 @@ class TestListSpreadsheets:
             ]
         }
 
-        result = await list_spreadsheets()
+        result = await google_sheets_list_spreadsheets()
         assert result["success"] is True
         assert result["data"]["total"] == 1
         assert result["data"]["spreadsheets"][0]["id"] == "sheet1"
@@ -46,7 +46,7 @@ class TestListSpreadsheets:
     async def test_list_spreadsheets_empty(self, mock_sheets_service):
         mock_sheets_service.files().list().execute.return_value = {"files": []}
 
-        result = await list_spreadsheets()
+        result = await google_sheets_list_spreadsheets()
         assert result["success"] is True
         assert result["data"]["total"] == 0
 
@@ -54,7 +54,7 @@ class TestListSpreadsheets:
     async def test_list_spreadsheets_error(self, mock_sheets_service):
         mock_sheets_service.files().list().execute.side_effect = Exception("API error")
 
-        result = await list_spreadsheets()
+        result = await google_sheets_list_spreadsheets()
         assert result["success"] is False
         assert "API error" in result["error"]
 
@@ -78,7 +78,7 @@ class TestGetSpreadsheetInfo:
             ],
         }
 
-        result = await get_spreadsheet_info("sheet1")
+        result = await google_sheets_get_info("sheet1")
         assert result["success"] is True
         assert result["data"]["id"] == "sheet1"
         assert result["data"]["title"] == "My Spreadsheet"
@@ -91,7 +91,7 @@ class TestGetSpreadsheetInfo:
             "Not found"
         )
 
-        result = await get_spreadsheet_info("nonexistent")
+        result = await google_sheets_get_info("nonexistent")
         assert result["success"] is False
 
 
@@ -107,7 +107,7 @@ class TestReadSheetValues:
             ],
         }
 
-        result = await read_sheet_values("sheet1", "Sheet1!A1:C3")
+        result = await google_sheets_read_values("sheet1", "Sheet1!A1:C3")
         assert result["success"] is True
         assert result["data"]["row_count"] == 3
         assert result["data"]["column_count"] == 3
@@ -120,7 +120,7 @@ class TestReadSheetValues:
             "values": [],
         }
 
-        result = await read_sheet_values("sheet1")
+        result = await google_sheets_read_values("sheet1")
         assert result["success"] is True
         assert result["data"]["row_count"] == 0
 
@@ -130,7 +130,7 @@ class TestReadSheetValues:
             Exception("Invalid range")
         )
 
-        result = await read_sheet_values("sheet1", "Invalid!")
+        result = await google_sheets_read_values("sheet1", "Invalid!")
         assert result["success"] is False
 
 
@@ -144,7 +144,7 @@ class TestWriteSheetValues:
             "updatedCells": 4,
         }
 
-        result = await write_sheet_values(
+        result = await google_sheets_write_values(
             "sheet1", "Sheet1!A1:B2", [["A", "B"], ["C", "D"]]
         )
         assert result["success"] is True
@@ -157,7 +157,7 @@ class TestWriteSheetValues:
             Exception("Permission denied")
         )
 
-        result = await write_sheet_values("sheet1", "Sheet1!A1", [["data"]])
+        result = await google_sheets_write_values("sheet1", "Sheet1!A1", [["data"]])
         assert result["success"] is False
 
 
@@ -172,7 +172,7 @@ class TestAppendSheetValues:
             }
         }
 
-        result = await append_sheet_values("sheet1", "Sheet1", [["New", "Row"]])
+        result = await google_sheets_append_values("sheet1", "Sheet1", [["New", "Row"]])
         assert result["success"] is True
         assert result["data"]["updated_rows"] == 1
 
@@ -182,7 +182,7 @@ class TestAppendSheetValues:
             Exception("Quota exceeded")
         )
 
-        result = await append_sheet_values("sheet1", "Sheet1", [["data"]])
+        result = await google_sheets_append_values("sheet1", "Sheet1", [["data"]])
         assert result["success"] is False
 
 
@@ -196,7 +196,7 @@ class TestCreateSpreadsheet:
             "sheets": [{"properties": {"title": "Sheet1"}}],
         }
 
-        result = await create_spreadsheet("New Spreadsheet")
+        result = await google_sheets_create_spreadsheet("New Spreadsheet")
         assert result["success"] is True
         assert result["data"]["id"] == "new_sheet"
         assert result["data"]["title"] == "New Spreadsheet"
@@ -213,7 +213,7 @@ class TestCreateSpreadsheet:
             ],
         }
 
-        result = await create_spreadsheet(
+        result = await google_sheets_create_spreadsheet(
             "Multi Sheet", sheet_names=["Data", "Summary"]
         )
         assert result["success"] is True
@@ -225,7 +225,7 @@ class TestCreateSpreadsheet:
             "Creation failed"
         )
 
-        result = await create_spreadsheet("Test")
+        result = await google_sheets_create_spreadsheet("Test")
         assert result["success"] is False
 
 
@@ -238,7 +238,7 @@ class TestAddSheet:
             ]
         }
 
-        result = await add_sheet("sheet1", "New Tab")
+        result = await google_sheets_add_sheet("sheet1", "New Tab")
         assert result["success"] is True
         assert result["data"]["sheet_id"] == 123
         assert result["data"]["title"] == "New Tab"
@@ -249,7 +249,7 @@ class TestAddSheet:
             Exception("Duplicate name")
         )
 
-        result = await add_sheet("sheet1", "Sheet1")
+        result = await google_sheets_add_sheet("sheet1", "Sheet1")
         assert result["success"] is False
 
 
@@ -260,7 +260,7 @@ class TestClearSheetValues:
             "clearedRange": "Sheet1!A1:Z100"
         }
 
-        result = await clear_sheet_values("sheet1", "Sheet1!A1:Z100")
+        result = await google_sheets_clear_values("sheet1", "Sheet1!A1:Z100")
         assert result["success"] is True
         assert result["data"]["cleared_range"] == "Sheet1!A1:Z100"
 
@@ -270,5 +270,5 @@ class TestClearSheetValues:
             Exception("Invalid range")
         )
 
-        result = await clear_sheet_values("sheet1", "Invalid!")
+        result = await google_sheets_clear_values("sheet1", "Invalid!")
         assert result["success"] is False

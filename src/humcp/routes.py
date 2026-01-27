@@ -17,12 +17,14 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastmcp.server.dependencies import get_access_token
 from pydantic import BaseModel, Field, create_model
 
-from src.humcp.registry import TOOL_REGISTRY, ToolRegistration
+from src.humcp.decorator import RegisteredTool
 from src.humcp.schemas import (
+    CategoryInfo,
     CategorySummary,
     GetCategoryResponse,
     GetToolResponse,
     InputSchema,
+    ListCategoriesResponse,
     ListToolsResponse,
     SkillFull,
     SkillMetadata,
@@ -363,11 +365,7 @@ def _register_auth_routes(
 
 
 def _format_tag(category: str) -> str:
-    """Format category name as a display-friendly tag.
-
-    Converts snake_case or lowercase to Title Case.
-    E.g., "google" -> "Google", "local_files" -> "Local Files"
-    """
+    """Format category as display tag: 'local_files' -> 'Local Files'."""
     return category.replace("_", " ").title()
 
 
@@ -403,14 +401,7 @@ def register_routes(
     for reg in TOOL_REGISTRY:
         _add_tool_route(app, reg, auth_dependency)
 
-    # Build cached lookup structures once at startup
-    categories = _build_categories()
-    tool_lookup = _build_tool_lookup()
-    total_tools = len(TOOL_REGISTRY)
-
-    # Discover skills from SKILL.md files
-    if tools_path is None:
-        tools_path = Path(__file__).parent.parent / "tools"
+    # Discover skills
     skills = discover_skills(tools_path)
 
     # Register auth endpoints only when auth is enabled
@@ -420,19 +411,18 @@ def register_routes(
     @app.get("/tools", tags=["Info"], response_model=ListToolsResponse)
     async def list_tools() -> ListToolsResponse:
         return ListToolsResponse(
-            total_tools=total_tools,
+            total_tools=len(tools),
             categories={
-                k: CategorySummary(
-                    count=len(v),
-                    tools=[ToolSummary(**t) for t in v],
+                cat: CategorySummary(
+                    count=len(items),
+                    tools=[ToolSummary(**t) for t in items],
                     skill=SkillMetadata(
-                        name=skills[k].name,
-                        description=skills[k].description,
+                        name=skills[cat].name, description=skills[cat].description
                     )
-                    if k in skills
+                    if cat in skills
                     else None,
                 )
-                for k, v in sorted(categories.items())
+                for cat, items in sorted(categories.items())
             },
         )
 
@@ -446,9 +436,7 @@ def register_routes(
             count=len(categories[category]),
             tools=[ToolSummary(**t) for t in categories[category]],
             skill=SkillFull(
-                name=skill.name,
-                description=skill.description,
-                content=skill.content,
+                name=skill.name, description=skill.description, content=skill.content
             )
             if skill
             else None,
@@ -458,21 +446,37 @@ def register_routes(
         "/tools/{category}/{tool_name}", tags=["Info"], response_model=GetToolResponse
     )
     async def get_tool(category: str, tool_name: str) -> GetToolResponse:
-        # Try exact match first, then with category prefix
-        reg = tool_lookup.get((category, tool_name)) or tool_lookup.get(
-            (category, f"{category}_{tool_name}")
-        )
+        reg = tool_lookup.get((category, tool_name))
         if not reg:
-            raise HTTPException(
-                404, f"Tool '{tool_name}' not found in category '{category}'"
-            )
-        schema = _get_schema_from_func(reg.func)
+            raise HTTPException(404, f"Tool '{tool_name}' not found in '{category}'")
         return GetToolResponse(
-            name=reg.name,
+            name=reg.tool.name,
             category=reg.category,
-            description=reg.func.__doc__,
-            endpoint=f"/tools/{reg.name}",
-            input_schema=InputSchema(**schema),
+            description=reg.tool.description,
+            endpoint=f"/tools/{reg.tool.name}",
+            input_schema=InputSchema(**reg.tool.parameters),
+            output_schema=reg.tool.output_schema,
+        )
+
+    @app.get("/categories", tags=["Info"], response_model=ListCategoriesResponse)
+    async def list_categories() -> ListCategoriesResponse:
+        category_list = [
+            CategoryInfo(
+                name=cat,
+                tool_count=len(items),
+                skill=SkillFull(
+                    name=skills[cat].name,
+                    description=skills[cat].description,
+                    content=skills[cat].content,
+                )
+                if cat in skills
+                else None,
+            )
+            for cat, items in sorted(categories.items())
+        ]
+        return ListCategoriesResponse(
+            total_categories=len(category_list),
+            categories=category_list,
         )
 
 
@@ -493,116 +497,52 @@ def _add_tool_route(app: FastAPI, reg: ToolRegistration, auth_dependency: Any) -
     ) -> dict[str, Any]:
         try:
             params = data.model_dump(exclude_none=True)
-            result = await reg.func(**params)
+            result = await tool.fn(**params)
             return {"result": result}
         except HTTPException:
             raise
         except Exception as e:
-            logger.exception("Tool %s failed", reg.name)
-            # Don't expose internal error details to users
+            logger.exception("Tool %s failed", tool.name)
             raise HTTPException(500, "Tool execution failed") from e
 
     endpoint.__annotations__["data"] = InputModel
     app.add_api_route(
-        f"/tools/{reg.name}",
+        f"/tools/{tool.name}",
         endpoint,
         methods=["POST"],
-        summary=reg.func.__doc__ or reg.name,
+        summary=tool.description or tool.name,
         tags=[_format_tag(reg.category)],
-        name=reg.name,
+        name=tool.name,
     )
 
 
-def _build_categories() -> dict[str, list[dict[str, Any]]]:
-    """Build category map from TOOL_REGISTRY (called once at startup)."""
+def _build_categories(tools: list[RegisteredTool]) -> dict[str, list[dict[str, Any]]]:
+    """Build category -> tools map."""
     cats: dict[str, list[dict[str, Any]]] = {}
-    for reg in TOOL_REGISTRY:
+    for reg in tools:
         cats.setdefault(reg.category, []).append(
             {
-                "name": reg.name,
-                "description": reg.func.__doc__,
-                "endpoint": f"/tools/{reg.name}",
+                "name": reg.tool.name,
+                "description": reg.tool.description,
+                "endpoint": f"/tools/{reg.tool.name}",
             }
         )
     return cats
 
 
-def build_openapi_tags() -> list[dict[str, str]]:
-    """Build OpenAPI tag metadata for all tool categories.
-
-    Returns a list of tag definitions with name and description,
-    sorted alphabetically by tag name. Includes the "Info" tag first.
-    """
-    # Collect unique categories
-    categories = sorted({reg.category for reg in TOOL_REGISTRY})
-
-    # Build tag metadata
-    tags = [
-        {"name": "Info", "description": "Server and tool information endpoints"},
-    ]
-
-    for category in categories:
-        # Count tools in this category
-        tool_count = sum(1 for reg in TOOL_REGISTRY if reg.category == category)
+def build_openapi_tags(tools: list[RegisteredTool]) -> list[dict[str, str]]:
+    """Build OpenAPI tag metadata."""
+    categories = sorted({reg.category for reg in tools})
+    tags = [{"name": "Info", "description": "Server and tool information"}]
+    for cat in categories:
+        count = sum(1 for reg in tools if reg.category == cat)
         tags.append(
             {
-                "name": _format_tag(category),
-                "description": f"{_format_tag(category)} tools ({tool_count} endpoints)",
+                "name": _format_tag(cat),
+                "description": f"{_format_tag(cat)} tools ({count} endpoints)",
             }
         )
-
     return tags
-
-
-def _build_tool_lookup() -> dict[tuple[str, str], ToolRegistration]:
-    """Build (category, name) -> ToolRegistration lookup (called once at startup)."""
-    return {(reg.category, reg.name): reg for reg in TOOL_REGISTRY}
-
-
-def _get_schema_from_func(func: Any) -> dict[str, Any]:
-    """Extract JSON schema from function type hints."""
-
-    sig = inspect.signature(func)
-    properties: dict[str, Any] = {}
-    required: list[str] = []
-
-    type_map = {
-        str: "string",
-        int: "integer",
-        float: "number",
-        bool: "boolean",
-        list: "array",
-        dict: "object",
-    }
-
-    for name, param in sig.parameters.items():
-        if param.annotation != inspect.Parameter.empty:
-            # Get base type (handle Optional, etc.)
-            ann = param.annotation
-            # Skip parameters that are explicitly annotated as None.
-            # Optional[...] / Union[..., None] are handled in the Union logic below.
-            if ann is type(None):
-                continue
-
-            # Handle Union types (e.g., str | None)
-            args = getattr(ann, "__args__", None)
-            if args:
-                ann = next((a for a in args if a is not type(None)), ann)
-
-            json_type = type_map.get(ann)
-            if json_type is None:
-                logger.warning(
-                    "Unknown type annotation %s for parameter %s, defaulting to string",
-                    ann,
-                    name,
-                )
-                json_type = "string"
-            properties[name] = {"type": json_type}
-
-            if param.default == inspect.Parameter.empty:
-                required.append(name)
-
-    return {"type": "object", "properties": properties, "required": required}
 
 
 def _pascal(name: str) -> str:
@@ -612,13 +552,13 @@ def _pascal(name: str) -> str:
     return f"Model{name}" if name and not name[0].isalpha() else name or "Model"
 
 
-def _create_model(schema: dict[str, Any], name: str) -> type[BaseModel]:
+def _create_model_from_schema(schema: dict[str, Any], name: str) -> type[BaseModel]:
     """Create Pydantic model from JSON schema."""
     if schema.get("type") != "object":
-        return create_model(name, value=(Any, ...))  # type: ignore[call-overload]
+        return create_model(name, value=(Any, ...))
 
-    props: dict[str, Any] = schema.get("properties", {})
-    required: list[str] = schema.get("required", [])
+    props = schema.get("properties", {})
+    required = schema.get("required", [])
     fields: dict[str, Any] = {}
 
     type_map = {
@@ -644,4 +584,4 @@ def _create_model(schema: dict[str, Any], name: str) -> type[BaseModel]:
                 else (ftype | None, None)
             )
 
-    return create_model(name, **fields)  # type: ignore[call-overload]
+    return create_model(name, **fields)

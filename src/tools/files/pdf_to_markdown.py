@@ -15,7 +15,7 @@ except ImportError as err:
 logger = logging.getLogger("humcp.tools.pdf_to_markdown")
 
 
-@tool("convert_to_markdown")
+@tool()
 async def convert_to_markdown(pdf_path: str) -> dict:
     """
     Convert a PDF file to Markdown format.

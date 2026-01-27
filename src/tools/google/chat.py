@@ -9,8 +9,10 @@ from src.tools.google.auth import get_google_service_from_mcp
 logger = logging.getLogger("humcp.tools.google.chat")
 
 
-@tool("google_chat_list_spaces")
-async def list_spaces(space_type: str = "all", max_results: int = 100) -> dict:
+@tool()
+async def google_chat_list_spaces(
+    space_type: str = "all", max_results: int = 100
+) -> dict:
     """List Google Chat spaces (rooms and direct messages).
 
     Returns all accessible spaces, optionally filtered by type.
@@ -56,8 +58,8 @@ async def list_spaces(space_type: str = "all", max_results: int = 100) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_chat_get_space")
-async def get_space(space_name: str) -> dict:
+@tool()
+async def google_chat_get_space(space_name: str) -> dict:
     """Get details about a specific space.
 
     Args:
@@ -89,8 +91,8 @@ async def get_space(space_name: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_chat_get_messages")
-async def get_messages(
+@tool()
+async def google_chat_get_messages(
     space_name: str,
     max_results: int = 25,
     order_by: str = "createTime desc",
@@ -142,8 +144,8 @@ async def get_messages(
         return {"success": False, "error": str(e)}
 
 
-@tool("google_chat_get_message")
-async def get_message(message_name: str) -> dict:
+@tool()
+async def google_chat_get_message(message_name: str) -> dict:
     """Get a specific message by name.
 
     Args:
@@ -176,8 +178,8 @@ async def get_message(message_name: str) -> dict:
         return {"success": False, "error": str(e)}
 
 
-@tool("google_chat_send_message")
-async def send_message(
+@tool()
+async def google_chat_send_message(
     space_name: str,
     text: str,
     thread_key: str = "",

@@ -3,12 +3,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.tools.google.slides import (
-    add_slide,
-    add_text_to_slide,
-    create_presentation,
-    get_presentation,
-    get_slide_thumbnail,
-    list_presentations,
+    google_slides_add_slide,
+    google_slides_add_text,
+    google_slides_create_presentation,
+    google_slides_get_presentation,
+    google_slides_get_thumbnail,
+    google_slides_list_presentations,
 )
 
 
@@ -34,7 +34,7 @@ class TestListPresentations:
             ]
         }
 
-        result = await list_presentations()
+        result = await google_slides_list_presentations()
         assert result["success"] is True
         assert result["data"]["total"] == 1
         assert result["data"]["presentations"][0]["name"] == "Q1 Review"
@@ -43,7 +43,7 @@ class TestListPresentations:
     async def test_list_presentations_empty(self, mock_slides_service):
         mock_slides_service.files().list().execute.return_value = {"files": []}
 
-        result = await list_presentations()
+        result = await google_slides_list_presentations()
         assert result["success"] is True
         assert result["data"]["total"] == 0
 
@@ -51,7 +51,7 @@ class TestListPresentations:
     async def test_list_presentations_error(self, mock_slides_service):
         mock_slides_service.files().list().execute.side_effect = Exception("API error")
 
-        result = await list_presentations()
+        result = await google_slides_list_presentations()
         assert result["success"] is False
 
 
@@ -83,7 +83,7 @@ class TestGetPresentation:
             ],
         }
 
-        result = await get_presentation("pres1")
+        result = await google_slides_get_presentation("pres1")
         assert result["success"] is True
         assert result["data"]["id"] == "pres1"
         assert result["data"]["title"] == "My Presentation"
@@ -95,7 +95,7 @@ class TestGetPresentation:
             "Not found"
         )
 
-        result = await get_presentation("invalid")
+        result = await google_slides_get_presentation("invalid")
         assert result["success"] is False
 
 
@@ -108,7 +108,7 @@ class TestCreatePresentation:
             "slides": [{"objectId": "slide1"}],
         }
 
-        result = await create_presentation("New Presentation")
+        result = await google_slides_create_presentation("New Presentation")
         assert result["success"] is True
         assert result["data"]["id"] == "new_pres"
         assert result["data"]["title"] == "New Presentation"
@@ -120,7 +120,7 @@ class TestCreatePresentation:
             "Creation failed"
         )
 
-        result = await create_presentation("Test")
+        result = await google_slides_create_presentation("Test")
         assert result["success"] is False
 
 
@@ -134,7 +134,7 @@ class TestAddSlide:
             "replies": [{"createSlide": {"objectId": "new_slide"}}]
         }
 
-        result = await add_slide("pres1")
+        result = await google_slides_add_slide("pres1")
         assert result["success"] is True
         assert result["data"]["slide_id"] == "new_slide"
         assert result["data"]["presentation_id"] == "pres1"
@@ -148,7 +148,7 @@ class TestAddSlide:
             "replies": [{"createSlide": {"objectId": "new_slide"}}]
         }
 
-        result = await add_slide("pres1", layout="TITLE_AND_BODY")
+        result = await google_slides_add_slide("pres1", layout="TITLE_AND_BODY")
         assert result["success"] is True
         assert result["data"]["layout"] == "TITLE_AND_BODY"
 
@@ -158,7 +158,7 @@ class TestAddSlide:
             Exception("Presentation not found")
         )
 
-        result = await add_slide("invalid")
+        result = await google_slides_add_slide("invalid")
         assert result["success"] is False
 
 
@@ -167,7 +167,7 @@ class TestAddTextToSlide:
     async def test_add_text_to_slide_success(self, mock_slides_service):
         mock_slides_service.presentations().batchUpdate().execute.return_value = {}
 
-        result = await add_text_to_slide("pres1", "slide1", "Hello, World!")
+        result = await google_slides_add_text("pres1", "slide1", "Hello, World!")
         assert result["success"] is True
         assert result["data"]["text"] == "Hello, World!"
         assert result["data"]["slide_id"] == "slide1"
@@ -176,7 +176,7 @@ class TestAddTextToSlide:
     async def test_add_text_to_slide_with_position(self, mock_slides_service):
         mock_slides_service.presentations().batchUpdate().execute.return_value = {}
 
-        result = await add_text_to_slide(
+        result = await google_slides_add_text(
             "pres1", "slide1", "Positioned text", x=200, y=300, width=500, height=50
         )
         assert result["success"] is True
@@ -187,7 +187,7 @@ class TestAddTextToSlide:
             Exception("Slide not found")
         )
 
-        result = await add_text_to_slide("pres1", "invalid", "text")
+        result = await google_slides_add_text("pres1", "invalid", "text")
         assert result["success"] is False
 
 
@@ -200,7 +200,7 @@ class TestGetSlideThumbnail:
             "height": 450,
         }
 
-        result = await get_slide_thumbnail("pres1", "slide1")
+        result = await google_slides_get_thumbnail("pres1", "slide1")
         assert result["success"] is True
         assert result["data"]["slide_id"] == "slide1"
         assert "thumbnail.png" in result["data"]["content_url"]
@@ -213,7 +213,7 @@ class TestGetSlideThumbnail:
             "height": 900,
         }
 
-        result = await get_slide_thumbnail("pres1", "slide1", size="LARGE")
+        result = await google_slides_get_thumbnail("pres1", "slide1", size="LARGE")
         assert result["success"] is True
 
     @pytest.mark.asyncio
@@ -222,5 +222,5 @@ class TestGetSlideThumbnail:
             "Slide not found"
         )
 
-        result = await get_slide_thumbnail("pres1", "invalid")
+        result = await google_slides_get_thumbnail("pres1", "invalid")
         assert result["success"] is False

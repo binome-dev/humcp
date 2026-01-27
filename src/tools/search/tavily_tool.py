@@ -79,7 +79,7 @@ class TavilySearchTool:
         return clean_response if clean_response else {}
 
 
-@tool("tavily_web_search")
+@tool()
 async def tavily_web_search(
     query: str,
     max_results: int = 5,
