@@ -39,9 +39,11 @@ _pkce_store: dict[str, str] = {}
 _browser_client: dict[str, str] = {}
 _registration_lock = asyncio.Lock()
 
+
 def _format_tag(category: str) -> str:
     """Format category as display tag: 'local_files' -> 'Local Files'."""
     return category.replace("_", " ").title()
+
 
 async def _extract_token(request: Request) -> str | None:
     """Extract access token from request if available.
@@ -261,9 +263,9 @@ def _register_auth_routes(
     @app.get("/login/callback", tags=["Auth"])
     async def login_callback(
         request: Request,
-        code: str = None,
-        state: str = None,
-        error: str = None,
+        code: str | None = None,
+        state: str | None = None,
+        error: str | None = None,
     ):
         """OAuth callback handler for browser login.
 

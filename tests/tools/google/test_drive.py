@@ -12,7 +12,7 @@ from src.tools.google.drive import (
 
 @pytest.fixture
 def mock_drive_service():
-    with patch("src.tools.google.drive.get_google_service") as mock:
+    with patch("src.tools.google.drive.get_google_service_from_mcp") as mock:
         service = MagicMock()
         mock.return_value = service
         yield service

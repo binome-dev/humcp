@@ -14,7 +14,7 @@ from src.tools.google.docs import (
 
 @pytest.fixture
 def mock_docs_service():
-    with patch("src.tools.google.docs.get_google_service") as mock:
+    with patch("src.tools.google.docs.get_google_service_from_mcp") as mock:
         service = MagicMock()
         mock.return_value = service
         yield service
