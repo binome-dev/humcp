@@ -3,7 +3,6 @@
 import asyncio
 import base64
 import hashlib
-import inspect
 import logging
 import os
 import secrets
@@ -40,6 +39,9 @@ _pkce_store: dict[str, str] = {}
 _browser_client: dict[str, str] = {}
 _registration_lock = asyncio.Lock()
 
+def _format_tag(category: str) -> str:
+    """Format category as display tag: 'local_files' -> 'Local Files'."""
+    return category.replace("_", " ").title()
 
 async def _extract_token(request: Request) -> str | None:
     """Extract access token from request if available.
@@ -130,6 +132,7 @@ async def optional_rest_auth(request: Request):
 
 def _register_auth_routes(
     app: FastAPI,
+    tools: list[RegisteredTool],
     auth_provider: Any,
     title: str,
     version: str,
@@ -141,6 +144,7 @@ def _register_auth_routes(
 
     Args:
         app: FastAPI application.
+        tools: List of registered tools.
         auth_provider: FastMCP auth provider for OAuth operations (None if disabled).
         title: App title for info endpoint.
         version: App version for info endpoint.
@@ -158,7 +162,7 @@ def _register_auth_routes(
             "name": title,
             "version": version,
             "mcp_server": mcp_url,
-            "tools_count": len(TOOL_REGISTRY),
+            "tools_count": len(tools),
             "auth_enabled": auth_enabled,
             "endpoints": endpoints,
         }
@@ -364,15 +368,11 @@ def _register_auth_routes(
         return response
 
 
-def _format_tag(category: str) -> str:
-    """Format category as display tag: 'local_files' -> 'Local Files'."""
-    return category.replace("_", " ").title()
-
-
 def register_routes(
     app: FastAPI,
+    tools_path: Path,
+    tools: list[RegisteredTool],
     auth_provider: Any = None,
-    tools_path: Path | None = None,
     title: str = "HuMCP Server",
     version: str = "1.0.0",
 ) -> None:
@@ -380,11 +380,16 @@ def register_routes(
 
     Args:
         app: FastAPI application.
-        auth_provider: FastMCP auth provider for OAuth operations (None if auth disabled).
         tools_path: Path to tools directory for skill discovery.
+        tools: List of registered tools.
+        auth_provider: FastMCP auth provider for OAuth operations (None if auth disabled).
         title: App title for info endpoint.
         version: App version for info endpoint.
     """
+    # Build lookups
+    categories = _build_categories(tools)
+    tool_lookup = {(t.category, t.tool.name): t for t in tools}
+
     # Choose auth dependency based on whether auth is enabled
     # When auth_provider is None (AUTH_ENABLED=false), use optional auth
     # This still allows Bearer tokens for Google tools but doesn't require auth
@@ -398,14 +403,14 @@ def register_routes(
         )
 
     # Tool execution endpoints
-    for reg in TOOL_REGISTRY:
+    for reg in tools:
         _add_tool_route(app, reg, auth_dependency)
 
     # Discover skills
     skills = discover_skills(tools_path)
 
     # Register auth endpoints only when auth is enabled
-    _register_auth_routes(app, auth_provider, title, version)
+    _register_auth_routes(app, tools, auth_provider, title, version)
 
     # Info endpoints
     @app.get("/tools", tags=["Info"], response_model=ListToolsResponse)
@@ -480,7 +485,7 @@ def register_routes(
         )
 
 
-def _add_tool_route(app: FastAPI, reg: ToolRegistration, auth_dependency: Any) -> None:
+def _add_tool_route(app: FastAPI, reg: RegisteredTool, auth_dependency: Any) -> None:
     """Add POST /tools/{name} endpoint for a tool.
 
     Args:
@@ -488,8 +493,10 @@ def _add_tool_route(app: FastAPI, reg: ToolRegistration, auth_dependency: Any) -
         reg: Tool registration info.
         auth_dependency: Authentication dependency (require_rest_auth or optional_rest_auth).
     """
-    schema = _get_schema_from_func(reg.func)
-    InputModel = _create_model(schema, f"{_pascal(reg.name)}Input")
+    tool = reg.tool
+    InputModel = _create_model_from_schema(
+        tool.parameters, f"{_pascal(tool.name)}Input"
+    )
 
     async def endpoint(
         data: BaseModel = Body(...),  # type: ignore[assignment]

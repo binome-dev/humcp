@@ -13,7 +13,13 @@ from fastapi import FastAPI
 from fastmcp import FastMCP
 
 from src.humcp.auth import create_auth_provider
-from src.humcp.registry import TOOL_REGISTRY
+from src.humcp.config import DEFAULT_CONFIG_PATH, filter_tools, load_config
+from src.humcp.decorator import (
+    RegisteredTool,
+    get_tool_category,
+    get_tool_name,
+    is_tool,
+)
 from src.humcp.routes import build_openapi_tags, register_routes
 
 load_dotenv()
@@ -99,12 +105,6 @@ def create_app(
 
     # Create MCP server
     mcp = FastMCP("HuMCP Server", auth=auth_provider)
-    seen: set[Callable[..., Any]] = set()
-    for reg in TOOL_REGISTRY:
-        if reg.func not in seen:
-            seen.add(reg.func)
-            mcp.tool(name=reg.name)(reg.func)
-            logger.info("Registered MCP tool: %s", reg.name)
 
     # Load modules and register tools with FastMCP
     modules = _load_modules(path)
@@ -137,12 +137,13 @@ def create_app(
     # Register all REST routes (tools, auth, info endpoints)
     register_routes(
         app,
-        auth_provider=auth_provider,
         tools_path=path,
+        tools=filtered,
+        auth_provider=auth_provider,
         title=title,
         version=version,
     )
-    logger.info("Registered %d REST endpoints", len(TOOL_REGISTRY))
+    logger.info("Registered %d REST endpoints", len(filtered))
 
     # Mount OAuth routes at root level
     # This includes: /.well-known/*, /authorize, /token, /register, /auth/callback, /consent
