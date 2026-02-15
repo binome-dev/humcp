@@ -14,7 +14,7 @@ from src.tools.google.slides import (
 
 @pytest.fixture
 def mock_slides_service():
-    with patch("src.tools.google.slides.get_google_service") as mock:
+    with patch("src.tools.google.slides.get_google_service_from_mcp") as mock:
         service = MagicMock()
         mock.return_value = service
         yield service

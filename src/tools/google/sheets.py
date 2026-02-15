@@ -4,12 +4,9 @@ import asyncio
 import logging
 
 from src.humcp.decorator import tool
-from src.tools.google.auth import SCOPES, get_google_service
+from src.tools.google.auth import get_google_service_from_mcp
 
 logger = logging.getLogger("humcp.tools.google.sheets")
-
-SHEETS_READONLY_SCOPES = [SCOPES["sheets_readonly"], SCOPES["drive_readonly"]]
-SHEETS_FULL_SCOPES = [SCOPES["sheets"], SCOPES["drive"]]
 
 
 @tool()
@@ -27,7 +24,7 @@ async def google_sheets_list_spreadsheets(max_results: int = 25) -> dict:
     try:
 
         def _list():
-            service = get_google_service("drive", "v3", SHEETS_READONLY_SCOPES)
+            service = get_google_service_from_mcp("drive", "v3")
             query = (
                 "mimeType='application/vnd.google-apps.spreadsheet' and trashed=false"
             )
@@ -78,7 +75,7 @@ async def google_sheets_get_info(spreadsheet_id: str) -> dict:
     try:
 
         def _get():
-            service = get_google_service("sheets", "v4", SHEETS_READONLY_SCOPES)
+            service = get_google_service_from_mcp("sheets", "v3")
             spreadsheet = (
                 service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
             )
@@ -130,7 +127,7 @@ async def google_sheets_read_values(
     try:
 
         def _read():
-            service = get_google_service("sheets", "v4", SHEETS_READONLY_SCOPES)
+            service = get_google_service_from_mcp("sheets", "v3")
             result = (
                 service.spreadsheets()
                 .values()
@@ -176,7 +173,7 @@ async def google_sheets_write_values(
     try:
 
         def _write():
-            service = get_google_service("sheets", "v4", SHEETS_FULL_SCOPES)
+            service = get_google_service_from_mcp("sheets", "v3")
             body = {"values": values}
             result = (
                 service.spreadsheets()
@@ -229,7 +226,7 @@ async def google_sheets_append_values(
     try:
 
         def _append():
-            service = get_google_service("sheets", "v4", SHEETS_FULL_SCOPES)
+            service = get_google_service_from_mcp("sheets", "v3")
             body = {"values": values}
             result = (
                 service.spreadsheets()
@@ -278,7 +275,7 @@ async def google_sheets_create_spreadsheet(
     try:
 
         def _create():
-            service = get_google_service("sheets", "v4", SHEETS_FULL_SCOPES)
+            service = get_google_service_from_mcp("sheets", "v3")
 
             body = {"properties": {"title": title}}
 
@@ -322,7 +319,7 @@ async def google_sheets_add_sheet(spreadsheet_id: str, sheet_title: str) -> dict
     try:
 
         def _add():
-            service = get_google_service("sheets", "v4", SHEETS_FULL_SCOPES)
+            service = get_google_service_from_mcp("sheets", "v3")
             request = {"addSheet": {"properties": {"title": sheet_title}}}
             result = (
                 service.spreadsheets()
@@ -360,7 +357,7 @@ async def google_sheets_clear_values(spreadsheet_id: str, range_notation: str) -
     try:
 
         def _clear():
-            service = get_google_service("sheets", "v4", SHEETS_FULL_SCOPES)
+            service = get_google_service_from_mcp("sheets", "v3")
             result = (
                 service.spreadsheets()
                 .values()

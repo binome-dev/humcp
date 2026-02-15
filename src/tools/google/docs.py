@@ -4,12 +4,9 @@ import asyncio
 import logging
 
 from src.humcp.decorator import tool
-from src.tools.google.auth import SCOPES, get_google_service
+from src.tools.google.auth import get_google_service_from_mcp
 
 logger = logging.getLogger("humcp.tools.google.docs")
-
-DOCS_READONLY_SCOPES = [SCOPES["docs_readonly"], SCOPES["drive_readonly"]]
-DOCS_FULL_SCOPES = [SCOPES["docs"], SCOPES["drive"]]
 
 
 @tool()
@@ -28,7 +25,7 @@ async def google_docs_search(query: str, max_results: int = 25) -> dict:
     try:
 
         def _search():
-            service = get_google_service("drive", "v3", DOCS_READONLY_SCOPES)
+            service = get_google_service_from_mcp("drive", "v3")
             drive_query = (
                 f"name contains '{query}' and "
                 "mimeType='application/vnd.google-apps.document' and "
@@ -80,7 +77,7 @@ async def google_docs_get_content(document_id: str) -> dict:
     try:
 
         def _get():
-            service = get_google_service("docs", "v1", DOCS_READONLY_SCOPES)
+            service = get_google_service_from_mcp("docs", "v3")
             doc = service.documents().get(documentId=document_id).execute()
 
             # Extract text content
@@ -122,7 +119,7 @@ async def google_docs_create(title: str, content: str = "") -> dict:
     try:
 
         def _create():
-            service = get_google_service("docs", "v1", DOCS_FULL_SCOPES)
+            service = get_google_service_from_mcp("docs", "v3")
 
             # Create empty document
             doc = service.documents().create(body={"title": title}).execute()
@@ -165,7 +162,7 @@ async def google_docs_append_text(document_id: str, text: str) -> dict:
     try:
 
         def _append():
-            service = get_google_service("docs", "v1", DOCS_FULL_SCOPES)
+            service = get_google_service_from_mcp("docs", "v3")
 
             # Get current document to find end index
             doc = service.documents().get(documentId=document_id).execute()
@@ -208,7 +205,7 @@ async def google_docs_find_replace(
     try:
 
         def _replace():
-            service = get_google_service("docs", "v1", DOCS_FULL_SCOPES)
+            service = get_google_service_from_mcp("docs", "v3")
             requests = [
                 {
                     "replaceAllText": {
@@ -259,7 +256,7 @@ async def google_docs_list_in_folder(folder_id: str, max_results: int = 50) -> d
     try:
 
         def _list():
-            service = get_google_service("drive", "v3", DOCS_READONLY_SCOPES)
+            service = get_google_service_from_mcp("docs", "v3")
             query = (
                 f"'{folder_id}' in parents and "
                 "mimeType='application/vnd.google-apps.document' and "

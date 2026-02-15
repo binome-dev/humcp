@@ -5,13 +5,9 @@ import logging
 from datetime import UTC, datetime, timedelta
 
 from src.humcp.decorator import tool
-from src.tools.google.auth import SCOPES, get_google_service
+from src.tools.google.auth import get_google_service_from_mcp
 
 logger = logging.getLogger("humcp.tools.google.calendar")
-
-# Scopes required for Calendar operations
-CALENDAR_READONLY_SCOPES = [SCOPES["calendar_readonly"]]
-CALENDAR_FULL_SCOPES = [SCOPES["calendar"]]
 
 
 @tool()
@@ -28,7 +24,8 @@ async def google_calendar_list() -> dict:
     try:
 
         def _list():
-            service = get_google_service("calendar", "v3", CALENDAR_READONLY_SCOPES)
+            # Use MCP session token instead of separate OAuth flow
+            service = get_google_service_from_mcp("calendar", "v3")
             results = service.calendarList().list().execute()
             calendars = results.get("items", [])
             return {
@@ -75,7 +72,7 @@ async def google_calendar_events(
     try:
 
         def _list_events():
-            service = get_google_service("calendar", "v3", CALENDAR_READONLY_SCOPES)
+            service = get_google_service_from_mcp("calendar", "v3")
 
             now = datetime.now(UTC)
             time_min = now.isoformat()
@@ -155,7 +152,7 @@ async def google_calendar_create_event(
     try:
 
         def _create():
-            service = get_google_service("calendar", "v3", CALENDAR_FULL_SCOPES)
+            service = get_google_service_from_mcp("calendar", "v3")
 
             event_body = {
                 "summary": title,
@@ -211,7 +208,7 @@ async def google_calendar_delete_event(
     try:
 
         def _delete():
-            service = get_google_service("calendar", "v3", CALENDAR_FULL_SCOPES)
+            service = get_google_service_from_mcp("calendar", "v3")
             service.events().delete(calendarId=calendar_id, eventId=event_id).execute()
             return {"deleted_event_id": event_id}
 

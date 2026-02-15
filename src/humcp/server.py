@@ -3,15 +3,16 @@
 import importlib.util
 import inspect
 import logging
-import os
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 from types import ModuleType
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastmcp import FastMCP
 
+from src.humcp.auth import create_auth_provider
 from src.humcp.config import DEFAULT_CONFIG_PATH, filter_tools, load_config
 from src.humcp.decorator import (
     RegisteredTool,
@@ -20,6 +21,8 @@ from src.humcp.decorator import (
     is_tool,
 )
 from src.humcp.routes import build_openapi_tags, register_routes
+
+load_dotenv()
 
 logger = logging.getLogger("humcp")
 
@@ -97,8 +100,11 @@ def create_app(
     """Create FastAPI app with REST (/tools) and MCP (/mcp) endpoints."""
     path = Path(tools_path) if tools_path else Path(__file__).parent.parent / "tools"
 
+    # Create auth provider (respects AUTH_ENABLED env var)
+    auth_provider = create_auth_provider()
+
     # Create MCP server
-    mcp = FastMCP("HuMCP Server")
+    mcp = FastMCP("HuMCP Server", auth=auth_provider)
 
     # Load modules and register tools with FastMCP
     modules = _load_modules(path)
@@ -128,21 +134,24 @@ def create_app(
         openapi_tags=build_openapi_tags(filtered),
     )
 
-    # Register REST routes
-    register_routes(app, tools_path=path, tools=filtered)
+    # Register all REST routes (tools, auth, info endpoints)
+    register_routes(
+        app,
+        tools_path=path,
+        tools=filtered,
+        auth_provider=auth_provider,
+        title=title,
+        version=version,
+    )
+    logger.info("Registered %d REST endpoints", len(filtered))
 
-    # Root endpoint
-    mcp_url = os.getenv("MCP_SERVER_URL", "http://0.0.0.0:8080/mcp")
-
-    @app.get("/", tags=["Info"])
-    async def root():
-        return {
-            "name": title,
-            "version": version,
-            "mcp_server": mcp_url,
-            "tools_count": len(filtered),
-            "endpoints": {"docs": "/docs", "tools": "/tools", "mcp": "/mcp"},
-        }
+    # Mount OAuth routes at root level
+    # This includes: /.well-known/*, /authorize, /token, /register, /auth/callback, /consent
+    if auth_provider:
+        oauth_routes = auth_provider.get_routes(mcp_path="/mcp")
+        for route in oauth_routes:
+            app.routes.append(route)
+        logger.info("Mounted %d OAuth routes at root level", len(oauth_routes))
 
     app.mount("/mcp", mcp_http_app)
     return app

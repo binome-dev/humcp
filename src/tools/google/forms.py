@@ -4,13 +4,9 @@ import asyncio
 import logging
 
 from src.humcp.decorator import tool
-from src.tools.google.auth import SCOPES, get_google_service
+from src.tools.google.auth import get_google_service_from_mcp
 
 logger = logging.getLogger("humcp.tools.google.forms")
-
-FORMS_READONLY_SCOPES = [SCOPES["forms_readonly"], SCOPES["drive_readonly"]]
-FORMS_FULL_SCOPES = [SCOPES["forms"], SCOPES["drive"]]
-FORMS_RESPONSES_SCOPES = [SCOPES["forms_responses"]]
 
 
 @tool()
@@ -28,7 +24,7 @@ async def google_forms_list_forms(max_results: int = 25) -> dict:
     try:
 
         def _list():
-            service = get_google_service("drive", "v3", FORMS_READONLY_SCOPES)
+            service = get_google_service_from_mcp("drive", "v3")
             query = "mimeType='application/vnd.google-apps.form' and trashed=false"
             results = (
                 service.files()
@@ -77,7 +73,7 @@ async def google_forms_get_form(form_id: str) -> dict:
     try:
 
         def _get():
-            service = get_google_service("forms", "v1", FORMS_READONLY_SCOPES)
+            service = get_google_service_from_mcp("forms", "v3")
             form = service.forms().get(formId=form_id).execute()
 
             questions = []
@@ -150,7 +146,7 @@ async def google_forms_create_form(title: str, document_title: str = "") -> dict
     try:
 
         def _create():
-            service = get_google_service("forms", "v1", FORMS_FULL_SCOPES)
+            service = get_google_service_from_mcp("forms", "v3")
             body = {
                 "info": {
                     "title": title,
@@ -191,7 +187,7 @@ async def google_forms_list_responses(form_id: str, max_results: int = 100) -> d
     try:
 
         def _list():
-            service = get_google_service("forms", "v1", FORMS_RESPONSES_SCOPES)
+            service = get_google_service_from_mcp("forms", "v3")
             results = (
                 service.forms()
                 .responses()
@@ -237,7 +233,7 @@ async def google_forms_get_response(form_id: str, response_id: str) -> dict:
     try:
 
         def _get():
-            service = get_google_service("forms", "v1", FORMS_RESPONSES_SCOPES)
+            service = get_google_service_from_mcp("forms", "v3")
             response = (
                 service.forms()
                 .responses()

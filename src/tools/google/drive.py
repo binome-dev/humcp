@@ -7,12 +7,9 @@ import logging
 from googleapiclient.http import MediaIoBaseDownload
 
 from src.humcp.decorator import tool
-from src.tools.google.auth import SCOPES, get_google_service
+from src.tools.google.auth import get_google_service_from_mcp
 
 logger = logging.getLogger("humcp.tools.google.drive")
-
-# Scopes required for Drive operations
-DRIVE_READONLY_SCOPES = [SCOPES["drive_readonly"]]
 
 
 @tool()
@@ -36,7 +33,7 @@ async def google_drive_list(
     try:
 
         def _list():
-            service = get_google_service("drive", "v3", DRIVE_READONLY_SCOPES)
+            service = get_google_service_from_mcp("drive", "v3")
 
             query = f"'{folder_id}' in parents and trashed = false"
             if file_type:
@@ -93,7 +90,7 @@ async def google_drive_search(query: str, max_results: int = 50) -> dict:
     try:
 
         def _search():
-            service = get_google_service("drive", "v3", DRIVE_READONLY_SCOPES)
+            service = get_google_service_from_mcp("drive", "v3")
 
             drive_query = f"fullText contains '{query}' and trashed = false"
 
@@ -153,7 +150,7 @@ async def google_drive_get_file(file_id: str) -> dict:
     try:
 
         def _get():
-            service = get_google_service("drive", "v3", DRIVE_READONLY_SCOPES)
+            service = get_google_service_from_mcp("drive", "v3")
 
             file = (
                 service.files()
@@ -206,8 +203,7 @@ async def google_drive_read_text_file(file_id: str) -> dict:
     try:
 
         def _read():
-            service = get_google_service("drive", "v3", DRIVE_READONLY_SCOPES)
-
+            service = get_google_service_from_mcp("drive", "v3")
             file = (
                 service.files().get(fileId=file_id, fields="name, mimeType").execute()
             )

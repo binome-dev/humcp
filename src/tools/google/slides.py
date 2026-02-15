@@ -4,12 +4,9 @@ import asyncio
 import logging
 
 from src.humcp.decorator import tool
-from src.tools.google.auth import SCOPES, get_google_service
+from src.tools.google.auth import get_google_service_from_mcp
 
 logger = logging.getLogger("humcp.tools.google.slides")
-
-SLIDES_READONLY_SCOPES = [SCOPES["slides_readonly"], SCOPES["drive_readonly"]]
-SLIDES_FULL_SCOPES = [SCOPES["slides"], SCOPES["drive"]]
 
 
 @tool()
@@ -27,7 +24,7 @@ async def google_slides_list_presentations(max_results: int = 25) -> dict:
     try:
 
         def _list():
-            service = get_google_service("drive", "v3", SLIDES_READONLY_SCOPES)
+            service = get_google_service_from_mcp("drive", "v3")
             query = (
                 "mimeType='application/vnd.google-apps.presentation' and trashed=false"
             )
@@ -78,7 +75,7 @@ async def google_slides_get_presentation(presentation_id: str) -> dict:
     try:
 
         def _get():
-            service = get_google_service("slides", "v1", SLIDES_READONLY_SCOPES)
+            service = get_google_service_from_mcp("slides", "v3")
             presentation = (
                 service.presentations().get(presentationId=presentation_id).execute()
             )
@@ -147,7 +144,7 @@ async def google_slides_create_presentation(title: str) -> dict:
     try:
 
         def _create():
-            service = get_google_service("slides", "v1", SLIDES_FULL_SCOPES)
+            service = get_google_service_from_mcp("slides", "v3")
             presentation = (
                 service.presentations().create(body={"title": title}).execute()
             )
@@ -187,7 +184,7 @@ async def google_slides_add_slide(
     try:
 
         def _add():
-            service = get_google_service("slides", "v1", SLIDES_FULL_SCOPES)
+            service = get_google_service_from_mcp("slides", "v3")
 
             request = {
                 "createSlide": {
@@ -253,7 +250,7 @@ async def google_slides_add_text(
     try:
 
         def _add_text():
-            service = get_google_service("slides", "v1", SLIDES_FULL_SCOPES)
+            service = get_google_service_from_mcp("slides", "v3")
 
             # Create text box shape
             shape_id = f"textbox_{slide_id}_{int(x)}_{int(y)}"
@@ -327,7 +324,7 @@ async def google_slides_get_thumbnail(
     try:
 
         def _get_thumbnail():
-            service = get_google_service("slides", "v1", SLIDES_READONLY_SCOPES)
+            service = get_google_service_from_mcp("slides", "v3")
 
             size_map = {
                 "SMALL": "SMALL",
