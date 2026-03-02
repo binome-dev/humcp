@@ -121,3 +121,5 @@ def get_tool_category(func: Callable[..., Any]) -> str:
     if isinstance(metadata, ToolMetadata):
         return metadata.category
     return "uncategorized"
+
+

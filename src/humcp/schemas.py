@@ -5,6 +5,14 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
+class ToolResponse[T](BaseModel):
+    """Generic response wrapper for tool outputs."""
+
+    success: bool
+    data: T | None = None
+    error: str | None = None
+
+
 # Shared models
 class ToolSummary(BaseModel):
     """Summary of a tool in listings."""
