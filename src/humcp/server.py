@@ -4,18 +4,22 @@ import importlib.util
 import inspect
 import logging
 import sys
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
 from types import ModuleType
+from typing import Any, get_type_hints
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastmcp import FastMCP
+from pydantic import TypeAdapter
 
 from src.humcp.auth import create_auth_provider
 from src.humcp.config import DEFAULT_CONFIG_PATH, filter_tools, load_config
 from src.humcp.decorator import (
     RegisteredTool,
+    ToolInfo,
     get_tool_category,
     get_tool_name,
     is_tool,
@@ -56,12 +60,48 @@ def _load_modules(tools_path: Path) -> list[ModuleType]:
     return modules
 
 
+def _build_parameters_schema(func: Callable[..., Any]) -> dict[str, Any]:
+    """Build JSON Schema for a function's parameters using pydantic."""
+    sig = inspect.signature(func)
+    hints = get_type_hints(func)
+
+    properties: dict[str, Any] = {}
+    required: list[str] = []
+
+    for name, param in sig.parameters.items():
+        if name in ("self", "cls"):
+            continue
+        annotation = hints.get(name, Any)
+        try:
+            adapter = TypeAdapter(annotation)
+            prop_schema = adapter.json_schema()
+        except Exception:
+            prop_schema = {}
+
+        # Add description from default if it's a pydantic Field, otherwise skip
+        properties[name] = prop_schema
+
+        if param.default is inspect.Parameter.empty:
+            required.append(name)
+        elif param.default is not inspect.Parameter.empty and param.default is not None:
+            properties[name]["default"] = param.default
+
+    schema: dict[str, Any] = {
+        "type": "object",
+        "properties": properties,
+    }
+    if required:
+        schema["required"] = required
+
+    return schema
+
+
 def _discover_and_register(
     mcp: FastMCP, modules: list[ModuleType]
 ) -> list[RegisteredTool]:
     """Discover @tool functions and register with FastMCP.
 
-    Returns list of RegisteredTool (FunctionTool + category).
+    Returns list of RegisteredTool (ToolInfo + category).
     """
     tools: list[RegisteredTool] = []
     seen_names: set[str] = set()
@@ -82,10 +122,18 @@ def _discover_and_register(
 
             seen_names.add(tool_name)
 
-            # Register with FastMCP using custom name - returns FunctionTool
-            fn_tool = mcp.tool(name=tool_name)(func)
-            tools.append(RegisteredTool(tool=fn_tool, category=category))
-            logger.debug("Registered: %s (category: %s)", fn_tool.name, category)
+            # Register with FastMCP (v3 returns the original function, not FunctionTool)
+            mcp.tool(name=tool_name)(func)
+
+            # Build ToolInfo ourselves
+            tool_info = ToolInfo(
+                name=tool_name,
+                description=func.__doc__ or "",
+                parameters=_build_parameters_schema(func),
+                fn=func,
+            )
+            tools.append(RegisteredTool(tool=tool_info, category=category))
+            logger.debug("Registered: %s (category: %s)", tool_name, category)
 
     return tools
 
