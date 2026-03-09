@@ -25,7 +25,7 @@ def make_registered_tool(name: str, category: str) -> RegisteredTool:
     mock_tool.description = f"Description for {name}"
     mock_tool.parameters = {"type": "object", "properties": {}}
     mock_tool.fn = lambda: None
-    return RegisteredTool(tool=mock_tool, category=category)
+    return RegisteredTool(tool=mock_tool, category=category, app="test_app")
 
 
 # Test fixtures

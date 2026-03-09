@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PubMed Article Detail</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="app" class="p-6 bg-gradient-to-br from-slate-50 via-white to-slate-50 min-h-[120px]">
+    <div id="loading" class="text-slate-400 text-sm text-center py-8">Waiting for data...</div>
+
+    <div id="result" class="hidden space-y-4"></div>
+
+    <div id="error" class="hidden text-red-600 text-sm font-medium text-center py-8"></div>
+  </div>
+
+  <script type="module">
+    const state = { initialized: false };
+
+    function render(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+
+      const container = document.getElementById('result');
+      while (container.firstChild) container.removeChild(container.firstChild);
+
+      const article = data.article;
+      if (!article) {
+        const empty = document.createElement('div');
+        empty.className = 'text-center py-8 text-slate-400 text-sm';
+        empty.textContent = 'No article data found';
+        container.appendChild(empty);
+        return;
+      }
+
+      const headerRow = document.createElement('div');
+      headerRow.className = 'flex items-start justify-between gap-3';
+
+      const titleEl = document.createElement('h2');
+      titleEl.className = 'text-lg font-semibold text-slate-800 leading-snug';
+      titleEl.textContent = article.title || '';
+      headerRow.appendChild(titleEl);
+
+      const pmidBadge = document.createElement('span');
+      pmidBadge.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 flex-shrink-0';
+      pmidBadge.textContent = 'PMID: ' + (article.pmid || '');
+      headerRow.appendChild(pmidBadge);
+
+      container.appendChild(headerRow);
+
+      const metaRow = document.createElement('div');
+      metaRow.className = 'flex items-center gap-3 flex-wrap';
+
+      if (article.first_author) {
+        const authorEl = document.createElement('span');
+        authorEl.className = 'text-xs text-slate-500';
+        authorEl.textContent = article.first_author;
+        metaRow.appendChild(authorEl);
+      }
+
+      if (article.journal) {
+        const journalEl = document.createElement('span');
+        journalEl.className = 'text-xs text-indigo-500 font-medium';
+        journalEl.textContent = article.journal;
+        metaRow.appendChild(journalEl);
+      }
+
+      if (article.published) {
+        const pubEl = document.createElement('span');
+        pubEl.className = 'text-xs text-slate-400';
+        pubEl.textContent = article.published;
+        metaRow.appendChild(pubEl);
+      }
+
+      container.appendChild(metaRow);
+
+      if (article.abstract) {
+        const abstractBox = document.createElement('div');
+        abstractBox.className = 'bg-gradient-to-r from-indigo-50 to-indigo-100 border border-indigo-200 rounded-xl p-4';
+
+        const abstractLabel = document.createElement('p');
+        abstractLabel.className = 'text-xs font-medium text-indigo-700 mb-1';
+        abstractLabel.textContent = 'Abstract';
+
+        const abstractText = document.createElement('p');
+        abstractText.className = 'text-sm text-indigo-900 leading-relaxed';
+        abstractText.textContent = article.abstract;
+
+        abstractBox.appendChild(abstractLabel);
+        abstractBox.appendChild(abstractText);
+        container.appendChild(abstractBox);
+      }
+
+      const linksRow = document.createElement('div');
+      linksRow.className = 'flex items-center gap-3 flex-wrap';
+
+      if (article.pubmed_url) {
+        const pubmedLink = document.createElement('a');
+        pubmedLink.href = article.pubmed_url;
+        pubmedLink.target = '_blank';
+        pubmedLink.rel = 'noopener noreferrer';
+        pubmedLink.className = 'inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:underline';
+        pubmedLink.textContent = 'View on PubMed';
+        linksRow.appendChild(pubmedLink);
+      }
+
+      if (article.full_text_url) {
+        const ftLink = document.createElement('a');
+        ftLink.href = article.full_text_url;
+        ftLink.target = '_blank';
+        ftLink.rel = 'noopener noreferrer';
+        ftLink.className = 'inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:underline';
+        ftLink.textContent = 'Full Text';
+        linksRow.appendChild(ftLink);
+      }
+
+      if (article.doi) {
+        const doiEl = document.createElement('span');
+        doiEl.className = 'text-xs text-slate-400 ml-auto';
+        doiEl.textContent = 'DOI: ' + article.doi;
+        linksRow.appendChild(doiEl);
+      }
+
+      if (linksRow.childNodes.length > 0) {
+        container.appendChild(linksRow);
+      }
+
+      const keywords = article.keywords || [];
+      const meshTerms = article.mesh_terms || [];
+      const pubTypes = article.publication_types || [];
+
+      if (keywords.length > 0 || meshTerms.length > 0 || pubTypes.length > 0) {
+        const tagsSection = document.createElement('div');
+        tagsSection.className = 'space-y-2';
+
+        if (keywords.length > 0) {
+          const kwRow = document.createElement('div');
+          kwRow.className = 'flex items-center gap-2 flex-wrap';
+
+          const kwLabel = document.createElement('span');
+          kwLabel.className = 'text-xs font-medium text-slate-500';
+          kwLabel.textContent = 'Keywords:';
+          kwRow.appendChild(kwLabel);
+
+          keywords.forEach(function(kw) {
+            const tag = document.createElement('span');
+            tag.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-indigo-50 text-indigo-600';
+            tag.textContent = kw;
+            kwRow.appendChild(tag);
+          });
+
+          tagsSection.appendChild(kwRow);
+        }
+
+        if (meshTerms.length > 0) {
+          const meshRow = document.createElement('div');
+          meshRow.className = 'flex items-center gap-2 flex-wrap';
+
+          const meshLabel = document.createElement('span');
+          meshLabel.className = 'text-xs font-medium text-slate-500';
+          meshLabel.textContent = 'MeSH:';
+          meshRow.appendChild(meshLabel);
+
+          meshTerms.forEach(function(term) {
+            const tag = document.createElement('span');
+            tag.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-600';
+            tag.textContent = term;
+            meshRow.appendChild(tag);
+          });
+
+          tagsSection.appendChild(meshRow);
+        }
+
+        if (pubTypes.length > 0) {
+          const ptRow = document.createElement('div');
+          ptRow.className = 'flex items-center gap-2 flex-wrap';
+
+          const ptLabel = document.createElement('span');
+          ptLabel.className = 'text-xs font-medium text-slate-500';
+          ptLabel.textContent = 'Type:';
+          ptRow.appendChild(ptLabel);
+
+          pubTypes.forEach(function(pt) {
+            const tag = document.createElement('span');
+            tag.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-600';
+            tag.textContent = pt;
+            ptRow.appendChild(tag);
+          });
+
+          tagsSection.appendChild(ptRow);
+        }
+
+        container.appendChild(tagsSection);
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function renderError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').textContent = message;
+    }
+
+    function parseToolResult(result) {
+      if (result && result.content) {
+        for (const item of result.content) {
+          if (item.type === 'text' && item.text) {
+            try { return JSON.parse(item.text); } catch { return { raw: item.text }; }
+          }
+        }
+      }
+      if (result && result.data) { return result; }
+      return result;
+    }
+
+    function handleToolResult(result) {
+      const parsed = parseToolResult(result);
+      if (parsed && parsed.success === false) {
+        renderError(parsed.error || 'Operation failed');
+        return;
+      }
+      const data = parsed?.data || parsed;
+      if (data) {
+        render(data);
+      } else {
+        renderError('Unexpected data format');
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.jsonrpc === '2.0') {
+        if (msg.method === 'ui/initialize') {
+          state.initialized = true;
+          window.parent.postMessage({
+            jsonrpc: '2.0', id: msg.id,
+            result: { protocolVersion: '0.1.0', capabilities: {} }
+          }, '*');
+        } else if (msg.method === 'ui/toolResult') {
+          handleToolResult(msg.params);
+        }
+      }
+
+      if (msg.type === 'toolResult') {
+        handleToolResult(msg.data);
+      }
+    });
+
+    window.parent.postMessage({
+      jsonrpc: '2.0', method: 'ui/ready', params: {}
+    }, '*');
+  </script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DALL-E Generated Image</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="app" class="p-6 bg-gradient-to-br from-rose-50 via-white to-pink-50 min-h-[120px]">
+    <div id="loading" class="text-slate-400 text-sm text-center py-8">Waiting for data...</div>
+
+    <div id="result" class="hidden space-y-4">
+      <div class="flex items-center gap-2 mb-2">
+        <svg class="w-5 h-5 text-rose-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <h2 class="text-lg font-semibold text-slate-800">DALL-E Generated Image</h2>
+      </div>
+
+      <div id="prompt-box" class="bg-gradient-to-r from-rose-50 to-pink-100 border border-rose-200 rounded-xl p-4">
+        <p class="text-xs font-medium text-rose-700 mb-1">Prompt</p>
+        <p id="prompt-text" class="text-sm text-rose-900 leading-relaxed"></p>
+      </div>
+
+      <div id="images-container" class="space-y-4"></div>
+    </div>
+
+    <div id="error" class="hidden text-red-600 text-sm font-medium text-center py-8"></div>
+  </div>
+
+  <script type="module">
+    const state = { initialized: false };
+
+    function render(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+
+      document.getElementById('prompt-text').textContent = data.prompt || '';
+
+      const container = document.getElementById('images-container');
+      container.textContent = '';
+
+      const images = data.images || [];
+
+      if (images.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'text-center py-8 text-slate-400 text-sm';
+        empty.textContent = 'No image generated';
+        container.appendChild(empty);
+        return;
+      }
+
+      images.forEach(function(image) {
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-xl border border-rose-200 overflow-hidden shadow-sm';
+
+        const link = document.createElement('a');
+        link.href = image.url || '';
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.className = 'block';
+
+        const img = document.createElement('img');
+        img.src = image.url || '';
+        img.alt = 'DALL-E generated image';
+        img.className = 'w-full max-h-[500px] object-contain bg-rose-50';
+        img.loading = 'lazy';
+        link.appendChild(img);
+        card.appendChild(link);
+
+        if (image.revised_prompt) {
+          const footer = document.createElement('div');
+          footer.className = 'p-4 border-t border-rose-100';
+          const label = document.createElement('p');
+          label.className = 'text-xs font-medium text-pink-700 mb-1';
+          label.textContent = 'Revised Prompt';
+          footer.appendChild(label);
+          const text = document.createElement('p');
+          text.className = 'text-sm text-slate-700 leading-relaxed';
+          text.textContent = image.revised_prompt;
+          footer.appendChild(text);
+          card.appendChild(footer);
+        }
+
+        container.appendChild(card);
+      });
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function renderError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').textContent = message;
+    }
+
+    function parseToolResult(result) {
+      if (result && result.content) {
+        for (const item of result.content) {
+          if (item.type === 'text' && item.text) {
+            try { return JSON.parse(item.text); } catch { return { raw: item.text }; }
+          }
+        }
+      }
+      if (result && result.data) { return result; }
+      return result;
+    }
+
+    function handleToolResult(result) {
+      const parsed = parseToolResult(result);
+      if (parsed && parsed.success === false) {
+        renderError(parsed.error || 'Operation failed');
+        return;
+      }
+      const data = parsed?.data || parsed;
+      if (data) {
+        render(data);
+      } else {
+        renderError('Unexpected data format');
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.jsonrpc === '2.0') {
+        if (msg.method === 'ui/initialize') {
+          state.initialized = true;
+          window.parent.postMessage({
+            jsonrpc: '2.0', id: msg.id,
+            result: { protocolVersion: '0.1.0', capabilities: {} }
+          }, '*');
+        } else if (msg.method === 'ui/toolResult') {
+          handleToolResult(msg.params);
+        }
+      }
+
+      if (msg.type === 'toolResult') {
+        handleToolResult(msg.data);
+      }
+    });
+
+    window.parent.postMessage({
+      jsonrpc: '2.0', method: 'ui/ready', params: {}
+    }, '*');
+  </script>
+</body>
+</html>

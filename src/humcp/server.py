@@ -20,6 +20,7 @@ from src.humcp.auth import create_auth_provider
 from src.humcp.config import DEFAULT_CONFIG_PATH, filter_tools, load_config
 from src.humcp.decorator import (
     RegisteredTool,
+    get_tool_app,
     get_tool_category,
     get_tool_name,
     is_tool,
@@ -128,6 +129,7 @@ def _discover_and_register(
             # Get tool metadata from decorator
             tool_name = get_tool_name(func)
             category = get_tool_category(func)
+            app = get_tool_app(func)
 
             # Check for duplicates
             if tool_name in seen_names:
@@ -149,7 +151,7 @@ def _discover_and_register(
 
             # Access the FunctionTool synchronously from FastMCP's internal registry
             fn_tool = mcp._local_provider._components[f"tool:{tool_name}@"]
-            tools.append(RegisteredTool(tool=fn_tool, category=category))
+            tools.append(RegisteredTool(tool=fn_tool, category=category, app=app))
             logger.debug("Registered: %s (category: %s)", fn_tool.name, category)
 
     return tools

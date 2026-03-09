@@ -106,6 +106,119 @@ class SearchMessagesResponse(ToolResponse[SearchMessagesData]):
 
 
 # =============================================================================
+# Email Schemas
+# =============================================================================
+
+
+class EmailSentData(BaseModel):
+    """Data returned after sending an email."""
+
+    message_id: str | None = Field(None, description="ID of the sent email")
+    to: str = Field(..., description="Recipient email address")
+    subject: str = Field(..., description="Email subject")
+
+
+class SendEmailResponse(ToolResponse[EmailSentData]):
+    """Response schema for email-sending tools."""
+
+    pass
+
+
+# =============================================================================
+# Batch Email Schemas (Resend)
+# =============================================================================
+
+
+class BatchEmailResultItem(BaseModel):
+    """Result for a single email in a batch send."""
+
+    id: str | None = Field(None, description="ID of the sent email")
+
+
+class BatchEmailSentData(BaseModel):
+    """Data returned after sending a batch of emails."""
+
+    results: list[BatchEmailResultItem] = Field(..., description="List of send results")
+    count: int = Field(..., description="Number of emails sent")
+
+
+class BatchEmailSentResponse(ToolResponse[BatchEmailSentData]):
+    """Response schema for batch email send."""
+
+    pass
+
+
+# =============================================================================
+# SMS Schemas
+# =============================================================================
+
+
+class SmsSentData(BaseModel):
+    """Data returned after sending an SMS."""
+
+    message_sid: str | None = Field(None, description="SID of the sent SMS message")
+    to: str = Field(..., description="Recipient phone number")
+    from_number: str = Field(..., description="Sender phone number")
+    status: str | None = Field(None, description="Message delivery status")
+
+
+class SendSmsResponse(ToolResponse[SmsSentData]):
+    """Response schema for SMS-sending tools."""
+
+    pass
+
+
+# =============================================================================
+# SMS Status Schemas (Twilio)
+# =============================================================================
+
+
+class SmsStatusData(BaseModel):
+    """Data returned when fetching SMS message status."""
+
+    message_sid: str = Field(..., description="SID of the SMS message")
+    to: str | None = Field(None, description="Recipient phone number")
+    from_number: str | None = Field(None, description="Sender phone number")
+    status: str | None = Field(
+        None,
+        description="Current message status (queued, sending, sent, delivered, failed, undelivered)",
+    )
+    date_sent: str | None = Field(None, description="Date the message was sent")
+    error_code: int | None = Field(None, description="Error code if message failed")
+    error_message: str | None = Field(
+        None, description="Error message if message failed"
+    )
+
+
+class GetSmsStatusResponse(ToolResponse[SmsStatusData]):
+    """Response schema for getting SMS message status."""
+
+    pass
+
+
+# =============================================================================
+# Voice Call Schemas (Twilio)
+# =============================================================================
+
+
+class VoiceCallData(BaseModel):
+    """Data returned after initiating a voice call."""
+
+    call_sid: str | None = Field(None, description="SID of the initiated call")
+    to: str = Field(..., description="Recipient phone number")
+    from_number: str = Field(..., description="Caller phone number")
+    status: str | None = Field(
+        None, description="Call status (queued, ringing, in-progress, completed, etc.)"
+    )
+
+
+class MakeVoiceCallResponse(ToolResponse[VoiceCallData]):
+    """Response schema for making a voice call."""
+
+    pass
+
+
+# =============================================================================
 # Telegram Update Schemas
 # =============================================================================
 
@@ -296,6 +409,77 @@ class SlackUserInfoResponse(ToolResponse[SlackUserInfoData]):
 
 
 # =============================================================================
+# Webex Room Schemas
+# =============================================================================
+
+
+class WebexRoomInfo(BaseModel):
+    """Information about a Webex room."""
+
+    id: str = Field(..., description="Room ID")
+    title: str = Field(..., description="Room title")
+    type: str | None = Field(None, description="Room type (direct, group)")
+    is_locked: bool | None = Field(None, description="Whether the room is locked")
+    created: str | None = Field(None, description="Room creation timestamp (ISO8601)")
+
+
+class ListRoomsData(BaseModel):
+    """Data returned when listing Webex rooms."""
+
+    rooms: list[WebexRoomInfo] = Field(..., description="List of rooms")
+    count: int = Field(..., description="Number of rooms returned")
+
+
+class ListRoomsResponse(ToolResponse[ListRoomsData]):
+    """Response schema for Webex room-listing tools."""
+
+    pass
+
+
+# =============================================================================
+# Webex Create Room Schemas
+# =============================================================================
+
+
+class WebexRoomCreatedData(BaseModel):
+    """Data returned after creating a Webex room."""
+
+    id: str = Field(..., description="ID of the newly created room")
+    title: str = Field(..., description="Title of the room")
+    type: str | None = Field(None, description="Room type (direct, group)")
+    created: str | None = Field(None, description="Room creation timestamp (ISO8601)")
+
+
+class CreateRoomResponse(ToolResponse[WebexRoomCreatedData]):
+    """Response schema for creating a Webex room."""
+
+    pass
+
+
+# =============================================================================
+# Webex Room Details Schemas
+# =============================================================================
+
+
+class WebexRoomDetailsData(BaseModel):
+    """Detailed data about a Webex room."""
+
+    id: str = Field(..., description="Room ID")
+    title: str = Field(..., description="Room title")
+    type: str | None = Field(None, description="Room type (direct, group)")
+    is_locked: bool | None = Field(None, description="Whether the room is locked")
+    team_id: str | None = Field(None, description="Team ID if associated with a team")
+    created: str | None = Field(None, description="Room creation timestamp (ISO8601)")
+    creator_id: str | None = Field(None, description="ID of the room creator")
+
+
+class GetRoomDetailsResponse(ToolResponse[WebexRoomDetailsData]):
+    """Response schema for getting Webex room details."""
+
+    pass
+
+
+# =============================================================================
 # WhatsApp Template Message Schemas
 # =============================================================================
 
@@ -389,5 +573,46 @@ class TelegramPinnedMessageData(BaseModel):
 
 class TelegramPinMessageResponse(ToolResponse[TelegramPinnedMessageData]):
     """Response schema for pinning a Telegram message."""
+
+    pass
+
+
+# =============================================================================
+# Twilio WhatsApp Schemas
+# =============================================================================
+
+
+class TwilioWhatsAppSentData(BaseModel):
+    """Data returned after sending a WhatsApp message via Twilio."""
+
+    message_sid: str | None = Field(
+        None, description="SID of the sent WhatsApp message"
+    )
+    to: str = Field(..., description="Recipient WhatsApp number")
+    from_number: str = Field(..., description="Sender WhatsApp number (Twilio)")
+    status: str | None = Field(None, description="Message delivery status")
+
+
+class TwilioSendWhatsAppResponse(ToolResponse[TwilioWhatsAppSentData]):
+    """Response schema for sending a WhatsApp message via Twilio."""
+
+    pass
+
+
+# =============================================================================
+# Generic Operation Success Schema
+# =============================================================================
+
+
+class OperationSuccessData(BaseModel):
+    """Data returned for a generic successful operation."""
+
+    message: str = Field(
+        ..., description="Success message describing the completed operation"
+    )
+
+
+class OperationSuccessResponse(ToolResponse[OperationSuccessData]):
+    """Response schema for generic success operations."""
 
     pass

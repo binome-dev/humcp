@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ElevenLabs Voices</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="app" class="p-6 bg-gradient-to-br from-purple-50 via-white to-purple-50 min-h-[120px]">
+    <div id="loading" class="text-slate-400 text-sm text-center py-8">Waiting for data...</div>
+
+    <div id="result" class="hidden space-y-4">
+      <div class="flex items-center gap-2 mb-2">
+        <svg class="w-5 h-5 text-purple-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        <h2 id="header" class="text-lg font-semibold text-slate-800"></h2>
+      </div>
+
+      <div id="voices-container" class="grid gap-3"></div>
+    </div>
+
+    <div id="error" class="hidden text-red-600 text-sm font-medium text-center py-8"></div>
+  </div>
+
+  <script type="module">
+    const state = { initialized: false };
+
+    function render(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+
+      const voices = data.voices || [];
+      document.getElementById('header').textContent = 'Available Voices (' + voices.length + ')';
+
+      const container = document.getElementById('voices-container');
+      while (container.firstChild) { container.removeChild(container.firstChild); }
+
+      if (voices.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'text-center py-8 text-slate-400 text-sm';
+        empty.textContent = 'No voices found';
+        container.appendChild(empty);
+        return;
+      }
+
+      voices.forEach(function(voice) {
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-lg border border-purple-200 p-4 hover:border-purple-300 hover:shadow-sm transition-all';
+
+        const header = document.createElement('div');
+        header.className = 'flex items-center gap-3 mb-2';
+
+        const icon = document.createElement('div');
+        icon.className = 'w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0';
+        const iconText = document.createElement('span');
+        iconText.className = 'text-purple-600 text-xs font-bold';
+        iconText.textContent = (voice.name || '?').charAt(0).toUpperCase();
+        icon.appendChild(iconText);
+
+        const nameEl = document.createElement('span');
+        nameEl.className = 'text-sm font-semibold text-slate-800';
+        nameEl.textContent = voice.name || 'Unknown';
+
+        header.appendChild(icon);
+        header.appendChild(nameEl);
+        card.appendChild(header);
+
+        const idEl = document.createElement('p');
+        idEl.className = 'text-xs text-slate-400 mb-1 font-mono';
+        idEl.textContent = 'ID: ' + (voice.voice_id || 'N/A');
+        card.appendChild(idEl);
+
+        if (voice.description) {
+          const desc = document.createElement('p');
+          desc.className = 'text-sm text-slate-600 leading-relaxed';
+          desc.textContent = voice.description;
+          card.appendChild(desc);
+        }
+
+        container.appendChild(card);
+      });
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function renderError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').textContent = message;
+    }
+
+    function parseToolResult(result) {
+      if (result && result.content) {
+        for (const item of result.content) {
+          if (item.type === 'text' && item.text) {
+            try { return JSON.parse(item.text); } catch { return { raw: item.text }; }
+          }
+        }
+      }
+      if (result && result.data) { return result; }
+      return result;
+    }
+
+    function handleToolResult(result) {
+      const parsed = parseToolResult(result);
+      if (parsed && parsed.success === false) {
+        renderError(parsed.error || 'Operation failed');
+        return;
+      }
+      const data = parsed?.data || parsed;
+      if (data) {
+        render(data);
+      } else {
+        renderError('Unexpected data format');
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.jsonrpc === '2.0') {
+        if (msg.method === 'ui/initialize') {
+          state.initialized = true;
+          window.parent.postMessage({
+            jsonrpc: '2.0', id: msg.id,
+            result: { protocolVersion: '0.1.0', capabilities: {} }
+          }, '*');
+        } else if (msg.method === 'ui/toolResult') {
+          handleToolResult(msg.params);
+        }
+      }
+
+      if (msg.type === 'toolResult') {
+        handleToolResult(msg.data);
+      }
+    });
+
+    window.parent.postMessage({
+      jsonrpc: '2.0', method: 'ui/ready', params: {}
+    }, '*');
+  </script>
+</body>
+</html>

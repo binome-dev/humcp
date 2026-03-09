@@ -1,4 +1,4 @@
-"""Pydantic output schemas for MinIO storage tools."""
+"""Pydantic output schemas for S3-compatible storage tools."""
 
 from pydantic import BaseModel, Field
 

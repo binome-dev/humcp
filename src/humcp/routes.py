@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field, create_model
 
 from src.humcp.decorator import RegisteredTool
 from src.humcp.schemas import (
+    AppSummary,
     CategoryInfo,
     CategorySummary,
     GetCategoryResponse,
@@ -399,6 +400,7 @@ def register_routes(
                 cat: CategorySummary(
                     count=len(items),
                     tools=[ToolSummary(**t) for t in items],
+                    apps=_build_apps(items),
                     skill=SkillMetadata(
                         name=skills[cat].name, description=skills[cat].description
                     )
@@ -414,10 +416,12 @@ def register_routes(
         if category not in categories:
             raise HTTPException(404, f"Category '{category}' not found")
         skill = skills.get(category)
+        items = categories[category]
         return GetCategoryResponse(
             category=category,
-            count=len(categories[category]),
-            tools=[ToolSummary(**t) for t in categories[category]],
+            count=len(items),
+            tools=[ToolSummary(**t) for t in items],
+            apps=_build_apps(items),
             skill=SkillFull(
                 name=skill.name, description=skill.description, content=skill.content
             )
@@ -435,6 +439,7 @@ def register_routes(
         return GetToolResponse(
             name=reg.tool.name,
             category=reg.category,
+            app=reg.app,
             description=reg.tool.description,
             endpoint=f"/tools/{reg.tool.name}",
             input_schema=InputSchema(**reg.tool.parameters),
@@ -510,9 +515,25 @@ def _build_categories(tools: list[RegisteredTool]) -> dict[str, list[dict[str, A
                 "name": reg.tool.name,
                 "description": reg.tool.description,
                 "endpoint": f"/tools/{reg.tool.name}",
+                "app": reg.app,
             }
         )
     return cats
+
+
+def _build_apps(tool_dicts: list[dict[str, Any]]) -> list[AppSummary]:
+    """Group tool dicts by app field into AppSummary list."""
+    app_map: dict[str, list[dict[str, Any]]] = {}
+    for t in tool_dicts:
+        app_map.setdefault(t["app"], []).append(t)
+    return [
+        AppSummary(
+            name=app_name,
+            count=len(items),
+            tools=[ToolSummary(**t) for t in items],
+        )
+        for app_name, items in sorted(app_map.items())
+    ]
 
 
 def build_openapi_tags(tools: list[RegisteredTool]) -> list[dict[str, str]]:

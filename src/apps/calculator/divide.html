@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Divide - Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="app" class="flex items-center justify-center min-h-[120px] p-8 bg-gradient-to-br from-blue-50 via-white to-blue-50 rounded-xl">
+    <div id="loading" class="text-slate-400 text-sm">Waiting for data...</div>
+    <div id="result" class="hidden flex items-center gap-6">
+      <span id="val-a" class="font-mono font-bold text-3xl text-slate-800"></span>
+      <div class="flex flex-col items-center">
+        <svg class="w-10 h-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="6" r="1.5"></circle>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <circle cx="12" cy="18" r="1.5"></circle>
+        </svg>
+        <span class="text-xs text-slate-500 mt-1">divide</span>
+      </div>
+      <span id="val-b" class="font-mono font-bold text-3xl text-slate-800"></span>
+      <span class="text-slate-400 text-4xl font-light">=</span>
+      <span id="val-result" class="font-mono font-bold text-4xl text-blue-600 bg-blue-100 px-6 py-3 rounded-xl shadow-sm"></span>
+    </div>
+    <div id="error" class="hidden text-red-600 text-sm font-medium"></div>
+  </div>
+
+  <script type="module">
+    const state = { initialized: false };
+
+    function formatResult(val) {
+      if (Number.isInteger(val)) return val.toLocaleString();
+      return val.toFixed(6).replace(/\.?0+$/, '');
+    }
+
+    function render(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+
+      document.getElementById('val-a').textContent = data.a.toLocaleString();
+      document.getElementById('val-b').textContent = data.b.toLocaleString();
+      document.getElementById('val-result').textContent = formatResult(data.result);
+    }
+
+    function renderError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').textContent = message;
+    }
+
+    function parseToolResult(result) {
+      if (result && result.content) {
+        for (const item of result.content) {
+          if (item.type === 'text' && item.text) {
+            try {
+              return JSON.parse(item.text);
+            } catch {
+              return { raw: item.text };
+            }
+          }
+        }
+      }
+      if (result && result.data) {
+        return result;
+      }
+      return result;
+    }
+
+    function handleToolResult(result) {
+      const parsed = parseToolResult(result);
+      if (parsed && parsed.success === false) {
+        renderError(parsed.error || 'Operation failed');
+        return;
+      }
+      const data = parsed?.data || parsed;
+      if (data && typeof data.a === 'number' && typeof data.b === 'number' && typeof data.result === 'number') {
+        render(data);
+      } else {
+        renderError('Unexpected data format');
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.jsonrpc === '2.0') {
+        if (msg.method === 'ui/initialize') {
+          state.initialized = true;
+          window.parent.postMessage({
+            jsonrpc: '2.0',
+            id: msg.id,
+            result: { protocolVersion: '0.1.0', capabilities: {} }
+          }, '*');
+        } else if (msg.method === 'ui/toolResult') {
+          handleToolResult(msg.params);
+        }
+      }
+
+      if (msg.type === 'toolResult') {
+        handleToolResult(msg.data);
+      }
+    });
+
+    window.parent.postMessage({
+      jsonrpc: '2.0',
+      method: 'ui/ready',
+      params: {}
+    }, '*');
+  </script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub Issues</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="app" class="p-6 bg-gradient-to-br from-slate-50 via-white to-gray-50 min-h-[120px]">
+    <div id="loading" class="text-slate-400 text-sm text-center py-8">Waiting for data...</div>
+
+    <div id="result" class="hidden space-y-4">
+      <div class="flex items-center gap-2 mb-2">
+        <svg class="w-5 h-5 text-gray-700" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <h2 class="text-lg font-semibold text-slate-800">GitHub Issues</h2>
+        <span id="total-badge" class="hidden text-xs font-medium bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full"></span>
+      </div>
+      <div id="results-container" class="space-y-2"></div>
+    </div>
+
+    <div id="error" class="hidden text-red-600 text-sm font-medium text-center py-8"></div>
+  </div>
+
+  <script type="module">
+    const state = { initialized: false };
+
+    function getStateColor(s) {
+      if (!s) return 'bg-slate-100 text-slate-600';
+      if (s.toLowerCase() === 'open') return 'bg-green-100 text-green-700';
+      if (s.toLowerCase() === 'closed') return 'bg-purple-100 text-purple-700';
+      return 'bg-slate-100 text-slate-600';
+    }
+
+    function render(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+
+      if (data.total != null) {
+        const badge = document.getElementById('total-badge');
+        badge.textContent = data.total + ' total';
+        badge.classList.remove('hidden');
+      }
+
+      const container = document.getElementById('results-container');
+      const issues = data.issues || [];
+
+      if (issues.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'text-center py-8 text-slate-400 text-sm';
+        empty.textContent = 'No issues found';
+        container.appendChild(empty);
+        return;
+      }
+
+      issues.forEach(issue => {
+        const row = document.createElement('div');
+        row.className = 'bg-white rounded-lg border border-slate-200 p-4 hover:border-gray-300 hover:shadow-sm transition-all';
+
+        const top = document.createElement('div');
+        top.className = 'flex items-center gap-3 mb-1';
+
+        const num = document.createElement('span');
+        num.className = 'text-xs font-bold text-gray-500';
+        num.textContent = '#' + (issue.number || '');
+        top.appendChild(num);
+
+        const title = document.createElement('span');
+        title.className = 'text-sm font-medium text-slate-800 truncate flex-1';
+        title.textContent = issue.title || '';
+        top.appendChild(title);
+
+        const stateBadge = document.createElement('span');
+        stateBadge.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ' + getStateColor(issue.state);
+        stateBadge.textContent = issue.state || 'Unknown';
+        top.appendChild(stateBadge);
+
+        row.appendChild(top);
+
+        const meta = document.createElement('div');
+        meta.className = 'flex items-center gap-2 flex-wrap text-xs text-slate-400 mt-1';
+
+        if (issue.assignee) {
+          const a = document.createElement('span');
+          a.textContent = issue.assignee;
+          meta.appendChild(a);
+        }
+
+        if (issue.labels && issue.labels.length > 0) {
+          issue.labels.forEach(label => {
+            const tag = document.createElement('span');
+            tag.className = 'inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-slate-100 text-slate-500';
+            tag.textContent = label;
+            meta.appendChild(tag);
+          });
+        }
+
+        if (issue.url) {
+          const link = document.createElement('a');
+          link.href = issue.url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.className = 'text-gray-500 hover:underline ml-auto';
+          link.textContent = 'View';
+          meta.appendChild(link);
+        }
+
+        row.appendChild(meta);
+        container.appendChild(row);
+      });
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function renderError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').textContent = message;
+    }
+
+    function parseToolResult(result) {
+      if (result && result.content) {
+        for (const item of result.content) {
+          if (item.type === 'text' && item.text) {
+            try { return JSON.parse(item.text); } catch { return { raw: item.text }; }
+          }
+        }
+      }
+      if (result && result.data) { return result; }
+      return result;
+    }
+
+    function handleToolResult(result) {
+      const parsed = parseToolResult(result);
+      if (parsed && parsed.success === false) {
+        renderError(parsed.error || 'Operation failed');
+        return;
+      }
+      const data = parsed?.data || parsed;
+      if (data) {
+        render(data);
+      } else {
+        renderError('Unexpected data format');
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.jsonrpc === '2.0') {
+        if (msg.method === 'ui/initialize') {
+          state.initialized = true;
+          window.parent.postMessage({
+            jsonrpc: '2.0', id: msg.id,
+            result: { protocolVersion: '0.1.0', capabilities: {} }
+          }, '*');
+        } else if (msg.method === 'ui/toolResult') {
+          handleToolResult(msg.params);
+        }
+      }
+
+      if (msg.type === 'toolResult') {
+        handleToolResult(msg.data);
+      }
+    });
+
+    window.parent.postMessage({
+      jsonrpc: '2.0', method: 'ui/ready', params: {}
+    }, '*');
+  </script>
+</body>
+</html>

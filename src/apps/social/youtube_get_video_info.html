@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube Video Info</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="app" class="p-6 bg-gradient-to-br from-orange-50 via-white to-amber-50 min-h-[120px]">
+    <div id="loading" class="text-slate-400 text-sm text-center py-8">Waiting for data...</div>
+
+    <div id="result" class="hidden space-y-4">
+      <div id="video-detail"></div>
+    </div>
+
+    <div id="error" class="hidden text-red-600 text-sm font-medium text-center py-8"></div>
+  </div>
+
+  <script type="module">
+    const state = { initialized: false };
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatNumber(n) {
+      if (n == null) return '--';
+      if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+      if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+      return String(n);
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      try {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+      } catch { return dateStr; }
+    }
+
+    function formatDuration(iso) {
+      if (!iso) return '';
+      const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+      if (!match) return iso;
+      const h = match[1] ? match[1] + 'h ' : '';
+      const m = match[2] ? match[2] + 'm ' : '';
+      const s = match[3] ? match[3] + 's' : '';
+      return (h + m + s).trim();
+    }
+
+    function render(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+
+      const container = document.getElementById('video-detail');
+      container.replaceChildren();
+
+      const videoUrl = 'https://www.youtube.com/watch?v=' + (data.video_id || '');
+
+      const card = document.createElement('div');
+      card.className = 'bg-white rounded-xl border border-slate-200 overflow-hidden';
+
+      // Thumbnail
+      const thumbContainer = document.createElement('div');
+      thumbContainer.className = 'relative bg-slate-100 aspect-video flex items-center justify-center';
+
+      if (data.thumbnail_url) {
+        const thumb = document.createElement('img');
+        thumb.src = data.thumbnail_url;
+        thumb.alt = data.title || '';
+        thumb.className = 'w-full h-full object-cover';
+        thumb.onerror = function() {
+          this.style.display = 'none';
+        };
+        thumbContainer.appendChild(thumb);
+      } else {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'text-5xl text-slate-300';
+        placeholder.textContent = '\u25b6';
+        thumbContainer.appendChild(placeholder);
+      }
+
+      if (data.duration) {
+        const durBadge = document.createElement('span');
+        durBadge.className = 'absolute bottom-2 right-2 bg-black bg-opacity-75 text-white text-xs px-2 py-0.5 rounded';
+        durBadge.textContent = formatDuration(data.duration);
+        thumbContainer.appendChild(durBadge);
+      }
+
+      // Body
+      const body = document.createElement('div');
+      body.className = 'p-5 space-y-4';
+
+      const titleLink = document.createElement('a');
+      titleLink.href = videoUrl;
+      titleLink.target = '_blank';
+      titleLink.rel = 'noopener noreferrer';
+      titleLink.className = 'text-lg font-bold text-slate-800 hover:text-orange-700 hover:underline leading-snug block';
+      titleLink.textContent = data.title || '';
+
+      const meta = document.createElement('div');
+      meta.className = 'flex items-center gap-3 text-xs text-slate-400';
+      if (data.channel_title) {
+        const channelSpan = document.createElement('span');
+        channelSpan.className = 'font-medium text-slate-600';
+        channelSpan.textContent = data.channel_title;
+        meta.appendChild(channelSpan);
+      }
+      if (data.published_at) {
+        const dateSpan = document.createElement('span');
+        dateSpan.textContent = formatDate(data.published_at);
+        meta.appendChild(dateSpan);
+      }
+
+      body.appendChild(titleLink);
+      body.appendChild(meta);
+
+      // Stats grid
+      const statsGrid = document.createElement('div');
+      statsGrid.className = 'grid grid-cols-3 gap-3 pt-3 border-t border-slate-100';
+
+      const statItems = [
+        { label: 'Views', value: data.view_count, color: 'text-orange-600' },
+        { label: 'Likes', value: data.like_count, color: 'text-amber-600' },
+        { label: 'Comments', value: data.comment_count, color: 'text-slate-600' }
+      ];
+
+      statItems.forEach(function(stat) {
+        const statDiv = document.createElement('div');
+        statDiv.className = 'text-center';
+        const valSpan = document.createElement('div');
+        valSpan.className = 'text-lg font-bold ' + stat.color;
+        valSpan.textContent = formatNumber(stat.value);
+        const labelSpan = document.createElement('div');
+        labelSpan.className = 'text-xs text-slate-400';
+        labelSpan.textContent = stat.label;
+        statDiv.appendChild(valSpan);
+        statDiv.appendChild(labelSpan);
+        statsGrid.appendChild(statDiv);
+      });
+
+      body.appendChild(statsGrid);
+
+      if (data.description) {
+        const desc = document.createElement('div');
+        desc.className = 'bg-slate-50 rounded-lg p-4 text-sm text-slate-600 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto';
+        desc.textContent = data.description;
+        body.appendChild(desc);
+      }
+
+      card.appendChild(thumbContainer);
+      card.appendChild(body);
+      container.appendChild(card);
+    }
+
+    function renderError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').textContent = message;
+    }
+
+    function parseToolResult(result) {
+      if (result && result.content) {
+        for (const item of result.content) {
+          if (item.type === 'text' && item.text) {
+            try { return JSON.parse(item.text); } catch { return { raw: item.text }; }
+          }
+        }
+      }
+      if (result && result.data) { return result; }
+      return result;
+    }
+
+    function handleToolResult(result) {
+      const parsed = parseToolResult(result);
+      if (parsed && parsed.success === false) {
+        renderError(parsed.error || 'Operation failed');
+        return;
+      }
+      const data = parsed?.data || parsed;
+      if (data) {
+        render(data);
+      } else {
+        renderError('Unexpected data format');
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.jsonrpc === '2.0') {
+        if (msg.method === 'ui/initialize') {
+          state.initialized = true;
+          window.parent.postMessage({
+            jsonrpc: '2.0', id: msg.id,
+            result: { protocolVersion: '0.1.0', capabilities: {} }
+          }, '*');
+        } else if (msg.method === 'ui/toolResult') {
+          handleToolResult(msg.params);
+        }
+      }
+
+      if (msg.type === 'toolResult') {
+        handleToolResult(msg.data);
+      }
+    });
+
+    window.parent.postMessage({
+      jsonrpc: '2.0', method: 'ui/ready', params: {}
+    }, '*');
+  </script>
+</body>
+</html>

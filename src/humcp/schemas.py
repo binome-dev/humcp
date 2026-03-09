@@ -20,6 +20,7 @@ class ToolSummary(BaseModel):
     name: str = Field(..., description="Tool name")
     description: str | None = Field(None, description="Tool description")
     endpoint: str = Field(..., description="API endpoint path")
+    app: str = Field(..., description="App grouping (filename stem)")
 
 
 class SkillMetadata(BaseModel):
@@ -37,12 +38,21 @@ class SkillFull(BaseModel):
     content: str = Field(..., description="Skill markdown content")
 
 
+class AppSummary(BaseModel):
+    """Summary of an app (file-level grouping within a category)."""
+
+    name: str = Field(..., description="App name (filename stem)")
+    count: int = Field(..., description="Number of tools in app")
+    tools: list[ToolSummary] = Field(..., description="List of tools in app")
+
+
 # GET /tools response
 class CategorySummary(BaseModel):
     """Summary of a category in the tools listing."""
 
     count: int = Field(..., description="Number of tools in category")
     tools: list[ToolSummary] = Field(..., description="List of tools")
+    apps: list[AppSummary] = Field(default_factory=list, description="Tools grouped by app")
     skill: SkillMetadata | None = Field(None, description="Skill metadata if available")
 
 
@@ -62,6 +72,7 @@ class GetCategoryResponse(BaseModel):
     category: str = Field(..., description="Category name")
     count: int = Field(..., description="Number of tools in category")
     tools: list[ToolSummary] = Field(..., description="List of tools")
+    apps: list[AppSummary] = Field(default_factory=list, description="Tools grouped by app")
     skill: SkillFull | None = Field(None, description="Full skill information")
 
 
@@ -81,6 +92,7 @@ class GetToolResponse(BaseModel):
 
     name: str = Field(..., description="Tool name")
     category: str = Field(..., description="Tool category")
+    app: str = Field(..., description="App grouping (filename stem)")
     description: str | None = Field(None, description="Tool description")
     endpoint: str = Field(..., description="API endpoint path")
     input_schema: InputSchema = Field(..., description="JSON Schema for tool input")

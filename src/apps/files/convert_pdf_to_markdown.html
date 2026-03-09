@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF to Markdown</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+    #markdown-content { tab-size: 4; }
+  </style>
+</head>
+<body>
+  <div id="app" class="p-6 bg-gradient-to-br from-slate-50 via-white to-slate-50 min-h-[120px]">
+    <div id="loading" class="text-slate-400 text-sm text-center py-8">Waiting for data...</div>
+
+    <div id="result" class="hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <h2 class="text-sm font-semibold text-slate-700"><span id="filename" class="font-mono"></span></h2>
+        </div>
+        <div class="flex items-center gap-3 text-xs text-slate-400">
+          <span id="page-info"></span>
+          <span id="size-info"></span>
+        </div>
+      </div>
+
+      <div class="bg-slate-900 rounded-lg overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700">
+          <span class="text-xs text-slate-400 font-medium">Markdown Output</span>
+          <button id="copy-btn" class="text-xs text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <span id="copy-text">Copy</span>
+          </button>
+        </div>
+        <pre class="p-4 overflow-x-auto max-h-[600px] overflow-y-auto"><code id="markdown-content" class="text-sm text-slate-300 font-mono whitespace-pre-wrap"></code></pre>
+      </div>
+    </div>
+
+    <div id="error" class="hidden text-red-600 text-sm font-medium text-center py-8"></div>
+  </div>
+
+  <script type="module">
+    const state = { initialized: false };
+
+    function formatBytes(bytes) {
+      if (bytes == null) return '';
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    function render(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+
+      document.getElementById('filename').textContent = data.filename || 'output.md';
+
+      if (data.page_count != null) {
+        document.getElementById('page-info').textContent = data.page_count + ' page' + (data.page_count !== 1 ? 's' : '');
+      }
+      if (data.file_size_bytes != null) {
+        document.getElementById('size-info').textContent = formatBytes(data.file_size_bytes);
+      }
+
+      const content = data.markdown_content || '';
+      document.getElementById('markdown-content').textContent = content;
+
+      document.getElementById('copy-btn').addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(content);
+          document.getElementById('copy-text').textContent = 'Copied!';
+          setTimeout(() => { document.getElementById('copy-text').textContent = 'Copy'; }, 2000);
+        } catch (err) {
+          // Clipboard API may not be available in iframe
+        }
+      });
+    }
+
+    function renderError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').textContent = message;
+    }
+
+    function parseToolResult(result) {
+      if (result && result.content) {
+        for (const item of result.content) {
+          if (item.type === 'text' && item.text) {
+            try { return JSON.parse(item.text); } catch { return { raw: item.text }; }
+          }
+        }
+      }
+      if (result && result.data) { return result; }
+      return result;
+    }
+
+    function handleToolResult(result) {
+      const parsed = parseToolResult(result);
+      if (parsed && parsed.success === false) {
+        renderError(parsed.error || 'Operation failed');
+        return;
+      }
+      const data = parsed?.data || parsed;
+      if (data) {
+        render(data);
+      } else {
+        renderError('Unexpected data format');
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.jsonrpc === '2.0') {
+        if (msg.method === 'ui/initialize') {
+          state.initialized = true;
+          window.parent.postMessage({
+            jsonrpc: '2.0', id: msg.id,
+            result: { protocolVersion: '0.1.0', capabilities: {} }
+          }, '*');
+        } else if (msg.method === 'ui/toolResult') {
+          handleToolResult(msg.params);
+        }
+      }
+
+      if (msg.type === 'toolResult') {
+        handleToolResult(msg.data);
+      }
+    });
+
+    window.parent.postMessage({
+      jsonrpc: '2.0', method: 'ui/ready', params: {}
+    }, '*');
+  </script>
+</body>
+</html>

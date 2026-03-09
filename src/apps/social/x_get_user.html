@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>X User Profile</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="app" class="p-6 bg-gradient-to-br from-orange-50 via-white to-amber-50 min-h-[120px]">
+    <div id="loading" class="text-slate-400 text-sm text-center py-8">Waiting for data...</div>
+
+    <div id="result" class="hidden space-y-4">
+      <div id="profile-card"></div>
+    </div>
+
+    <div id="error" class="hidden text-red-600 text-sm font-medium text-center py-8"></div>
+  </div>
+
+  <script type="module">
+    const state = { initialized: false };
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatNumber(n) {
+      if (n == null) return '0';
+      if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+      if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+      return String(n);
+    }
+
+    function render(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+
+      const container = document.getElementById('profile-card');
+      container.replaceChildren();
+
+      const card = document.createElement('div');
+      card.className = 'bg-white rounded-xl border border-slate-200 overflow-hidden max-w-md';
+
+      // Header banner
+      const banner = document.createElement('div');
+      banner.className = 'bg-gradient-to-r from-orange-500 to-amber-500 h-20';
+
+      // Profile info
+      const info = document.createElement('div');
+      info.className = 'p-5 space-y-3';
+
+      const nameRow = document.createElement('div');
+      const displayName = document.createElement('h2');
+      displayName.className = 'text-lg font-bold text-slate-800';
+      displayName.textContent = data.name || '';
+      const handle = document.createElement('p');
+      handle.className = 'text-sm text-slate-400';
+      handle.textContent = '@' + (data.username || '');
+      nameRow.appendChild(displayName);
+      nameRow.appendChild(handle);
+
+      info.appendChild(nameRow);
+
+      if (data.description) {
+        const bio = document.createElement('p');
+        bio.className = 'text-sm text-slate-600 leading-relaxed';
+        bio.textContent = data.description;
+        info.appendChild(bio);
+      }
+
+      // Stats grid
+      const statsGrid = document.createElement('div');
+      statsGrid.className = 'grid grid-cols-3 gap-3 pt-3 border-t border-slate-100';
+
+      const statItems = [
+        { label: 'Followers', value: data.followers_count },
+        { label: 'Following', value: data.following_count },
+        { label: 'Tweets', value: data.tweet_count }
+      ];
+
+      statItems.forEach(function(stat) {
+        const statDiv = document.createElement('div');
+        statDiv.className = 'text-center';
+        const valSpan = document.createElement('div');
+        valSpan.className = 'text-lg font-bold text-orange-600';
+        valSpan.textContent = formatNumber(stat.value);
+        const labelSpan = document.createElement('div');
+        labelSpan.className = 'text-xs text-slate-400';
+        labelSpan.textContent = stat.label;
+        statDiv.appendChild(valSpan);
+        statDiv.appendChild(labelSpan);
+        statsGrid.appendChild(statDiv);
+      });
+
+      info.appendChild(statsGrid);
+
+      card.appendChild(banner);
+      card.appendChild(info);
+      container.appendChild(card);
+    }
+
+    function renderError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').textContent = message;
+    }
+
+    function parseToolResult(result) {
+      if (result && result.content) {
+        for (const item of result.content) {
+          if (item.type === 'text' && item.text) {
+            try { return JSON.parse(item.text); } catch { return { raw: item.text }; }
+          }
+        }
+      }
+      if (result && result.data) { return result; }
+      return result;
+    }
+
+    function handleToolResult(result) {
+      const parsed = parseToolResult(result);
+      if (parsed && parsed.success === false) {
+        renderError(parsed.error || 'Operation failed');
+        return;
+      }
+      const data = parsed?.data || parsed;
+      if (data) {
+        render(data);
+      } else {
+        renderError('Unexpected data format');
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.jsonrpc === '2.0') {
+        if (msg.method === 'ui/initialize') {
+          state.initialized = true;
+          window.parent.postMessage({
+            jsonrpc: '2.0', id: msg.id,
+            result: { protocolVersion: '0.1.0', capabilities: {} }
+          }, '*');
+        } else if (msg.method === 'ui/toolResult') {
+          handleToolResult(msg.params);
+        }
+      }
+
+      if (msg.type === 'toolResult') {
+        handleToolResult(msg.data);
+      }
+    });
+
+    window.parent.postMessage({
+      jsonrpc: '2.0', method: 'ui/ready', params: {}
+    }, '*');
+  </script>
+</body>
+</html>
