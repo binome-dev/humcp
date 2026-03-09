@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Seltz Search Results</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="app" class="p-6 bg-gradient-to-br from-slate-50 via-white to-slate-50 min-h-[120px]">
+    <div id="loading" class="text-slate-400 text-sm text-center py-8">Waiting for data...</div>
+
+    <div id="result" class="hidden space-y-4">
+      <div class="flex items-center gap-2 mb-2">
+        <svg class="w-5 h-5 text-teal-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <h2 id="query-header" class="text-lg font-semibold text-slate-800"></h2>
+        <span class="ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-700">Seltz</span>
+      </div>
+
+      <div id="results-container" class="space-y-3"></div>
+    </div>
+
+    <div id="error" class="hidden text-red-600 text-sm font-medium text-center py-8"></div>
+  </div>
+
+  <script type="module">
+    // NOTE: innerHTML usage below is safe because all dynamic values pass through
+    // escapeHtml() which uses textContent-based escaping to prevent XSS.
+    const state = { initialized: false };
+
+    function render(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+
+      document.getElementById('query-header').textContent = 'Results for \u201c' + (data.query || '') + '\u201d';
+
+      const container = document.getElementById('results-container');
+      container.innerHTML = '';
+
+      const results = data.results || [];
+      results.forEach(function(item) {
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-lg border border-slate-200 p-4 hover:border-teal-300 hover:shadow-sm transition-all';
+
+        const scorePercent = item.score != null ? Math.round(item.score * 100) : null;
+        const scoreBadge = scorePercent != null
+          ? '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ' +
+            (scorePercent >= 80 ? 'bg-emerald-100 text-emerald-700' : scorePercent >= 50 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600') +
+            '">' + scorePercent + '%</span>'
+          : '';
+
+        const titleText = item.title || item.url || 'Untitled';
+        const titleLink = item.url
+          ? '<a href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer" class="text-sm font-semibold text-teal-700 hover:text-teal-900 hover:underline leading-snug">' + escapeHtml(titleText) + '</a>'
+          : '<span class="text-sm font-semibold text-slate-700 leading-snug">' + escapeHtml(titleText) + '</span>';
+
+        const urlLine = item.url
+          ? '<p class="text-xs text-slate-400 mb-2 truncate">' + escapeHtml(item.url) + '</p>'
+          : '';
+
+        const contentText = item.content || '';
+        const contentLine = contentText
+          ? '<p class="text-sm text-slate-600 leading-relaxed line-clamp-4">' + escapeHtml(contentText) + '</p>'
+          : '';
+
+        card.innerHTML =
+          '<div class="flex items-start justify-between gap-3 mb-2">' +
+            titleLink +
+            scoreBadge +
+          '</div>' +
+          urlLine +
+          contentLine;
+
+        container.appendChild(card);
+      });
+
+      if (results.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 text-slate-400 text-sm">No results found</div>';
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function renderError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').textContent = message;
+    }
+
+    function parseToolResult(result) {
+      if (result && result.content) {
+        for (const item of result.content) {
+          if (item.type === 'text' && item.text) {
+            try { return JSON.parse(item.text); } catch { return { raw: item.text }; }
+          }
+        }
+      }
+      if (result && result.data) { return result; }
+      return result;
+    }
+
+    function handleToolResult(result) {
+      const parsed = parseToolResult(result);
+      if (parsed && parsed.success === false) {
+        renderError(parsed.error || 'Operation failed');
+        return;
+      }
+      const data = parsed?.data || parsed;
+      if (data) {
+        render(data);
+      } else {
+        renderError('Unexpected data format');
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.jsonrpc === '2.0') {
+        if (msg.method === 'ui/initialize') {
+          state.initialized = true;
+          window.parent.postMessage({
+            jsonrpc: '2.0', id: msg.id,
+            result: { protocolVersion: '0.1.0', capabilities: {} }
+          }, '*');
+        } else if (msg.method === 'ui/toolResult') {
+          handleToolResult(msg.params);
+        }
+      }
+
+      if (msg.type === 'toolResult') {
+        handleToolResult(msg.data);
+      }
+    });
+
+    window.parent.postMessage({
+      jsonrpc: '2.0', method: 'ui/ready', params: {}
+    }, '*');
+  </script>
+</body>
+</html>

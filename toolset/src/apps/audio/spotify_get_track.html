@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spotify Track</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="app" class="p-6 bg-gradient-to-br from-purple-50 via-white to-purple-50 min-h-[120px]">
+    <div id="loading" class="text-slate-400 text-sm text-center py-8">Waiting for data...</div>
+
+    <div id="result" class="hidden space-y-4">
+      <div class="flex items-center gap-2 mb-2">
+        <svg class="w-5 h-5 text-purple-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14.5c2-1 4.5-1.5 7-1"/><path d="M7 11.5c2.5-1 5.5-1.5 8.5-1"/><path d="M6.5 8.5c3-1 6.5-1.5 10-1"/></svg>
+        <h2 class="text-lg font-semibold text-slate-800">Track Details</h2>
+      </div>
+
+      <div id="track-card" class="bg-white rounded-xl border border-purple-200 p-5 space-y-4">
+        <div class="flex items-start gap-4">
+          <div class="w-16 h-16 rounded-lg bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center flex-shrink-0">
+            <svg class="w-8 h-8 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="15.5" r="2.5"/><path d="M8 17V5l12-2v12"/></svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p id="track-name" class="text-lg font-bold text-slate-800"></p>
+            <p id="track-artist" class="text-sm text-slate-500"></p>
+            <p id="track-album" class="text-xs text-slate-400 mt-0.5"></p>
+          </div>
+        </div>
+
+        <div id="track-meta" class="flex flex-wrap gap-2"></div>
+        <div id="track-player"></div>
+      </div>
+    </div>
+
+    <div id="error" class="hidden text-red-600 text-sm font-medium text-center py-8"></div>
+  </div>
+
+  <script type="module">
+    const state = { initialized: false };
+
+    function formatDuration(ms) {
+      if (!ms) return '';
+      const mins = Math.floor(ms / 60000);
+      const secs = Math.floor((ms % 60000) / 1000);
+      return mins + ':' + (secs < 10 ? '0' : '') + secs;
+    }
+
+    function render(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+
+      const track = data.track || data;
+
+      document.getElementById('track-name').textContent = track.name || 'Unknown Track';
+      document.getElementById('track-artist').textContent = (track.artists || []).join(', ') || 'Unknown Artist';
+      document.getElementById('track-album').textContent = track.album ? 'Album: ' + track.album : '';
+
+      const meta = document.getElementById('track-meta');
+      while (meta.firstChild) { meta.removeChild(meta.firstChild); }
+
+      if (track.duration_ms) {
+        const dur = document.createElement('span');
+        dur.className = 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700';
+        dur.textContent = formatDuration(track.duration_ms);
+        meta.appendChild(dur);
+      }
+
+      if (track.popularity != null) {
+        const pop = document.createElement('span');
+        pop.className = 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ' +
+          (track.popularity >= 70 ? 'bg-green-100 text-green-700' : track.popularity >= 40 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600');
+        pop.textContent = 'Popularity: ' + track.popularity + '%';
+        meta.appendChild(pop);
+      }
+
+      if (track.track_id) {
+        const idBadge = document.createElement('span');
+        idBadge.className = 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 font-mono';
+        idBadge.textContent = track.track_id;
+        meta.appendChild(idBadge);
+      }
+
+      const player = document.getElementById('track-player');
+      while (player.firstChild) { player.removeChild(player.firstChild); }
+
+      if (track.preview_url) {
+        const audio = document.createElement('audio');
+        audio.controls = true;
+        audio.src = track.preview_url;
+        audio.className = 'w-full';
+        player.appendChild(audio);
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function renderError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').textContent = message;
+    }
+
+    function parseToolResult(result) {
+      if (result && result.content) {
+        for (const item of result.content) {
+          if (item.type === 'text' && item.text) {
+            try { return JSON.parse(item.text); } catch { return { raw: item.text }; }
+          }
+        }
+      }
+      if (result && result.data) { return result; }
+      return result;
+    }
+
+    function handleToolResult(result) {
+      const parsed = parseToolResult(result);
+      if (parsed && parsed.success === false) {
+        renderError(parsed.error || 'Operation failed');
+        return;
+      }
+      const data = parsed?.data || parsed;
+      if (data) {
+        render(data);
+      } else {
+        renderError('Unexpected data format');
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.jsonrpc === '2.0') {
+        if (msg.method === 'ui/initialize') {
+          state.initialized = true;
+          window.parent.postMessage({
+            jsonrpc: '2.0', id: msg.id,
+            result: { protocolVersion: '0.1.0', capabilities: {} }
+          }, '*');
+        } else if (msg.method === 'ui/toolResult') {
+          handleToolResult(msg.params);
+        }
+      }
+
+      if (msg.type === 'toolResult') {
+        handleToolResult(msg.data);
+      }
+    });
+
+    window.parent.postMessage({
+      jsonrpc: '2.0', method: 'ui/ready', params: {}
+    }, '*');
+  </script>
+</body>
+</html>

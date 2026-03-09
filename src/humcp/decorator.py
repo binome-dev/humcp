@@ -6,9 +6,11 @@ FastMCP handles description and schema generation.
 
 import inspect
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, NamedTuple
+
+from fastmcp.tools import FunctionTool
 
 __all__ = [
     "tool",
@@ -17,7 +19,6 @@ __all__ = [
     "get_tool_category",
     "RegisteredTool",
     "ToolMetadata",
-    "ToolInfo",
 ]
 
 TOOL_ATTR = "_humcp_tool"
@@ -31,34 +32,15 @@ class ToolMetadata:
     category: str
 
 
-@dataclass(frozen=True)
-class ToolInfo:
-    """Tool metadata mirroring the fields previously provided by FunctionTool.
-
-    Attributes:
-        name: Tool name for MCP registration.
-        description: Tool description (from docstring).
-        parameters: JSON Schema dict for tool input parameters.
-        fn: The original callable.
-        output_schema: Optional JSON Schema dict for output (default empty).
-    """
-
-    name: str
-    description: str
-    parameters: dict[str, Any]
-    fn: Callable[..., Any]
-    output_schema: dict[str, Any] = field(default_factory=dict)
-
-
 class RegisteredTool(NamedTuple):
     """A tool registered with FastMCP, with category for grouping.
 
     Attributes:
-        tool: ToolInfo object (has name, description, parameters, fn).
+        tool: The FastMCP FunctionTool object (has name, description, parameters, fn).
         category: Category for REST endpoint grouping.
     """
 
-    tool: ToolInfo
+    tool: FunctionTool
     category: str
 
 

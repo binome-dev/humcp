@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Webex Message Sent</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="app" class="p-6 bg-gradient-to-br from-slate-50 via-white to-slate-50 min-h-[120px]">
+    <div id="loading" class="text-slate-400 text-sm text-center py-8">Waiting for data...</div>
+
+    <div id="result" class="hidden space-y-4">
+      <div class="bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-200 rounded-xl p-5">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="p-2 bg-blue-100 rounded-full">
+            <svg class="w-6 h-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-slate-800">Message Sent to Webex</h2>
+            <p class="text-sm text-slate-500">Your message was delivered successfully</p>
+          </div>
+        </div>
+
+        <div id="details" class="space-y-2"></div>
+      </div>
+    </div>
+
+    <div id="error" class="hidden text-red-600 text-sm font-medium text-center py-8"></div>
+  </div>
+
+  <script type="module">
+    const state = { initialized: false };
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = String(text != null ? text : '');
+      return div.innerHTML;
+    }
+
+    function render(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+
+      const details = document.getElementById('details');
+      const fields = [];
+
+      if (data.channel) {
+        fields.push({ label: 'Room', value: data.channel });
+      }
+      if (data.message_id) {
+        fields.push({ label: 'Message ID', value: data.message_id });
+      }
+      if (data.timestamp) {
+        fields.push({ label: 'Timestamp', value: data.timestamp });
+      }
+
+      while (details.firstChild) { details.removeChild(details.firstChild); }
+
+      if (fields.length === 0) {
+        const p = document.createElement('p');
+        p.className = 'text-sm text-slate-500';
+        p.textContent = 'Message sent successfully';
+        details.appendChild(p);
+        return;
+      }
+
+      fields.forEach(f => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-2 text-sm';
+
+        const label = document.createElement('span');
+        label.className = 'text-slate-500 min-w-[90px]';
+        label.textContent = f.label;
+
+        const value = document.createElement('span');
+        value.className = 'font-mono text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200';
+        value.textContent = f.value;
+
+        row.appendChild(label);
+        row.appendChild(value);
+        details.appendChild(row);
+      });
+    }
+
+    function renderError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').textContent = message;
+    }
+
+    function parseToolResult(result) {
+      if (result && result.content) {
+        for (const item of result.content) {
+          if (item.type === 'text' && item.text) {
+            try { return JSON.parse(item.text); } catch { return { raw: item.text }; }
+          }
+        }
+      }
+      if (result && result.data) { return result; }
+      return result;
+    }
+
+    function handleToolResult(result) {
+      const parsed = parseToolResult(result);
+      if (parsed && parsed.success === false) {
+        renderError(parsed.error || 'Operation failed');
+        return;
+      }
+      const data = parsed?.data || parsed;
+      if (data) {
+        render(data);
+      } else {
+        renderError('Unexpected data format');
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.jsonrpc === '2.0') {
+        if (msg.method === 'ui/initialize') {
+          state.initialized = true;
+          window.parent.postMessage({
+            jsonrpc: '2.0', id: msg.id,
+            result: { protocolVersion: '0.1.0', capabilities: {} }
+          }, '*');
+        } else if (msg.method === 'ui/toolResult') {
+          handleToolResult(msg.params);
+        }
+      }
+
+      if (msg.type === 'toolResult') {
+        handleToolResult(msg.data);
+      }
+    });
+
+    window.parent.postMessage({
+      jsonrpc: '2.0', method: 'ui/ready', params: {}
+    }, '*');
+  </script>
+</body>
+</html>

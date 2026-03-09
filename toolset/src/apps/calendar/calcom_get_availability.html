@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cal.com Availability</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="app" class="p-6 bg-gradient-to-br from-blue-50 via-white to-blue-50 min-h-[120px]">
+    <div id="loading" class="text-slate-400 text-sm text-center py-8">Waiting for data...</div>
+
+    <div id="result" class="hidden space-y-4">
+      <div class="flex items-center gap-2 mb-2">
+        <svg class="w-5 h-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <h2 class="text-lg font-semibold text-slate-800">Availability</h2>
+      </div>
+
+      <div id="date-range" class="text-sm text-slate-500 mb-3"></div>
+
+      <div id="slots-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2"></div>
+    </div>
+
+    <div id="error" class="hidden text-red-600 text-sm font-medium text-center py-8"></div>
+  </div>
+
+  <script type="module">
+    const state = { initialized: false };
+
+    function formatTime(dateStr) {
+      if (!dateStr) return '';
+      try {
+        const d = new Date(dateStr);
+        return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+      } catch { return dateStr; }
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '';
+      try {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      } catch { return dateStr; }
+    }
+
+    function render(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+
+      const dateRange = document.getElementById('date-range');
+      const from = data.date_from ? formatDate(data.date_from) : '';
+      const to = data.date_to ? formatDate(data.date_to) : '';
+      dateRange.textContent = (from && to) ? from + ' - ' + to : '';
+      if (data.event_type_id) {
+        dateRange.textContent += ' | Event Type #' + data.event_type_id;
+      }
+
+      const container = document.getElementById('slots-container');
+      container.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2';
+      while (container.firstChild) { container.removeChild(container.firstChild); }
+
+      const slots = data.slots || [];
+
+      if (slots.length === 0) {
+        container.className = 'w-full';
+        const empty = document.createElement('div');
+        empty.className = 'text-center py-8 text-slate-400 text-sm';
+        empty.textContent = 'No available slots';
+        container.appendChild(empty);
+        return;
+      }
+
+      slots.forEach(function(slot) {
+        const slotEl = document.createElement('div');
+        slotEl.className = 'bg-white rounded-lg border border-blue-200 px-3 py-2.5 text-center hover:border-blue-400 hover:bg-blue-50 transition-all cursor-default';
+
+        const timeEl = document.createElement('p');
+        timeEl.className = 'text-sm font-medium text-blue-700';
+        timeEl.textContent = formatTime(slot.time);
+        slotEl.appendChild(timeEl);
+
+        container.appendChild(slotEl);
+      });
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function renderError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').textContent = message;
+    }
+
+    function parseToolResult(result) {
+      if (result && result.content) {
+        for (const item of result.content) {
+          if (item.type === 'text' && item.text) {
+            try { return JSON.parse(item.text); } catch { return { raw: item.text }; }
+          }
+        }
+      }
+      if (result && result.data) { return result; }
+      return result;
+    }
+
+    function handleToolResult(result) {
+      const parsed = parseToolResult(result);
+      if (parsed && parsed.success === false) {
+        renderError(parsed.error || 'Operation failed');
+        return;
+      }
+      const data = parsed?.data || parsed;
+      if (data) {
+        render(data);
+      } else {
+        renderError('Unexpected data format');
+      }
+    }
+
+    const parentOrigin = document.referrer ? new URL(document.referrer).origin : null;
+
+    window.addEventListener('message', (event) => {
+      if (parentOrigin && event.origin !== parentOrigin) return;
+      if (event.source !== window.parent) return;
+
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.jsonrpc === '2.0') {
+        if (msg.method === 'ui/initialize') {
+          state.initialized = true;
+          window.parent.postMessage({
+            jsonrpc: '2.0', id: msg.id,
+            result: { protocolVersion: '0.1.0', capabilities: {} }
+          }, parentOrigin || '*');
+        } else if (msg.method === 'ui/toolResult') {
+          handleToolResult(msg.params);
+        }
+      }
+
+      if (msg.type === 'toolResult') {
+        handleToolResult(msg.data);
+      }
+    });
+
+    window.parent.postMessage({
+      jsonrpc: '2.0', method: 'ui/ready', params: {}
+    }, parentOrigin || '*');
+  </script>
+</body>
+</html>

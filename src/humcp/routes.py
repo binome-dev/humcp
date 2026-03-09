@@ -4,7 +4,6 @@ import asyncio
 import base64
 import hashlib
 import logging
-import os
 import secrets
 from pathlib import Path
 from typing import Any
@@ -134,41 +133,16 @@ async def optional_rest_auth(request: Request):
 
 def _register_auth_routes(
     app: FastAPI,
-    tools: list[RegisteredTool],
     auth_provider: Any,
-    title: str,
-    version: str,
 ) -> None:
-    """Register authentication and info routes.
+    """Register authentication routes (login/logout).
 
-    When auth_provider is None (AUTH_ENABLED=false), only the root info endpoint
-    is registered. Login/logout endpoints are skipped.
+    When auth_provider is None (AUTH_ENABLED=false), no routes are registered.
 
     Args:
         app: FastAPI application.
-        tools: List of registered tools.
         auth_provider: FastMCP auth provider for OAuth operations (None if disabled).
-        title: App title for info endpoint.
-        version: App version for info endpoint.
     """
-    mcp_url = os.getenv("MCP_SERVER_URL", "http://0.0.0.0:8080/mcp")
-    auth_enabled = auth_provider is not None
-
-    @app.get("/", tags=["Info"])
-    async def root():
-        """Server information endpoint."""
-        endpoints = {"docs": "/docs", "tools": "/tools", "mcp": "/mcp"}
-        if auth_enabled:
-            endpoints["login"] = "/login"
-        return {
-            "name": title,
-            "version": version,
-            "mcp_server": mcp_url,
-            "tools_count": len(tools),
-            "auth_enabled": auth_enabled,
-            "endpoints": endpoints,
-        }
-
     # Skip login/logout endpoints if auth is disabled
     if not auth_provider:
         logger.info(
@@ -377,6 +351,7 @@ def register_routes(
     auth_provider: Any = None,
     title: str = "HuMCP Server",
     version: str = "1.0.0",
+    apps_count: int = 0,
 ) -> None:
     """Register all REST routes including tools and auth endpoints.
 
@@ -387,6 +362,7 @@ def register_routes(
         auth_provider: FastMCP auth provider for OAuth operations (None if auth disabled).
         title: App title for info endpoint.
         version: App version for info endpoint.
+        apps_count: Number of MCP App bundles available.
     """
     # Build lookups
     categories = _build_categories(tools)
@@ -412,7 +388,7 @@ def register_routes(
     skills = discover_skills(tools_path)
 
     # Register auth endpoints only when auth is enabled
-    _register_auth_routes(app, tools, auth_provider, title, version)
+    _register_auth_routes(app, auth_provider)
 
     # Info endpoints
     @app.get("/tools", tags=["Info"], response_model=ListToolsResponse)

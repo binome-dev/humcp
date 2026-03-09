@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neo4j Schema</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="app" class="p-6 bg-gradient-to-br from-slate-50 via-white to-slate-50 min-h-[120px]">
+    <div id="loading" class="text-slate-400 text-sm text-center py-8">Waiting for data...</div>
+
+    <div id="result" class="hidden space-y-5">
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="4.93" y1="4.93" x2="9.17" y2="9.17"/><line x1="14.83" y1="14.83" x2="19.07" y2="19.07"/><line x1="14.83" y1="9.17" x2="19.07" y2="4.93"/><line x1="4.93" y1="19.07" x2="9.17" y2="14.83"/></svg>
+        <h2 class="text-sm font-semibold text-slate-700">Neo4j Graph Schema</h2>
+      </div>
+
+      <div id="labels-section" class="space-y-2">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Node Labels</h3>
+          <span id="label-count" class="text-xs text-slate-400"></span>
+        </div>
+        <div id="labels-container" class="flex flex-wrap gap-2"></div>
+        <div id="labels-empty" class="hidden text-xs text-slate-400">No node labels found</div>
+      </div>
+
+      <div id="rels-section" class="space-y-2">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Relationship Types</h3>
+          <span id="rel-count" class="text-xs text-slate-400"></span>
+        </div>
+        <div id="rels-container" class="flex flex-wrap gap-2"></div>
+        <div id="rels-empty" class="hidden text-xs text-slate-400">No relationship types found</div>
+      </div>
+
+      <div id="viz-section" class="hidden space-y-2">
+        <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Schema Visualization</h3>
+        <div id="viz-container" class="space-y-2"></div>
+      </div>
+    </div>
+
+    <div id="error" class="hidden text-red-600 text-sm font-medium text-center py-8"></div>
+  </div>
+
+  <script type="module">
+    const state = { initialized: false };
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = String(text != null ? text : '');
+      return div.innerHTML;
+    }
+
+    function render(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+
+      const labels = data.labels || [];
+      const relTypes = data.relationship_types || [];
+      const viz = data.schema_visualization || [];
+
+      document.getElementById('label-count').textContent = labels.length + ' label' + (labels.length !== 1 ? 's' : '');
+      document.getElementById('rel-count').textContent = relTypes.length + ' type' + (relTypes.length !== 1 ? 's' : '');
+
+      if (labels.length === 0) {
+        document.getElementById('labels-empty').classList.remove('hidden');
+      } else {
+        const labelsContainer = document.getElementById('labels-container');
+        labelsContainer.innerHTML = labels.map(label =>
+          '<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">' +
+            '<span class="w-2 h-2 rounded-full bg-indigo-400"></span>' +
+            escapeHtml(label) +
+          '</span>'
+        ).join('');
+      }
+
+      if (relTypes.length === 0) {
+        document.getElementById('rels-empty').classList.remove('hidden');
+      } else {
+        const relsContainer = document.getElementById('rels-container');
+        relsContainer.innerHTML = relTypes.map(rel =>
+          '<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">' +
+            '<span class="w-2 h-2 rounded-full bg-amber-400"></span>' +
+            escapeHtml(rel) +
+          '</span>'
+        ).join('');
+      }
+
+      if (viz.length > 0) {
+        document.getElementById('viz-section').classList.remove('hidden');
+        const vizContainer = document.getElementById('viz-container');
+        vizContainer.innerHTML = viz.map(item => {
+          const from = item.from || item.start || '';
+          const to = item.to || item.end || '';
+          const rel = item.type || item.relationship || '';
+          return '<div class="flex items-center gap-2 text-sm bg-slate-50 rounded-lg px-3 py-2">' +
+            '<span class="inline-flex items-center px-2 py-1 rounded bg-indigo-50 text-indigo-700 font-mono text-xs border border-indigo-200">' + escapeHtml(from) + '</span>' +
+            '<span class="text-slate-400">--</span>' +
+            '<span class="text-xs font-medium text-amber-600">' + escapeHtml(rel) + '</span>' +
+            '<span class="text-slate-400">--&gt;</span>' +
+            '<span class="inline-flex items-center px-2 py-1 rounded bg-indigo-50 text-indigo-700 font-mono text-xs border border-indigo-200">' + escapeHtml(to) + '</span>' +
+          '</div>';
+        }).join('');
+      }
+    }
+
+    function renderError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').textContent = message;
+    }
+
+    function parseToolResult(result) {
+      if (result && result.content) {
+        for (const item of result.content) {
+          if (item.type === 'text' && item.text) {
+            try { return JSON.parse(item.text); } catch { return { raw: item.text }; }
+          }
+        }
+      }
+      if (result && result.data) { return result; }
+      return result;
+    }
+
+    function handleToolResult(result) {
+      const parsed = parseToolResult(result);
+      if (parsed && parsed.success === false) {
+        renderError(parsed.error || 'Operation failed');
+        return;
+      }
+      const data = parsed?.data || parsed;
+      if (data) {
+        render(data);
+      } else {
+        renderError('Unexpected data format');
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.jsonrpc === '2.0') {
+        if (msg.method === 'ui/initialize') {
+          state.initialized = true;
+          window.parent.postMessage({
+            jsonrpc: '2.0', id: msg.id,
+            result: { protocolVersion: '0.1.0', capabilities: {} }
+          }, '*');
+        } else if (msg.method === 'ui/toolResult') {
+          handleToolResult(msg.params);
+        }
+      }
+
+      if (msg.type === 'toolResult') {
+        handleToolResult(msg.data);
+      }
+    });
+
+    window.parent.postMessage({
+      jsonrpc: '2.0', method: 'ui/ready', params: {}
+    }, '*');
+  </script>
+</body>
+</html>

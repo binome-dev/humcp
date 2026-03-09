@@ -1,0 +1,101 @@
+# HuMCP Tool Configuration
+#
+# This file controls which tools are exposed as API endpoints.
+#
+# RULES:
+#   1. Empty file or missing config = load ALL tools (default)
+#   2. If `include` is specified, ONLY those categories/tools are loaded
+#   3. Then `exclude` removes any matching categories/tools from the result
+#
+# WILDCARDS:
+#   Tool names support glob patterns: *, ?, [seq], [!seq]
+#   Examples:
+#     - "shell_*"           matches all shell tools
+#     - "calculator_*"      matches all calculator tools
+#     - "google_sheets_*"   matches all Google Sheets tools
+#
+# AVAILABLE CATEGORIES:
+#   - api             (Generic HTTP client)
+#   - audio           (Text-to-speech, transcription, Spotify)
+#   - calendar        (Cal.com, Zoom scheduling)
+#   - cloud           (AWS Lambda/SES, Docker, Daytona, E2B, Airflow)
+#   - data            (CSV and pandas operations)
+#   - database        (PostgreSQL, DuckDB, Neo4j, SQL, Redshift)
+#   - ecommerce       (Shopify, Brandfetch)
+#   - files           (PDF conversion)
+#   - finance         (Stock data, crypto EVM)
+#   - google          (Google Workspace, Maps, BigQuery)
+#   - image           (Image processing)
+#   - local           (Calculator, filesystem, shell)
+#   - media           (Image/video generation: DALL-E, Replicate, Giphy, etc.)
+#   - memory          (Persistent memory: Mem0, Zep)
+#   - messaging       (Slack, Discord, Telegram, email, SMS)
+#   - project_management (Jira, Linear, GitHub, Notion, etc.)
+#   - research        (arXiv, PubMed, Wikipedia)
+#   - search          (Web search: Tavily, DuckDuckGo, Brave, etc.)
+#   - social          (Reddit, X/Twitter, HackerNews, YouTube)
+#   - storage         (MinIO S3-compatible object storage)
+#   - weather         (OpenWeatherMap)
+#   - web_scraping    (Crawl4AI, Firecrawl, Jina, etc.)
+#
+# EXAMPLES:
+#
+# 1. Load ALL tools (default - just leave file empty or comment everything):
+#    # (empty)
+#
+# 2. Load only specific categories:
+#    include:
+#      categories:
+#        - local
+#        - data
+#
+# 3. Load everything except Google tools:
+#    exclude:
+#      categories:
+#        - google
+#
+# 4. Load local category but exclude shell tools:
+#    include:
+#      categories:
+#        - local
+#    exclude:
+#      tools:
+#        - shell_*
+#
+# 5. Load only specific tools:
+#    include:
+#      tools:
+#        - calculator_add
+#        - calculator_subtract
+#        - filesystem_read_file
+#
+# 6. Complex filtering:
+#    include:
+#      categories:
+#        - local
+#        - data
+#    exclude:
+#      tools:
+#        - shell_*
+#        - query_csv_file
+#
+# ============================================================================
+# ACTIVE CONFIGURATION (uncomment and modify as needed)
+# ============================================================================
+
+# Load all tools by default
+# include:
+#   categories: []
+#   tools: []
+
+# exclude:
+#   categories: []
+#   tools: []
+
+
+# Example: exclude google tools
+exclude:
+  categories:
+    - builder
+    - google
+    - data

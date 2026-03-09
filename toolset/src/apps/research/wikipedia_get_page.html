@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wikipedia Page</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="app" class="p-6 bg-gradient-to-br from-slate-50 via-white to-slate-50 min-h-[120px]">
+    <div id="loading" class="text-slate-400 text-sm text-center py-8">Waiting for data...</div>
+
+    <div id="result" class="hidden space-y-4"></div>
+
+    <div id="error" class="hidden text-red-600 text-sm font-medium text-center py-8"></div>
+  </div>
+
+  <script type="module">
+    const state = { initialized: false };
+
+    function render(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+
+      const container = document.getElementById('result');
+      while (container.firstChild) container.removeChild(container.firstChild);
+
+      const headerRow = document.createElement('div');
+      headerRow.className = 'flex items-center gap-2 mb-1';
+
+      const titleEl = document.createElement('h2');
+      titleEl.className = 'text-lg font-semibold text-slate-800';
+      titleEl.textContent = data.title || 'Untitled Page';
+      headerRow.appendChild(titleEl);
+
+      if (data.url) {
+        const linkEl = document.createElement('a');
+        linkEl.href = data.url;
+        linkEl.target = '_blank';
+        linkEl.rel = 'noopener noreferrer';
+        linkEl.className = 'text-xs text-indigo-600 hover:text-indigo-800 hover:underline flex-shrink-0';
+        linkEl.textContent = 'View on Wikipedia';
+        headerRow.appendChild(linkEl);
+      }
+
+      container.appendChild(headerRow);
+
+      if (data.summary) {
+        const summaryBox = document.createElement('div');
+        summaryBox.className = 'bg-gradient-to-r from-indigo-50 to-indigo-100 border border-indigo-200 rounded-xl p-4';
+
+        const summaryLabel = document.createElement('p');
+        summaryLabel.className = 'text-xs font-medium text-indigo-700 mb-1';
+        summaryLabel.textContent = 'Summary';
+
+        const summaryText = document.createElement('p');
+        summaryText.className = 'text-sm text-indigo-900 leading-relaxed';
+        summaryText.textContent = data.summary;
+
+        summaryBox.appendChild(summaryLabel);
+        summaryBox.appendChild(summaryText);
+        container.appendChild(summaryBox);
+      }
+
+      if (data.content) {
+        const contentBox = document.createElement('div');
+        contentBox.className = 'bg-white rounded-lg border border-slate-200 p-4';
+
+        const contentLabel = document.createElement('p');
+        contentLabel.className = 'text-xs font-medium text-slate-500 mb-2';
+        contentLabel.textContent = 'Full Content';
+
+        const contentText = document.createElement('pre');
+        contentText.className = 'text-sm text-slate-700 leading-relaxed whitespace-pre-wrap font-[system-ui] max-h-96 overflow-y-auto';
+        contentText.textContent = data.content;
+
+        contentBox.appendChild(contentLabel);
+        contentBox.appendChild(contentText);
+        container.appendChild(contentBox);
+      }
+
+      const categories = data.categories || [];
+      if (categories.length > 0) {
+        const catSection = document.createElement('div');
+        catSection.className = 'flex items-center gap-2 flex-wrap';
+
+        const catLabel = document.createElement('span');
+        catLabel.className = 'text-xs font-medium text-slate-500';
+        catLabel.textContent = 'Categories:';
+        catSection.appendChild(catLabel);
+
+        categories.forEach(function(cat) {
+          const tag = document.createElement('span');
+          tag.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-indigo-50 text-indigo-600';
+          tag.textContent = cat;
+          catSection.appendChild(tag);
+        });
+
+        container.appendChild(catSection);
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function renderError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').textContent = message;
+    }
+
+    function parseToolResult(result) {
+      if (result && result.content) {
+        for (const item of result.content) {
+          if (item.type === 'text' && item.text) {
+            try { return JSON.parse(item.text); } catch { return { raw: item.text }; }
+          }
+        }
+      }
+      if (result && result.data) { return result; }
+      return result;
+    }
+
+    function handleToolResult(result) {
+      const parsed = parseToolResult(result);
+      if (parsed && parsed.success === false) {
+        renderError(parsed.error || 'Operation failed');
+        return;
+      }
+      const data = parsed?.data || parsed;
+      if (data) {
+        render(data);
+      } else {
+        renderError('Unexpected data format');
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.jsonrpc === '2.0') {
+        if (msg.method === 'ui/initialize') {
+          state.initialized = true;
+          window.parent.postMessage({
+            jsonrpc: '2.0', id: msg.id,
+            result: { protocolVersion: '0.1.0', capabilities: {} }
+          }, '*');
+        } else if (msg.method === 'ui/toolResult') {
+          handleToolResult(msg.params);
+        }
+      }
+
+      if (msg.type === 'toolResult') {
+        handleToolResult(msg.data);
+      }
+    });
+
+    window.parent.postMessage({
+      jsonrpc: '2.0', method: 'ui/ready', params: {}
+    }, '*');
+  </script>
+</body>
+</html>

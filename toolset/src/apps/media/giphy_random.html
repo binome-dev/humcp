@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Giphy Random GIF</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="app" class="p-6 bg-gradient-to-br from-rose-50 via-white to-pink-50 min-h-[120px]">
+    <div id="loading" class="text-slate-400 text-sm text-center py-8">Waiting for data...</div>
+
+    <div id="result" class="hidden space-y-4">
+      <div class="flex items-center gap-2 mb-2">
+        <svg class="w-5 h-5 text-rose-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/><line x1="17" y1="17" x2="22" y2="17"/></svg>
+        <h2 id="title-header" class="text-lg font-semibold text-slate-800">Random GIF</h2>
+      </div>
+
+      <p id="tag-text" class="text-xs text-slate-500"></p>
+
+      <div id="gif-container" class="flex justify-center"></div>
+    </div>
+
+    <div id="error" class="hidden text-red-600 text-sm font-medium text-center py-8"></div>
+  </div>
+
+  <script type="module">
+    const state = { initialized: false };
+
+    function render(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+
+      const tag = data.tag;
+      if (tag) {
+        document.getElementById('tag-text').textContent = 'Tag: ' + tag;
+      } else {
+        document.getElementById('tag-text').textContent = 'No tag filter applied';
+      }
+
+      const gif = data.gif || {};
+      const container = document.getElementById('gif-container');
+      container.textContent = '';
+
+      if (!gif.url) {
+        const empty = document.createElement('div');
+        empty.className = 'text-center py-8 text-slate-400 text-sm';
+        empty.textContent = 'No GIF returned';
+        container.appendChild(empty);
+        return;
+      }
+
+      const card = document.createElement('div');
+      card.className = 'bg-white rounded-xl border border-rose-200 overflow-hidden hover:border-rose-400 hover:shadow-md transition-all max-w-md';
+
+      const link = document.createElement('a');
+      link.href = gif.url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.className = 'block';
+
+      const img = document.createElement('img');
+      img.src = gif.url;
+      img.alt = gif.title || gif.alt_text || 'Random GIF';
+      img.className = 'w-full max-h-[400px] object-contain bg-rose-100';
+      img.loading = 'lazy';
+      link.appendChild(img);
+      card.appendChild(link);
+
+      const info = document.createElement('div');
+      info.className = 'p-3';
+      const title = document.createElement('p');
+      title.className = 'text-sm text-slate-700 font-medium truncate';
+      title.textContent = gif.title || gif.alt_text || 'Random GIF';
+      info.appendChild(title);
+      card.appendChild(info);
+
+      container.appendChild(card);
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function renderError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').textContent = message;
+    }
+
+    function parseToolResult(result) {
+      if (result && result.content) {
+        for (const item of result.content) {
+          if (item.type === 'text' && item.text) {
+            try { return JSON.parse(item.text); } catch { return { raw: item.text }; }
+          }
+        }
+      }
+      if (result && result.data) { return result; }
+      return result;
+    }
+
+    function handleToolResult(result) {
+      const parsed = parseToolResult(result);
+      if (parsed && parsed.success === false) {
+        renderError(parsed.error || 'Operation failed');
+        return;
+      }
+      const data = parsed?.data || parsed;
+      if (data) {
+        render(data);
+      } else {
+        renderError('Unexpected data format');
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.jsonrpc === '2.0') {
+        if (msg.method === 'ui/initialize') {
+          state.initialized = true;
+          window.parent.postMessage({
+            jsonrpc: '2.0', id: msg.id,
+            result: { protocolVersion: '0.1.0', capabilities: {} }
+          }, '*');
+        } else if (msg.method === 'ui/toolResult') {
+          handleToolResult(msg.params);
+        }
+      }
+
+      if (msg.type === 'toolResult') {
+        handleToolResult(msg.data);
+      }
+    });
+
+    window.parent.postMessage({
+      jsonrpc: '2.0', method: 'ui/ready', params: {}
+    }, '*');
+  </script>
+</body>
+</html>
