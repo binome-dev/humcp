@@ -396,12 +396,12 @@ class ConfluencePageData(BaseModel):
 
     id: str = Field(..., description="Page ID")
     title: str = Field(..., description="Page title")
-    space_key: str | None = Field(None, description="Space key")
+    space_key: str | None = Field(default=None, description="Space key")
     body: str | None = Field(
-        None, description="Page body content (storage format HTML)"
+        default=None, description="Page body content (storage format HTML)"
     )
-    version: int | None = Field(None, description="Current version number")
-    url: str | None = Field(None, description="Page URL")
+    version: int | None = Field(default=None, description="Current version number")
+    url: str | None = Field(default=None, description="Page URL")
 
 
 class ConfluencePageListData(BaseModel):

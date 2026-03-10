@@ -1,6 +1,7 @@
 """Pydantic output schemas for file conversion tools."""
 
 from pydantic import BaseModel, Field
+
 from src.humcp.schemas import ToolResponse
 
 # =============================================================================
@@ -40,7 +41,7 @@ class MarkdownExtractTablesData(BaseModel):
     tables: list[ExtractedTable] = Field(..., description="List of extracted tables")
     count: int = Field(..., description="Number of tables extracted")
     message: str | None = Field(
-        None, description="Additional message (e.g., no tables found)"
+        default=None, description="Additional message (e.g., no tables found)"
     )
 
 

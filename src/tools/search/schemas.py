@@ -1,6 +1,7 @@
 """Pydantic output schemas for search tools."""
 
 from pydantic import BaseModel, Field
+
 from src.humcp.schemas import ToolResponse
 
 # =============================================================================
@@ -38,7 +39,9 @@ class SearchResult(BaseModel):
     snippet: str = Field(
         ..., description="Content snippet or description from the result"
     )
-    score: float | None = Field(None, description="Relevance score of the result")
+    score: float | None = Field(
+        default=None, description="Relevance score of the result"
+    )
 
 
 class WebSearchData(BaseModel):

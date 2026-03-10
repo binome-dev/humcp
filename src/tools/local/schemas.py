@@ -1,6 +1,7 @@
 """Pydantic output schemas for local tools (calculator, shell, filesystem)."""
 
 from pydantic import BaseModel, Field
+
 from src.humcp.schemas import ToolResponse
 
 # =============================================================================

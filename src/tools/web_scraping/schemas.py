@@ -15,10 +15,12 @@ class ScrapedPageData(BaseModel):
     """Data from a single scraped web page."""
 
     url: str = Field(..., description="URL of the scraped page")
-    title: str | None = Field(None, description="Page title")
+    title: str | None = Field(default=None, description="Page title")
     content: str = Field(..., description="Extracted text content")
-    markdown: str | None = Field(None, description="Content in markdown format")
-    metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
+    markdown: str | None = Field(default=None, description="Content in markdown format")
+    metadata: dict[str, Any] | None = Field(
+        default=None, description="Additional metadata"
+    )
 
 
 class CrawlResultData(BaseModel):
@@ -46,10 +48,10 @@ class StructuredScrapeData(BaseModel):
 class SearchResultItem(BaseModel):
     """A single search result item."""
 
-    title: str | None = Field(None, description="Title of the result")
+    title: str | None = Field(default=None, description="Title of the result")
     url: str = Field(..., description="URL of the result")
     content: str = Field(..., description="Content snippet or description")
-    score: float | None = Field(None, description="Relevance score")
+    score: float | None = Field(default=None, description="Relevance score")
 
 
 class SearchResultData(BaseModel):

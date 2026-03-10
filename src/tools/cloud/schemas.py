@@ -49,14 +49,15 @@ class LambdaInvokeData(BaseModel):
     status_code: int = Field(..., description="HTTP status code of the invocation")
     payload: str = Field(..., description="Response payload from the function")
     executed_version: str | None = Field(
-        None, description="Version or alias of the executed function"
+        default=None, description="Version or alias of the executed function"
     )
     function_error: str | None = Field(
-        None,
+        default=None,
         description="Error type if the function returned an error (Handled or Unhandled)",
     )
     log_result: str | None = Field(
-        None, description="Last 4KB of base64-encoded execution log (when LogType=Tail)"
+        default=None,
+        description="Last 4KB of base64-encoded execution log (when LogType=Tail)",
     )
 
 

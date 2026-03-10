@@ -52,7 +52,9 @@ class CategorySummary(BaseModel):
 
     count: int = Field(..., description="Number of tools in category")
     tools: list[ToolSummary] = Field(..., description="List of tools")
-    apps: list[AppSummary] = Field(default_factory=list, description="Tools grouped by app")
+    apps: list[AppSummary] = Field(
+        default_factory=list, description="Tools grouped by app"
+    )
     skill: SkillMetadata | None = Field(None, description="Skill metadata if available")
 
 
@@ -72,7 +74,9 @@ class GetCategoryResponse(BaseModel):
     category: str = Field(..., description="Category name")
     count: int = Field(..., description="Number of tools in category")
     tools: list[ToolSummary] = Field(..., description="List of tools")
-    apps: list[AppSummary] = Field(default_factory=list, description="Tools grouped by app")
+    apps: list[AppSummary] = Field(
+        default_factory=list, description="Tools grouped by app"
+    )
     skill: SkillFull | None = Field(None, description="Full skill information")
 
 

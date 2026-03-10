@@ -14,7 +14,7 @@ class ImageExtractTextData(BaseModel):
 
     markdown: str = Field(..., description="Extracted text in markdown format")
     message: str | None = Field(
-        None, description="Additional message (e.g., 'No text found in image')"
+        default=None, description="Additional message (e.g., 'No text found in image')"
     )
 
 

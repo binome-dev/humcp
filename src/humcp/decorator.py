@@ -126,5 +126,3 @@ def get_tool_app(func: Callable[..., Any]) -> str:
     if isinstance(metadata, ToolMetadata):
         return metadata.app
     return "unknown"
-
-

@@ -41,29 +41,29 @@ class ExecuteQueryModifyData(BaseModel):
     affected_rows: int = Field(..., description="Number of rows affected")
     message: str = Field(..., description="Success message")
     table_contents: str | None = Field(
-        None, description="Updated table contents as string"
+        default=None, description="Updated table contents as string"
     )
 
 
 class ListTablesData(BaseModel):
     """Output data for list_tables tool."""
 
-    schema_name: str = Field(..., alias="schema", description="Database schema name")
+    schema_name: str = Field(
+        ..., serialization_alias="schema", description="Database schema name"
+    )
     tables: list[str] = Field(..., description="List of table names")
     count: int = Field(..., description="Number of tables")
-
-    model_config = {"populate_by_name": True}
 
 
 class DescribeTableData(BaseModel):
     """Output data for describe_table tool."""
 
-    schema_name: str = Field(..., alias="schema", description="Database schema name")
+    schema_name: str = Field(
+        ..., serialization_alias="schema", description="Database schema name"
+    )
     table: str = Field(..., description="Table name")
     columns: list[ColumnInfo] = Field(..., description="Column definitions")
     column_count: int = Field(..., description="Number of columns")
-
-    model_config = {"populate_by_name": True}
 
 
 # =============================================================================
@@ -190,7 +190,7 @@ class RedshiftQueryData(BaseModel):
     )
     row_count: int = Field(..., description="Number of rows returned")
     message: str | None = Field(
-        None, description="Status message for non-SELECT queries"
+        default=None, description="Status message for non-SELECT queries"
     )
 
 

@@ -27,9 +27,9 @@ from src.tools.project_management.schemas import (
 logger = logging.getLogger("humcp.tools.zendesk")
 
 
-async def _get_zendesk_config() -> tuple[
-    str | None, str | None, tuple[str, str] | None, str | None
-]:
+async def _get_zendesk_config() -> (
+    tuple[str | None, str | None, tuple[str, str] | None, str | None]
+):
     """Build Zendesk API configuration from environment variables.
 
     Returns:

@@ -63,10 +63,10 @@ class ZepMessageData(BaseModel):
 class ZepMemoryResult(BaseModel):
     """A single memory result from Zep search."""
 
-    fact: str | None = Field(None, description="Fact text from edges")
-    name: str | None = Field(None, description="Node name")
-    summary: str | None = Field(None, description="Node summary")
-    score: float | None = Field(None, description="Relevance score")
+    fact: str | None = Field(default=None, description="Fact text from edges")
+    name: str | None = Field(default=None, description="Node name")
+    summary: str | None = Field(default=None, description="Node summary")
+    score: float | None = Field(default=None, description="Relevance score")
 
 
 class ZepSearchMemoryData(BaseModel):

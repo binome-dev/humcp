@@ -29,9 +29,11 @@ class ElevenLabsTTSData(BaseModel):
     """Output data for elevenlabs_text_to_speech tool."""
 
     audio_url: str | None = Field(
-        None, description="URL or path of the generated audio file"
+        default=None, description="URL or path of the generated audio file"
     )
-    audio_base64: str | None = Field(None, description="Base64-encoded audio content")
+    audio_base64: str | None = Field(
+        default=None, description="Base64-encoded audio content"
+    )
     format: str = Field("mp3", description="Audio output format")
     voice_id: str = Field(..., description="Voice ID used for generation")
     model_id: str = Field(..., description="Model ID used for generation")

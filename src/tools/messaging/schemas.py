@@ -12,11 +12,13 @@ from src.humcp.schemas import ToolResponse
 class MessageSentData(BaseModel):
     """Data returned after sending a message."""
 
-    message_id: str | None = Field(None, description="ID of the sent message")
+    message_id: str | None = Field(default=None, description="ID of the sent message")
     channel: str | None = Field(
-        None, description="Channel or recipient the message was sent to"
+        default=None, description="Channel or recipient the message was sent to"
     )
-    timestamp: str | None = Field(None, description="Timestamp of the sent message")
+    timestamp: str | None = Field(
+        default=None, description="Timestamp of the sent message"
+    )
 
 
 class SendMessageResponse(ToolResponse[MessageSentData]):
@@ -36,9 +38,11 @@ class ChannelInfo(BaseModel):
     id: str = Field(..., description="Channel or room ID")
     name: str = Field(..., description="Channel or room name")
     type: str | None = Field(
-        None, description="Channel type (e.g., public, private, direct)"
+        default=None, description="Channel type (e.g., public, private, direct)"
     )
-    is_member: bool | None = Field(None, description="Whether the bot is a member")
+    is_member: bool | None = Field(
+        default=None, description="Whether the bot is a member"
+    )
 
 
 class ListChannelsData(BaseModel):
@@ -63,12 +67,14 @@ class MessageInfo(BaseModel):
     """A single message from channel history or search results."""
 
     text: str = Field(..., description="Message text content")
-    user: str | None = Field(None, description="User who sent the message")
-    timestamp: str | None = Field(None, description="Message timestamp")
-    channel: str | None = Field(None, description="Channel the message belongs to")
-    permalink: str | None = Field(None, description="Permalink to the message")
+    user: str | None = Field(default=None, description="User who sent the message")
+    timestamp: str | None = Field(default=None, description="Message timestamp")
+    channel: str | None = Field(
+        default=None, description="Channel the message belongs to"
+    )
+    permalink: str | None = Field(default=None, description="Permalink to the message")
     thread_ts: str | None = Field(
-        None, description="Thread timestamp if message is in a thread"
+        default=None, description="Thread timestamp if message is in a thread"
     )
 
 
@@ -113,7 +119,7 @@ class SearchMessagesResponse(ToolResponse[SearchMessagesData]):
 class EmailSentData(BaseModel):
     """Data returned after sending an email."""
 
-    message_id: str | None = Field(None, description="ID of the sent email")
+    message_id: str | None = Field(default=None, description="ID of the sent email")
     to: str = Field(..., description="Recipient email address")
     subject: str = Field(..., description="Email subject")
 

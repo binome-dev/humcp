@@ -53,6 +53,7 @@ def get_current_user_id() -> UUID | None:
 
     return None
 
+
 # Enable debug logging for OAuth to diagnose authentication issues
 logging.getLogger("fastmcp.server.auth").setLevel(logging.DEBUG)
 logging.getLogger("mcp.server.auth").setLevel(logging.DEBUG)
