@@ -76,7 +76,7 @@ async def brave_web_search(
             "Accept-Encoding": "gzip",
             "X-Subscription-Token": api_key,
         }
-        params = {
+        params: dict[str, str | int] = {
             "q": query,
             "count": min(count, 20),
             "country": country,
@@ -223,7 +223,7 @@ async def brave_image_search(
             "Accept-Encoding": "gzip",
             "X-Subscription-Token": api_key,
         }
-        params = {
+        params: dict[str, str | int] = {
             "q": query,
             "count": min(count, 20),
             "country": country,
