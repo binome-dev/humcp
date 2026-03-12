@@ -158,7 +158,7 @@ async def hackernews_search(
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{_ALGOLIA_API_BASE}/search",
-                params=params,
+                params=params,  # type: ignore[arg-type]
             )
             response.raise_for_status()
             data = response.json()
@@ -224,7 +224,7 @@ async def hackernews_search_by_date(
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{_ALGOLIA_API_BASE}/search_by_date",
-                params=params,
+                params=params,  # type: ignore[arg-type]
             )
             response.raise_for_status()
             data = response.json()

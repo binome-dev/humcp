@@ -96,7 +96,7 @@ async def jina_reader(
         title = None
         metadata: dict[str, Any] | None = None
         if isinstance(result, dict):
-            content = result.get("content", result.get("text", str(result)))
+            content = result.get("content", result.get("text", str(result))) or ""
             title = result.get("title")
 
             if include_links:
@@ -168,13 +168,13 @@ async def jina_search(
             if isinstance(results_list, list):
                 for r in results_list:
                     if isinstance(r, dict):
-                        content = r.get("content", r.get("description", ""))
+                        content = r.get("content", r.get("description", "")) or ""
                         if max_content_length and len(content) > max_content_length:
                             content = content[:max_content_length] + "..."
                         items.append(
                             SearchResultItem(
                                 title=r.get("title"),
-                                url=r.get("url", ""),
+                                url=r.get("url", "") or "",
                                 content=content,
                                 score=r.get("score"),
                             )

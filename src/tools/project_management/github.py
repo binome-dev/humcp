@@ -325,7 +325,7 @@ async def github_list_pull_requests(
             response = await client.get(
                 f"{GITHUB_API_BASE}/repos/{owner}/{repo}/pulls",
                 headers=headers,
-                params=params,
+                params=params,  # type: ignore[arg-type]
             )
             response.raise_for_status()
             prs_json = response.json()

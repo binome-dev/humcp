@@ -96,7 +96,7 @@ async def gemini_chat(
         if presence_penalty is not None:
             config_kwargs["presence_penalty"] = presence_penalty
         if tools:
-            config_kwargs["tools"] = [types.Tool(function_declarations=tools)]
+            config_kwargs["tools"] = [types.Tool(function_declarations=tools)]  # type: ignore[arg-type]
         if tool_config:
             config_kwargs["tool_config"] = tool_config
         if response_format:

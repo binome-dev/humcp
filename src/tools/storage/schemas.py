@@ -78,7 +78,7 @@ class UploadContentData(BaseModel):
     bucket: str = Field(..., description="Destination bucket name")
     object_name: str = Field(..., description="Object key/path")
     size: int = Field(..., description="Size of uploaded content in bytes")
-    etag: str = Field(..., description="ETag of the uploaded object")
+    etag: str = Field(default="", description="ETag of the uploaded object")
     version_id: str | None = Field(
         None, description="Version ID if versioning is enabled"
     )
@@ -91,7 +91,7 @@ class UploadFromPathData(BaseModel):
     object_name: str = Field(..., description="Object key/path")
     file_path: str = Field(..., description="Source file path")
     size: int = Field(..., description="Size of uploaded file in bytes")
-    etag: str = Field(..., description="ETag of the uploaded object")
+    etag: str = Field(default="", description="ETag of the uploaded object")
     version_id: str | None = Field(
         None, description="Version ID if versioning is enabled"
     )
@@ -130,7 +130,7 @@ class CopyObjectData(BaseModel):
 
     source: str = Field(..., description="Source path (bucket/object)")
     destination: str = Field(..., description="Destination path (bucket/object)")
-    etag: str = Field(..., description="ETag of the copied object")
+    etag: str = Field(default="", description="ETag of the copied object")
     version_id: str | None = Field(
         None, description="Version ID if versioning is enabled"
     )
@@ -141,12 +141,12 @@ class GetObjectMetadataData(BaseModel):
 
     bucket: str = Field(..., description="Bucket name")
     object_name: str = Field(..., description="Object key/path")
-    size: int = Field(..., description="Object size in bytes")
+    size: int = Field(default=0, description="Object size in bytes")
     last_modified: str | None = Field(
         None, description="Last modification date in ISO format"
     )
-    etag: str = Field(..., description="Object ETag")
-    content_type: str = Field(..., description="MIME type of the content")
+    etag: str = Field(default="", description="Object ETag")
+    content_type: str = Field(default="", description="MIME type of the content")
     version_id: str | None = Field(None, description="Version ID")
     metadata: dict[str, str] = Field(
         default_factory=dict, description="Custom user metadata"

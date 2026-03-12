@@ -52,7 +52,7 @@ async def _geocode_city(
     or None if nothing was found.
     """
     params = {"q": city, "limit": 1, "appid": api_key}
-    response = await client.get(f"{_GEO_BASE}/direct", params=params)
+    response = await client.get(f"{_GEO_BASE}/direct", params=params)  # type: ignore[arg-type]
     response.raise_for_status()
     results = response.json()
     if not results:
@@ -394,7 +394,7 @@ async def openweather_geocode(
 
         async with httpx.AsyncClient(timeout=15) as client:
             params = {"q": query, "limit": limit, "appid": api_key}
-            response = await client.get(f"{_GEO_BASE}/direct", params=params)
+            response = await client.get(f"{_GEO_BASE}/direct", params=params)  # type: ignore[arg-type]
             response.raise_for_status()
             results = response.json()
 

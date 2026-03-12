@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
+from typing import Any
 
 from src.humcp.decorator import tool
 from src.tools.messaging.schemas import (
@@ -202,6 +203,7 @@ async def slack_get_thread_replies(
             channel=channel, ts=thread_ts, limit=capped_limit
         )
 
+        msg_list: list[dict[str, Any]] = response.get("messages", [])
         messages = [
             MessageInfo(
                 text=msg.get("text", ""),
@@ -210,7 +212,7 @@ async def slack_get_thread_replies(
                 channel=channel,
                 thread_ts=msg.get("thread_ts"),
             )
-            for msg in response.get("messages", [])
+            for msg in msg_list
         ]
 
         return SlackThreadReplyResponse(
@@ -257,8 +259,8 @@ async def slack_get_user_info(user_id: str) -> SlackUserInfoResponse:
         logger.info("Fetching Slack user info for user_id=%s", user_id)
         response = client.users_info(user=user_id)
 
-        user_data = response.get("user", {})
-        profile = user_data.get("profile", {})
+        user_data: dict[str, Any] = response.get("user", {})
+        profile: dict[str, Any] = user_data.get("profile", {})
 
         return SlackUserInfoResponse(
             success=True,
@@ -306,6 +308,7 @@ async def slack_list_channels() -> ListChannelsResponse:
         logger.info("Listing Slack channels")
         response = client.conversations_list()
 
+        ch_list: list[dict[str, Any]] = response.get("channels", [])
         channels = [
             ChannelInfo(
                 id=ch["id"],
@@ -313,7 +316,7 @@ async def slack_list_channels() -> ListChannelsResponse:
                 type="public" if not ch.get("is_private") else "private",
                 is_member=ch.get("is_member"),
             )
-            for ch in response.get("channels", [])
+            for ch in ch_list
         ]
 
         return ListChannelsResponse(
@@ -366,6 +369,7 @@ async def slack_get_channel_history(
         )
         response = client.conversations_history(channel=channel, limit=capped_limit)
 
+        hist_list: list[dict[str, Any]] = response.get("messages", [])
         messages = [
             MessageInfo(
                 text=msg.get("text", ""),
@@ -374,7 +378,7 @@ async def slack_get_channel_history(
                 channel=channel,
                 thread_ts=msg.get("thread_ts"),
             )
-            for msg in response.get("messages", [])
+            for msg in hist_list
         ]
 
         return ChannelHistoryResponse(
@@ -431,7 +435,7 @@ async def slack_search_messages(query: str, limit: int = 20) -> SearchMessagesRe
         )
         response = client.search_messages(query=query, count=capped_limit)
 
-        matches = response.get("messages", {}).get("matches", [])
+        matches: list[dict[str, Any]] = response.get("messages", {}).get("matches", [])  # type: ignore[call-overload]
         messages = [
             MessageInfo(
                 text=msg.get("text", ""),
@@ -572,8 +576,8 @@ async def slack_set_channel_topic(
         return SlackSetChannelTopicResponse(
             success=True,
             data=SlackChannelTopicData(
-                channel=response.get("channel", {}).get("id", channel),
-                topic=response.get("channel", {}).get("topic", {}).get("value", topic),
+                channel=response.get("channel", {}).get("id", channel),  # type: ignore[call-overload]
+                topic=response.get("channel", {}).get("topic", {}).get("value", topic),  # type: ignore[call-overload]
             ),
         )
     except SlackApiError as e:

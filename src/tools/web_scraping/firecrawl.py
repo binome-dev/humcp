@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from src.humcp.credentials import resolve_credential
 from src.humcp.decorator import tool
@@ -212,12 +212,14 @@ async def firecrawl_map(
         if isinstance(result, list):
             urls = [str(u) for u in result]
         elif isinstance(result, dict):
-            raw = result.get("urls", result.get("links", result.get("data", [])))
+            raw: list[Any] = (
+                result.get("urls", result.get("links", result.get("data", []))) or []
+            )
             if isinstance(raw, list):
                 urls = [str(u) for u in raw]
         elif hasattr(result, "model_dump"):
             result_dict = result.model_dump()
-            raw = result_dict.get("urls", result_dict.get("links", []))
+            raw = result_dict.get("urls", result_dict.get("links", [])) or []
             if isinstance(raw, list):
                 urls = [str(u) for u in raw]
 
@@ -282,7 +284,7 @@ async def firecrawl_search(
         if isinstance(result, list):
             raw_data = result
         elif isinstance(result, dict):
-            raw_data = result.get("data", result.get("results", []))
+            raw_data = result.get("data", result.get("results", [])) or []
         elif hasattr(result, "model_dump"):
             result_dict = result.model_dump()
             raw_data = result_dict.get("data", result_dict.get("results", []))
@@ -293,10 +295,10 @@ async def firecrawl_search(
             item_dict = item.model_dump() if hasattr(item, "model_dump") else item
             if not isinstance(item_dict, dict):
                 continue
-            content = item_dict.get("markdown", item_dict.get("content", ""))
+            content: str = item_dict.get("markdown", item_dict.get("content", "")) or ""
             results.append(
                 ScrapedPageData(
-                    url=item_dict.get("url", ""),
+                    url=item_dict.get("url", "") or "",
                     title=item_dict.get("metadata", {}).get(
                         "title", item_dict.get("title")
                     ),

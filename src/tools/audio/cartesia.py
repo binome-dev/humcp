@@ -77,7 +77,7 @@ async def cartesia_text_to_speech(
             "output_format": format_config,
         }
 
-        audio_iterator = client.tts.bytes(**params)
+        audio_iterator = client.tts.bytes(**params)  # type: ignore[arg-type]
         audio_data = b"".join(chunk for chunk in audio_iterator)
 
         encoded_audio = base64.b64encode(audio_data).decode("utf-8")
@@ -125,11 +125,11 @@ async def cartesia_list_voices() -> CartesiaListVoicesResponse:
 
         voices = [
             CartesiaVoice(
-                voice_id=voice.get("id", ""),
-                name=voice.get("name", "Unknown"),
-                description=voice.get("description"),
-                language=voice.get("language"),
-                is_public=voice.get("is_public"),
+                voice_id=voice.get("id", ""),  # type: ignore[attr-defined]
+                name=voice.get("name", "Unknown"),  # type: ignore[attr-defined]
+                description=voice.get("description"),  # type: ignore[attr-defined]
+                language=voice.get("language"),  # type: ignore[attr-defined]
+                is_public=voice.get("is_public"),  # type: ignore[attr-defined]
             )
             for voice in voices_response
         ]

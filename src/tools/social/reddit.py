@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from src.humcp.credentials import resolve_credential
 from src.humcp.decorator import tool
@@ -50,7 +51,7 @@ def _get_reddit_client(
     )
 
 
-def _submission_to_post(submission: object) -> RedditPost:
+def _submission_to_post(submission: Any) -> RedditPost:
     """Convert a PRAW submission object to a RedditPost model."""
     return RedditPost(
         id=submission.id,

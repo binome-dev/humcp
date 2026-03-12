@@ -86,7 +86,10 @@ async def brave_web_search(
 
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                BRAVE_SEARCH_URL, headers=headers, params=params, timeout=30.0
+                BRAVE_SEARCH_URL,
+                headers=headers,
+                params=params,
+                timeout=30.0,  # type: ignore[arg-type]
             )
             response.raise_for_status()
             response_data = response.json()
@@ -230,7 +233,10 @@ async def brave_image_search(
 
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                BRAVE_IMAGES_URL, headers=headers, params=params, timeout=30.0
+                BRAVE_IMAGES_URL,
+                headers=headers,
+                params=params,
+                timeout=30.0,  # type: ignore[arg-type]
             )
             response.raise_for_status()
             response_data = response.json()

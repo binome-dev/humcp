@@ -80,7 +80,7 @@ async def giphy_search(
         )
 
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{GIPHY_API_BASE}/search", params=params)
+            response = await client.get(f"{GIPHY_API_BASE}/search", params=params)  # type: ignore[arg-type]
             response.raise_for_status()
 
         data = response.json()
@@ -139,7 +139,7 @@ async def giphy_trending(
         logger.info("Giphy trending limit=%d", clamped_limit)
 
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{GIPHY_API_BASE}/trending", params=params)
+            response = await client.get(f"{GIPHY_API_BASE}/trending", params=params)  # type: ignore[arg-type]
             response.raise_for_status()
 
         data = response.json()

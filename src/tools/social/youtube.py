@@ -64,7 +64,7 @@ async def youtube_search(
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{_YT_API_BASE}/search",
-                params=params,
+                params=params,  # type: ignore[arg-type]
             )
             response.raise_for_status()
             data = response.json()
@@ -382,7 +382,7 @@ async def youtube_get_playlist_items(
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{_YT_API_BASE}/playlistItems",
-                params=params,
+                params=params,  # type: ignore[arg-type]
             )
             response.raise_for_status()
             data = response.json()

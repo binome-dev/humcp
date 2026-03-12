@@ -62,12 +62,12 @@ async def get_object_metadata(
             data=GetObjectMetadataData(
                 bucket=bucket,
                 object_name=object_name,
-                size=stat.size,
+                size=stat.size or 0,
                 last_modified=stat.last_modified.isoformat()
                 if stat.last_modified
                 else None,
-                etag=stat.etag,
-                content_type=stat.content_type,
+                etag=stat.etag or "",
+                content_type=stat.content_type or "",
                 version_id=stat.version_id,
                 metadata=dict(stat.metadata) if stat.metadata else {},
             ),

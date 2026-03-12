@@ -88,7 +88,7 @@ async def zep_add_memory(
         )
 
         client = _get_client(api_key)
-        zep_message = ZepMessage(
+        zep_message = ZepMessage(  # type: ignore[call-arg]
             role=role,
             content=content,
             role_type=role,
@@ -261,7 +261,7 @@ async def zep_get_session(
         client = _get_client(api_key)
 
         # Get session context
-        context_response = await client.thread.get_user_context(
+        context_response = await client.thread.get_user_context(  # type: ignore[call-arg]
             thread_id=session_id, mode="basic"
         )
         context = getattr(context_response, "context", None)

@@ -64,7 +64,7 @@ def _build_contents(
     else:
         opts["text"] = TextContentsOptions(max_characters=max_characters)
     if livecrawl:
-        opts["livecrawl"] = livecrawl  # type: ignore[assignment]
+        opts["livecrawl"] = livecrawl  # type: ignore[typeddict-item]
     return opts
 
 

@@ -69,8 +69,8 @@ def _task_to_data(task: object) -> TodoistTaskData:
         labels = list(task.labels)
 
     return TodoistTaskData(
-        id=task.id,
-        content=task.content,
+        id=task.id,  # type: ignore[attr-defined]
+        content=task.content,  # type: ignore[attr-defined]
         description=getattr(task, "description", None),
         project_id=getattr(task, "project_id", None),
         section_id=getattr(task, "section_id", None),
@@ -239,7 +239,7 @@ async def todoist_close_task(task_id: str) -> TodoistTaskResponse:
         if error or client is None:
             return TodoistTaskResponse(success=False, error=error)
 
-        client.close_task(task_id)
+        client.close_task(task_id)  # type: ignore[attr-defined]
 
         logger.info("Closed Todoist task %s", task_id)
 

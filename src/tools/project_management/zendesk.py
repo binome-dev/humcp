@@ -334,7 +334,7 @@ async def zendesk_search_tickets(
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
                 f"{base_url}/search.json",
-                params=params,
+                params=params,  # type: ignore[arg-type]
                 auth=auth,
             )
             response.raise_for_status()

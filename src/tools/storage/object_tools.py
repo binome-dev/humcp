@@ -191,7 +191,7 @@ async def upload_content(
                 bucket=bucket,
                 object_name=object_name,
                 size=len(content),
-                etag=result.etag,
+                etag=result.etag or "",
                 version_id=result.version_id,
             ),
         )
@@ -272,7 +272,7 @@ async def upload_from_path(
                 object_name=object_name,
                 file_path=file_path,
                 size=path.stat().st_size,
-                etag=result.etag,
+                etag=result.etag or "",
                 version_id=result.version_id,
             ),
         )
@@ -318,7 +318,7 @@ async def download_content(bucket: str, object_name: str) -> DownloadContentResp
         client = get_client()
 
         # Get object content and metadata in thread pool
-        def _download() -> tuple[bytes, str, str]:
+        def _download() -> tuple[bytes, str | None, str | None]:
             response = client.get_object(bucket, object_name)
             try:
                 content = response.read()
@@ -337,8 +337,8 @@ async def download_content(bucket: str, object_name: str) -> DownloadContentResp
                 object_name=object_name,
                 content_base64=base64.b64encode(content).decode("utf-8"),
                 size=len(content),
-                content_type=content_type_val,
-                etag=etag,
+                content_type=content_type_val or "",
+                etag=etag or "",
             ),
         )
     except S3Error as e:
@@ -550,7 +550,7 @@ async def copy_object(
             data=CopyObjectData(
                 source=f"{source_bucket}/{source_object}",
                 destination=f"{dest_bucket}/{dest_object}",
-                etag=result.etag,
+                etag=result.etag or "",
                 version_id=result.version_id,
             ),
         )

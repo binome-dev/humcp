@@ -55,7 +55,7 @@ def _get_calcom_config(api_key: str | None) -> tuple[str | None, str]:
     return api_key, base_url
 
 
-def _calcom_headers(api_key: str) -> dict[str, str]:
+def _calcom_headers(api_key: str | None) -> dict[str, str]:
     """Build Cal.com API request headers with versioning."""
     return {
         "Authorization": f"Bearer {api_key}",

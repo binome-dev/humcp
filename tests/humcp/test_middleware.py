@@ -1,9 +1,7 @@
 """Tests for humcp middleware module."""
 
-import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from starlette.responses import JSONResponse
 
 
 def _create_test_app(service_api_key: str = "") -> FastAPI:

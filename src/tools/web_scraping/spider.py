@@ -203,7 +203,8 @@ async def spider_search(
                         SearchResultItem(
                             title=item.get("title"),
                             url=item.get("url", ""),
-                            content=item.get("content", item.get("description", "")),
+                            content=item.get("content", item.get("description", ""))
+                            or "",
                             score=item.get("score"),
                         )
                     )

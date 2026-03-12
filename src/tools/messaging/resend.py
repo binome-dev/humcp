@@ -98,7 +98,7 @@ async def resend_send_email(
         if reply_to:
             params["reply_to"] = reply_to
 
-        result = resend_lib.Emails.send(params)
+        result = resend_lib.Emails.send(params)  # type: ignore[arg-type]
 
         message_id = None
         if isinstance(result, dict):
@@ -175,7 +175,7 @@ async def resend_send_batch_emails(
             for recipient in recipients
         ]
 
-        result = resend_lib.Batch.send(batch_params)
+        result = resend_lib.Batch.send(batch_params)  # type: ignore[arg-type]
 
         items: list[BatchEmailResultItem] = []
         if isinstance(result, dict):

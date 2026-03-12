@@ -2,8 +2,6 @@
 
 from uuid import UUID
 
-import pytest
-
 from src.humcp.auth import (
     _current_user_id,
     get_current_user_id,

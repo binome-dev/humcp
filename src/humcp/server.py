@@ -143,7 +143,7 @@ def _discover_and_register(
             if tool_name in app_map and apps_path:
                 relative = app_map[tool_name].relative_to(apps_path)
                 resource_uri = f"ui://{relative.as_posix()}"
-                app_config = AppConfig(resource_uri=resource_uri)
+                app_config = AppConfig(resource_uri=resource_uri)  # type: ignore[call-arg]
                 logger.debug("Attached app to tool '%s': %s", tool_name, resource_uri)
 
             # Register with FastMCP (v3 returns the original function, not FunctionTool)
@@ -151,7 +151,7 @@ def _discover_and_register(
 
             # Access the FunctionTool synchronously from FastMCP's internal registry
             fn_tool = mcp._local_provider._components[f"tool:{tool_name}@"]
-            tools.append(RegisteredTool(tool=fn_tool, category=category, app=app))
+            tools.append(RegisteredTool(tool=fn_tool, category=category, app=app))  # type: ignore[arg-type]
             logger.debug("Registered: %s (category: %s)", fn_tool.name, category)
 
     return tools

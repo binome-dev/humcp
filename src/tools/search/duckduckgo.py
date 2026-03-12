@@ -212,8 +212,8 @@ async def duckduckgo_images(
                 image_url=r.get("image", ""),
                 thumbnail_url=r.get("thumbnail", ""),
                 source=r.get("source"),
-                width=r.get("width"),
-                height=r.get("height"),
+                width=int(r["width"]) if r.get("width") else None,
+                height=int(r["height"]) if r.get("height") else None,
             )
             for r in raw_results
         ]

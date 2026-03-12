@@ -58,8 +58,8 @@ async def linkup_search(
         client = LinkupClient(api_key=api_key)
         response = client.search(
             query=query,
-            depth=depth,
-            output_type=output_type,
+            depth=depth,  # type: ignore[arg-type]
+            output_type=output_type,  # type: ignore[arg-type]
         )
 
         items = []

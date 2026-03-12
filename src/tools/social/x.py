@@ -197,7 +197,7 @@ async def x_search_tweets(
             response = await client.get(
                 f"{_BASE_URL}/tweets/search/recent",
                 headers=headers,
-                params=params,
+                params=params,  # type: ignore[arg-type]
             )
             response.raise_for_status()
             data = response.json()
