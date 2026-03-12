@@ -2,15 +2,52 @@
 
 from __future__ import annotations
 
+import ipaddress
 import logging
+import os
+import socket
 import time
 from typing import Any
+from urllib.parse import urlparse
 
 from src.humcp.decorator import tool
 from src.tools.api.schemas import (
     HttpResponseData,
     HttpResponseResponse,
 )
+
+
+def _is_private_url(url: str) -> bool:
+    """Check if URL resolves to a private/internal IP range."""
+    parsed = urlparse(url)
+    hostname = parsed.hostname
+    if not hostname:
+        return True
+
+    # Block known metadata endpoints and localhost
+    blocked_hosts = {
+        "localhost",
+        "127.0.0.1",
+        "::1",
+        "0.0.0.0",
+        "metadata.google.internal",
+        "metadata.goog",
+        "169.254.169.254",
+    }
+    if hostname in blocked_hosts:
+        return True
+
+    try:
+        resolved = socket.getaddrinfo(hostname, None)
+        for _, _, _, _, addr in resolved:
+            ip = ipaddress.ip_address(addr[0])
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                return True
+    except (socket.gaierror, ValueError):
+        pass
+
+    return False
+
 
 try:
     import httpx
@@ -74,6 +111,14 @@ async def http_request(
             return HttpResponseResponse(
                 success=False,
                 error="URL must start with http:// or https://",
+            )
+
+        if os.getenv("HTTP_ALLOW_PRIVATE", "").lower() != "true" and _is_private_url(
+            url
+        ):
+            return HttpResponseResponse(
+                success=False,
+                error="Requests to private/internal network addresses are blocked. Set HTTP_ALLOW_PRIVATE=true to allow.",
             )
 
         logger.info("HTTP %s %s", normalized_method, url)

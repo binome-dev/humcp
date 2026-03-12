@@ -28,9 +28,8 @@ from src.tools.cloud.schemas import (
 )
 
 try:
-    from docker.errors import DockerException
-
     import docker
+    from docker.errors import DockerException
 except ImportError as err:
     raise ImportError(
         "docker is required for Docker tools. Install with: pip install docker"

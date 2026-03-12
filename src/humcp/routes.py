@@ -3,8 +3,10 @@
 import asyncio
 import base64
 import hashlib
+import json
 import logging
 import secrets
+import time
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
@@ -35,9 +37,39 @@ from src.tools.google.auth import set_rest_access_token
 logger = logging.getLogger("humcp.routes")
 
 # Store for PKCE verifiers and registered client
-_pkce_store: dict[str, str] = {}
+_PKCE_TTL_SECONDS = 600  # 10 minutes
+_PKCE_MAX_ENTRIES = 1000
+_pkce_store: dict[str, tuple[str, float]] = {}  # state -> (verifier, created_at)
 _browser_client: dict[str, str] = {}
 _registration_lock = asyncio.Lock()
+
+
+def _pkce_cleanup() -> None:
+    """Remove expired PKCE entries."""
+    now = time.monotonic()
+    expired = [k for k, (_, t) in _pkce_store.items() if now - t > _PKCE_TTL_SECONDS]
+    for k in expired:
+        del _pkce_store[k]
+
+
+def _pkce_set(state: str, verifier: str) -> None:
+    """Store a PKCE verifier with TTL."""
+    _pkce_cleanup()
+    if len(_pkce_store) >= _PKCE_MAX_ENTRIES:
+        oldest = min(_pkce_store, key=lambda k: _pkce_store[k][1])
+        del _pkce_store[oldest]
+    _pkce_store[state] = (verifier, time.monotonic())
+
+
+def _pkce_pop(state: str) -> str | None:
+    """Pop a PKCE verifier, returning None if expired or missing."""
+    entry = _pkce_store.pop(state, None)
+    if entry is None:
+        return None
+    verifier, created = entry
+    if time.monotonic() - created > _PKCE_TTL_SECONDS:
+        return None
+    return verifier
 
 
 def _format_tag(category: str) -> str:
@@ -204,7 +236,7 @@ def _register_auth_routes(
 
         # Store verifier for later token exchange
         state = secrets.token_urlsafe(16)
-        _pkce_store[state] = code_verifier
+        _pkce_set(state, code_verifier)
 
         # Use the same scopes as MCP authentication
         scopes = (
@@ -259,7 +291,7 @@ def _register_auth_routes(
             )
 
         # Get the stored PKCE verifier
-        code_verifier = _pkce_store.pop(state, None)
+        code_verifier = _pkce_pop(state)
         if not code_verifier:
             return HTMLResponse(
                 content="<h1>Invalid State</h1><p>Session expired or invalid state</p><a href='/login'>Try again</a>",
@@ -318,7 +350,7 @@ def _register_auth_routes(
                 <p>You are now authenticated.</p>
                 <p><a href="/docs">Go to Swagger UI</a></p>
                 <script>
-                    localStorage.setItem('access_token', '{access_token}');
+                    localStorage.setItem('access_token', {json.dumps(access_token)});
                 </script>
             </body>
             </html>

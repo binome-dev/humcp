@@ -4,9 +4,10 @@ import logging
 import os
 import secrets
 
-from fastapi import HTTPException, Request
+from fastapi import Request
 from jose import JWTError, jwt
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
 
 from src.humcp.auth import _current_user_id
 
@@ -52,9 +53,9 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         api_key = request.headers.get("X-API-Key")
         if not api_key or not secrets.compare_digest(api_key, SERVICE_API_KEY):
             logger.warning("Invalid API key attempt for path: %s", request.url.path)
-            raise HTTPException(
+            return JSONResponse(
                 status_code=401,
-                detail="Invalid or missing API key",
+                content={"detail": "Invalid or missing API key"},
             )
 
         # Extract user identity from Bearer JWT (if present)

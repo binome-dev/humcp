@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 from src.humcp.decorator import tool
+from src.humcp.permissions import require_auth
 from src.tools.builder.manager import get_custom_tool_manager
 from src.tools.builder.sandbox import (
     CompilationError,
@@ -85,6 +86,7 @@ async def tool_builder_create(
             )
     """
     try:
+        await require_auth()
         storage = get_tool_storage()
 
         # Check if tool already exists
@@ -132,6 +134,7 @@ async def tool_builder_list() -> ToolBuilderListResponse:
         List of all custom tools with their details.
     """
     try:
+        await require_auth()
         storage = get_tool_storage()
         tools = await storage.list_all()
 
@@ -156,6 +159,7 @@ async def tool_builder_get(name: str) -> ToolBuilderGetResponse:
         Tool details including code.
     """
     try:
+        await require_auth()
         storage = get_tool_storage()
         tool_def = await storage.get(name)
 
@@ -182,6 +186,7 @@ async def tool_builder_delete(name: str) -> ToolBuilderDeleteResponse:
         Confirmation of deletion.
     """
     try:
+        await require_auth()
         storage = get_tool_storage()
 
         if not await storage.exists(name):
@@ -221,6 +226,7 @@ async def tool_builder_update(
         Updated tool details.
     """
     try:
+        await require_auth()
         storage = get_tool_storage()
 
         if not await storage.exists(name):
@@ -279,6 +285,7 @@ async def tool_builder_test(
         Execution result from the tool.
     """
     try:
+        await require_auth()
         storage = get_tool_storage()
         tool_def = await storage.get(name)
 
@@ -325,6 +332,7 @@ async def tool_builder_enable(name: str) -> ToolBuilderEnableResponse:
         Updated tool details.
     """
     try:
+        await require_auth()
         storage = get_tool_storage()
         tool_def = await storage.get(name)
 
@@ -378,6 +386,7 @@ async def tool_builder_disable(name: str) -> ToolBuilderDisableResponse:
         Updated tool details.
     """
     try:
+        await require_auth()
         storage = get_tool_storage()
         tool_def = await storage.get(name)
 

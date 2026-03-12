@@ -115,6 +115,21 @@ async def execute_query(query: str) -> ExecuteQueryResponse:
     try:
         await require_auth()
 
+        # SQL safety checks
+        query_stripped = query.strip()
+        first_word = query_stripped.split()[0].upper() if query_stripped else ""
+        blocked = {"DROP", "ALTER", "TRUNCATE", "GRANT", "REVOKE"}
+        if first_word in blocked:
+            return ExecuteQueryResponse(
+                success=False, error=f"Blocked query type: {first_word}"
+            )
+        if os.getenv("DB_READ_ONLY", "true").lower() == "true":
+            if first_word not in ("SELECT", "WITH"):
+                return ExecuteQueryResponse(
+                    success=False,
+                    error="Read-only mode: only SELECT/WITH queries allowed. Set DB_READ_ONLY=false to allow writes.",
+                )
+
         engine = _get_engine()
         async with engine.connect() as conn:
             logger.info("Executing query: %s", query)

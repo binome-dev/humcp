@@ -229,6 +229,8 @@ async def upload_from_path(
         return UploadFromPathResponse(success=False, error=error)
     if error := validate_object_name(object_name):
         return UploadFromPathResponse(success=False, error=error)
+    if error := validate_local_path(file_path):
+        return UploadFromPathResponse(success=False, error=error)
 
     try:
         await check_permission("storage_bucket", bucket, "editor")

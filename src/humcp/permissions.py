@@ -36,6 +36,9 @@ async def require_auth() -> UUID | None:
     return user_id
 
 
+STRICT_PERMISSIONS = os.getenv("STRICT_PERMISSIONS", "").lower() == "true"
+
+
 async def check_permission(
     object_type: str,
     object_id: str,
@@ -46,10 +49,25 @@ async def check_permission(
     Simplified version: delegates to require_auth() only.
     Upgrade to full IAM checks when shared.auth is available.
 
+    When STRICT_PERMISSIONS=true, rejects all calls since no IAM backend
+    is configured to actually verify fine-grained permissions.
+
     Returns:
         user_id if authenticated, None if no auth context (dev mode).
 
     Raises:
         HTTPException 401: if TOOLSET_REQUIRE_AUTH is true and no user context.
+        HTTPException 403: if STRICT_PERMISSIONS is true (no IAM backend).
     """
+    if STRICT_PERMISSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Fine-grained permissions not configured. Set up IAM backend or disable STRICT_PERMISSIONS.",
+        )
+    logger.warning(
+        "Permission check stub: object_type=%s object_id=%s relation=%s (not enforced)",
+        object_type,
+        object_id,
+        relation,
+    )
     return await require_auth()

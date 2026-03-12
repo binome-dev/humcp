@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import builtins
 import logging
+import types
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
@@ -16,6 +17,21 @@ from RestrictedPython.Guards import (
 )
 
 logger = logging.getLogger("humcp.builder.sandbox")
+
+
+def _guarded_write(obj: Any) -> Any:
+    """Guard that prevents writing to restricted types."""
+    if isinstance(obj, type | types.ModuleType):
+        raise AttributeError("Cannot modify restricted objects")
+    return obj
+
+
+def _guarded_getitem(obj: Any, key: Any) -> Any:
+    """Guard that prevents item access on restricted types."""
+    if isinstance(obj, type | types.ModuleType):
+        raise AttributeError("Cannot access restricted object items")
+    return obj[key]
+
 
 # Execution timeout in seconds
 EXECUTION_TIMEOUT = 60
@@ -102,8 +118,8 @@ def _get_restricted_globals() -> dict[str, Any]:
         "_iter_unpack_sequence_": guarded_iter_unpack_sequence,
         # Allow print for debugging (captured)
         "_print_": lambda *args, **kwargs: None,  # Silently ignore prints
-        "_getitem_": lambda obj, key: obj[key],
-        "_write_": lambda obj: obj,  # Allow writes to containers
+        "_getitem_": _guarded_getitem,
+        "_write_": _guarded_write,
     }
 
     # Add allowed imports
@@ -217,12 +233,9 @@ async def execute_sandboxed(
         ExecutionError: If execution fails.
         TimeoutError: If execution times out.
     """
-    loop = asyncio.get_event_loop()
-
     try:
         result = await asyncio.wait_for(
-            loop.run_in_executor(
-                _executor,
+            asyncio.to_thread(
                 _execute_sync,
                 compiled_code,
                 function_name,

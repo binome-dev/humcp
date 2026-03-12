@@ -69,7 +69,7 @@ def is_auth_enabled() -> bool:
         False if AUTH_ENABLED is set to 'false'
     """
     auth_enabled = os.getenv("AUTH_ENABLED", "true").lower()
-    return auth_enabled in ("true")
+    return auth_enabled == "true"
 
 
 def has_google_credentials() -> bool:
