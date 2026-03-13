@@ -25,7 +25,7 @@ def make_registered_tool(
     mock_tool.parameters = parameters
     mock_tool.output_schema = None
     mock_tool.fn = fn
-    return RegisteredTool(tool=mock_tool, category=category)
+    return RegisteredTool(tool=mock_tool, category=category, app="test_app")
 
 
 @pytest.fixture

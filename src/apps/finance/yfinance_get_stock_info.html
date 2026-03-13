@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stock Info</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="app" class="p-6 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 min-h-[120px]">
+    <div id="loading" class="text-slate-400 text-sm text-center py-8">Waiting for data...</div>
+
+    <div id="result" class="hidden space-y-4">
+      <div class="flex items-center gap-2 mb-2">
+        <svg class="w-5 h-5 text-emerald-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <h2 id="company-header" class="text-lg font-semibold text-slate-800"></h2>
+        <span id="symbol-badge" class="text-xs font-mono bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full"></span>
+      </div>
+
+      <div class="bg-white rounded-xl border border-emerald-200 p-5 space-y-4">
+        <div id="sector-row" class="hidden flex items-center gap-3">
+          <span class="text-xs text-slate-400 uppercase tracking-wide w-28 shrink-0">Sector</span>
+          <span id="sector-value" class="text-sm text-slate-700"></span>
+        </div>
+        <div id="industry-row" class="hidden flex items-center gap-3">
+          <span class="text-xs text-slate-400 uppercase tracking-wide w-28 shrink-0">Industry</span>
+          <span id="industry-value" class="text-sm text-slate-700"></span>
+        </div>
+        <div id="market-cap-row" class="hidden flex items-center gap-3">
+          <span class="text-xs text-slate-400 uppercase tracking-wide w-28 shrink-0">Market Cap</span>
+          <span id="market-cap-value" class="text-sm font-medium text-slate-700"></span>
+        </div>
+        <div id="pe-row" class="hidden flex items-center gap-3">
+          <span class="text-xs text-slate-400 uppercase tracking-wide w-28 shrink-0">P/E Ratio</span>
+          <span id="pe-value" class="text-sm text-slate-700"></span>
+        </div>
+        <div id="eps-row" class="hidden flex items-center gap-3">
+          <span class="text-xs text-slate-400 uppercase tracking-wide w-28 shrink-0">EPS</span>
+          <span id="eps-value" class="text-sm text-slate-700"></span>
+        </div>
+        <div id="dividend-row" class="hidden flex items-center gap-3">
+          <span class="text-xs text-slate-400 uppercase tracking-wide w-28 shrink-0">Dividend Yield</span>
+          <span id="dividend-value" class="text-sm text-slate-700"></span>
+        </div>
+      </div>
+
+      <div id="range-card" class="hidden bg-white rounded-xl border border-emerald-200 p-5">
+        <p class="text-xs text-slate-400 uppercase tracking-wide mb-3">52-Week Range</p>
+        <div class="flex items-center gap-3">
+          <span id="low-value" class="text-sm font-medium text-red-600"></span>
+          <div class="flex-1 h-2 bg-gradient-to-r from-red-200 via-slate-200 to-emerald-200 rounded-full"></div>
+          <span id="high-value" class="text-sm font-medium text-emerald-600"></span>
+        </div>
+      </div>
+
+      <div id="description-card" class="hidden bg-white rounded-xl border border-emerald-200 p-5">
+        <p class="text-xs text-slate-400 uppercase tracking-wide mb-2">About</p>
+        <p id="description-text" class="text-sm text-slate-600 leading-relaxed line-clamp-4"></p>
+      </div>
+    </div>
+
+    <div id="error" class="hidden text-red-600 text-sm font-medium text-center py-8"></div>
+  </div>
+
+  <script type="module">
+    const state = { initialized: false };
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = String(text != null ? text : '');
+      return div.innerHTML;
+    }
+
+    function formatCompact(num) {
+      if (num == null) return '-';
+      if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
+      if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+      if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+      if (num >= 1e3) return (num / 1e3).toFixed(1) + 'K';
+      return String(num);
+    }
+
+    function showRow(id, value, formatter) {
+      if (value == null) return;
+      document.getElementById(id).classList.remove('hidden');
+      document.getElementById(id).classList.add('flex');
+      const valEl = document.getElementById(id.replace('-row', '-value'));
+      valEl.textContent = formatter ? formatter(value) : String(value);
+    }
+
+    function render(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+
+      document.getElementById('company-header').textContent = data.name || data.symbol || '';
+      document.getElementById('symbol-badge').textContent = data.symbol || '';
+
+      showRow('sector-row', data.sector);
+      showRow('industry-row', data.industry);
+      showRow('market-cap-row', data.market_cap, formatCompact);
+      showRow('pe-row', data.pe_ratio, v => Number(v).toFixed(2));
+      showRow('eps-row', data.eps, v => Number(v).toFixed(2));
+      showRow('dividend-row', data.dividend_yield, v => (Number(v) * 100).toFixed(2) + '%');
+
+      if (data.fifty_two_week_low != null || data.fifty_two_week_high != null) {
+        document.getElementById('range-card').classList.remove('hidden');
+        document.getElementById('low-value').textContent = data.fifty_two_week_low != null ? Number(data.fifty_two_week_low).toFixed(2) : '-';
+        document.getElementById('high-value').textContent = data.fifty_two_week_high != null ? Number(data.fifty_two_week_high).toFixed(2) : '-';
+      }
+
+      const desc = data.summary || data.description;
+      if (desc) {
+        document.getElementById('description-card').classList.remove('hidden');
+        document.getElementById('description-text').textContent = desc;
+      }
+    }
+
+    function renderError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').textContent = message;
+    }
+
+    function parseToolResult(result) {
+      if (result && result.content) {
+        for (const item of result.content) {
+          if (item.type === 'text' && item.text) {
+            try { return JSON.parse(item.text); } catch { return { raw: item.text }; }
+          }
+        }
+      }
+      if (result && result.data) { return result; }
+      return result;
+    }
+
+    function handleToolResult(result) {
+      const parsed = parseToolResult(result);
+      if (parsed && parsed.success === false) {
+        renderError(parsed.error || 'Operation failed');
+        return;
+      }
+      const data = parsed?.data || parsed;
+      if (data) {
+        render(data);
+      } else {
+        renderError('Unexpected data format');
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.jsonrpc === '2.0') {
+        if (msg.method === 'ui/initialize') {
+          state.initialized = true;
+          window.parent.postMessage({
+            jsonrpc: '2.0', id: msg.id,
+            result: { protocolVersion: '0.1.0', capabilities: {} }
+          }, '*');
+        } else if (msg.method === 'ui/toolResult') {
+          handleToolResult(msg.params);
+        }
+      }
+
+      if (msg.type === 'toolResult') {
+        handleToolResult(msg.data);
+      }
+    });
+
+    window.parent.postMessage({
+      jsonrpc: '2.0', method: 'ui/ready', params: {}
+    }, '*');
+  </script>
+</body>
+</html>

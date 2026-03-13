@@ -3,9 +3,10 @@
 import asyncio
 import base64
 import hashlib
+import json
 import logging
-import os
 import secrets
+import time
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
@@ -18,6 +19,7 @@ from pydantic import BaseModel, Field, create_model
 
 from src.humcp.decorator import RegisteredTool
 from src.humcp.schemas import (
+    AppSummary,
     CategoryInfo,
     CategorySummary,
     GetCategoryResponse,
@@ -35,9 +37,39 @@ from src.tools.google.auth import set_rest_access_token
 logger = logging.getLogger("humcp.routes")
 
 # Store for PKCE verifiers and registered client
-_pkce_store: dict[str, str] = {}
+_PKCE_TTL_SECONDS = 600  # 10 minutes
+_PKCE_MAX_ENTRIES = 1000
+_pkce_store: dict[str, tuple[str, float]] = {}  # state -> (verifier, created_at)
 _browser_client: dict[str, str] = {}
 _registration_lock = asyncio.Lock()
+
+
+def _pkce_cleanup() -> None:
+    """Remove expired PKCE entries."""
+    now = time.monotonic()
+    expired = [k for k, (_, t) in _pkce_store.items() if now - t > _PKCE_TTL_SECONDS]
+    for k in expired:
+        del _pkce_store[k]
+
+
+def _pkce_set(state: str, verifier: str) -> None:
+    """Store a PKCE verifier with TTL."""
+    _pkce_cleanup()
+    if len(_pkce_store) >= _PKCE_MAX_ENTRIES:
+        oldest = min(_pkce_store, key=lambda k: _pkce_store[k][1])
+        del _pkce_store[oldest]
+    _pkce_store[state] = (verifier, time.monotonic())
+
+
+def _pkce_pop(state: str) -> str | None:
+    """Pop a PKCE verifier, returning None if expired or missing."""
+    entry = _pkce_store.pop(state, None)
+    if entry is None:
+        return None
+    verifier, created = entry
+    if time.monotonic() - created > _PKCE_TTL_SECONDS:
+        return None
+    return verifier
 
 
 def _format_tag(category: str) -> str:
@@ -134,41 +166,16 @@ async def optional_rest_auth(request: Request):
 
 def _register_auth_routes(
     app: FastAPI,
-    tools: list[RegisteredTool],
     auth_provider: Any,
-    title: str,
-    version: str,
 ) -> None:
-    """Register authentication and info routes.
+    """Register authentication routes (login/logout).
 
-    When auth_provider is None (AUTH_ENABLED=false), only the root info endpoint
-    is registered. Login/logout endpoints are skipped.
+    When auth_provider is None (AUTH_ENABLED=false), no routes are registered.
 
     Args:
         app: FastAPI application.
-        tools: List of registered tools.
         auth_provider: FastMCP auth provider for OAuth operations (None if disabled).
-        title: App title for info endpoint.
-        version: App version for info endpoint.
     """
-    mcp_url = os.getenv("MCP_SERVER_URL", "http://0.0.0.0:8080/mcp")
-    auth_enabled = auth_provider is not None
-
-    @app.get("/", tags=["Info"])
-    async def root():
-        """Server information endpoint."""
-        endpoints = {"docs": "/docs", "tools": "/tools", "mcp": "/mcp"}
-        if auth_enabled:
-            endpoints["login"] = "/login"
-        return {
-            "name": title,
-            "version": version,
-            "mcp_server": mcp_url,
-            "tools_count": len(tools),
-            "auth_enabled": auth_enabled,
-            "endpoints": endpoints,
-        }
-
     # Skip login/logout endpoints if auth is disabled
     if not auth_provider:
         logger.info(
@@ -229,7 +236,7 @@ def _register_auth_routes(
 
         # Store verifier for later token exchange
         state = secrets.token_urlsafe(16)
-        _pkce_store[state] = code_verifier
+        _pkce_set(state, code_verifier)
 
         # Use the same scopes as MCP authentication
         scopes = (
@@ -284,7 +291,7 @@ def _register_auth_routes(
             )
 
         # Get the stored PKCE verifier
-        code_verifier = _pkce_store.pop(state, None)
+        code_verifier = _pkce_pop(state)
         if not code_verifier:
             return HTMLResponse(
                 content="<h1>Invalid State</h1><p>Session expired or invalid state</p><a href='/login'>Try again</a>",
@@ -343,7 +350,7 @@ def _register_auth_routes(
                 <p>You are now authenticated.</p>
                 <p><a href="/docs">Go to Swagger UI</a></p>
                 <script>
-                    localStorage.setItem('access_token', '{access_token}');
+                    localStorage.setItem('access_token', {json.dumps(access_token)});
                 </script>
             </body>
             </html>
@@ -377,6 +384,7 @@ def register_routes(
     auth_provider: Any = None,
     title: str = "HuMCP Server",
     version: str = "1.0.0",
+    apps_count: int = 0,
 ) -> None:
     """Register all REST routes including tools and auth endpoints.
 
@@ -387,6 +395,7 @@ def register_routes(
         auth_provider: FastMCP auth provider for OAuth operations (None if auth disabled).
         title: App title for info endpoint.
         version: App version for info endpoint.
+        apps_count: Number of MCP App bundles available.
     """
     # Build lookups
     categories = _build_categories(tools)
@@ -412,7 +421,7 @@ def register_routes(
     skills = discover_skills(tools_path)
 
     # Register auth endpoints only when auth is enabled
-    _register_auth_routes(app, tools, auth_provider, title, version)
+    _register_auth_routes(app, auth_provider)
 
     # Info endpoints
     @app.get("/tools", tags=["Info"], response_model=ListToolsResponse)
@@ -423,6 +432,7 @@ def register_routes(
                 cat: CategorySummary(
                     count=len(items),
                     tools=[ToolSummary(**t) for t in items],
+                    apps=_build_apps(items),
                     skill=SkillMetadata(
                         name=skills[cat].name, description=skills[cat].description
                     )
@@ -438,10 +448,12 @@ def register_routes(
         if category not in categories:
             raise HTTPException(404, f"Category '{category}' not found")
         skill = skills.get(category)
+        items = categories[category]
         return GetCategoryResponse(
             category=category,
-            count=len(categories[category]),
-            tools=[ToolSummary(**t) for t in categories[category]],
+            count=len(items),
+            tools=[ToolSummary(**t) for t in items],
+            apps=_build_apps(items),
             skill=SkillFull(
                 name=skill.name, description=skill.description, content=skill.content
             )
@@ -459,6 +471,7 @@ def register_routes(
         return GetToolResponse(
             name=reg.tool.name,
             category=reg.category,
+            app=reg.app,
             description=reg.tool.description,
             endpoint=f"/tools/{reg.tool.name}",
             input_schema=InputSchema(**reg.tool.parameters),
@@ -534,9 +547,25 @@ def _build_categories(tools: list[RegisteredTool]) -> dict[str, list[dict[str, A
                 "name": reg.tool.name,
                 "description": reg.tool.description,
                 "endpoint": f"/tools/{reg.tool.name}",
+                "app": reg.app,
             }
         )
     return cats
+
+
+def _build_apps(tool_dicts: list[dict[str, Any]]) -> list[AppSummary]:
+    """Group tool dicts by app field into AppSummary list."""
+    app_map: dict[str, list[dict[str, Any]]] = {}
+    for t in tool_dicts:
+        app_map.setdefault(t["app"], []).append(t)
+    return [
+        AppSummary(
+            name=app_name,
+            count=len(items),
+            tools=[ToolSummary(**t) for t in items],
+        )
+        for app_name, items in sorted(app_map.items())
+    ]
 
 
 def build_openapi_tags(tools: list[RegisteredTool]) -> list[dict[str, str]]:

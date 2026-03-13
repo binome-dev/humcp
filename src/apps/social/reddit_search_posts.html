@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reddit Search Results</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="app" class="p-6 bg-gradient-to-br from-orange-50 via-white to-amber-50 min-h-[120px]">
+    <div id="loading" class="text-slate-400 text-sm text-center py-8">Waiting for data...</div>
+
+    <div id="result" class="hidden space-y-4">
+      <div class="flex items-center gap-2 mb-2">
+        <svg class="w-5 h-5 text-orange-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <h2 id="query-header" class="text-lg font-semibold text-slate-800"></h2>
+      </div>
+      <div id="results-container" class="space-y-3"></div>
+    </div>
+
+    <div id="error" class="hidden text-red-600 text-sm font-medium text-center py-8"></div>
+  </div>
+
+  <script type="module">
+    const state = { initialized: false };
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function createPostCard(post) {
+      const card = document.createElement('div');
+      card.className = 'bg-white rounded-lg border border-slate-200 p-4 hover:border-orange-300 hover:shadow-sm transition-all';
+
+      const commentsCount = post.num_comments != null ? post.num_comments : 0;
+      const selftext = post.selftext || '';
+      const snippet = selftext.length > 200 ? selftext.substring(0, 200) + '...' : selftext;
+
+      const voteCol = document.createElement('div');
+      voteCol.className = 'flex flex-col items-center gap-1 min-w-[48px] py-1';
+      const scoreSpan = document.createElement('span');
+      scoreSpan.className = 'text-sm font-bold text-slate-700';
+      scoreSpan.textContent = String(post.score);
+      voteCol.appendChild(scoreSpan);
+
+      const contentCol = document.createElement('div');
+      contentCol.className = 'flex-1 min-w-0';
+
+      const metaRow = document.createElement('div');
+      metaRow.className = 'flex items-center gap-2 mb-1';
+      const subBadge = document.createElement('span');
+      subBadge.className = 'text-xs font-medium text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full';
+      subBadge.textContent = 'r/' + (post.subreddit || '');
+      const authorSpan = document.createElement('span');
+      authorSpan.className = 'text-xs text-slate-400';
+      authorSpan.textContent = 'by u/' + (post.author || '');
+      metaRow.appendChild(subBadge);
+      metaRow.appendChild(authorSpan);
+
+      const titleLink = document.createElement('a');
+      titleLink.href = post.url || post.permalink || '#';
+      titleLink.target = '_blank';
+      titleLink.rel = 'noopener noreferrer';
+      titleLink.className = 'text-sm font-semibold text-slate-800 hover:text-orange-700 hover:underline leading-snug block mb-1';
+      titleLink.textContent = post.title || '';
+
+      contentCol.appendChild(metaRow);
+      contentCol.appendChild(titleLink);
+
+      if (snippet) {
+        const snippetP = document.createElement('p');
+        snippetP.className = 'text-sm text-slate-500 leading-relaxed line-clamp-2 mb-2';
+        snippetP.textContent = snippet;
+        contentCol.appendChild(snippetP);
+      }
+
+      const statsRow = document.createElement('div');
+      statsRow.className = 'flex items-center gap-3 text-xs text-slate-400';
+      const commentsSpan = document.createElement('span');
+      commentsSpan.className = 'flex items-center gap-1';
+      commentsSpan.textContent = commentsCount + ' comments';
+      statsRow.appendChild(commentsSpan);
+      contentCol.appendChild(statsRow);
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'flex items-start gap-3';
+      wrapper.appendChild(voteCol);
+      wrapper.appendChild(contentCol);
+      card.appendChild(wrapper);
+
+      return card;
+    }
+
+    function render(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+
+      const query = data.query || '';
+      const subreddit = data.subreddit;
+      const headerText = subreddit
+        ? 'Results for "' + query + '" in r/' + subreddit
+        : 'Results for "' + query + '"';
+      document.getElementById('query-header').textContent = headerText;
+
+      const container = document.getElementById('results-container');
+      container.replaceChildren();
+
+      const posts = data.results || [];
+      posts.forEach(function(post) {
+        container.appendChild(createPostCard(post));
+      });
+
+      if (posts.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'text-center py-8 text-slate-400 text-sm';
+        empty.textContent = 'No posts found';
+        container.appendChild(empty);
+      }
+    }
+
+    function renderError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').textContent = message;
+    }
+
+    function parseToolResult(result) {
+      if (result && result.content) {
+        for (const item of result.content) {
+          if (item.type === 'text' && item.text) {
+            try { return JSON.parse(item.text); } catch { return { raw: item.text }; }
+          }
+        }
+      }
+      if (result && result.data) { return result; }
+      return result;
+    }
+
+    function handleToolResult(result) {
+      const parsed = parseToolResult(result);
+      if (parsed && parsed.success === false) {
+        renderError(parsed.error || 'Operation failed');
+        return;
+      }
+      const data = parsed?.data || parsed;
+      if (data) {
+        render(data);
+      } else {
+        renderError('Unexpected data format');
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.jsonrpc === '2.0') {
+        if (msg.method === 'ui/initialize') {
+          state.initialized = true;
+          window.parent.postMessage({
+            jsonrpc: '2.0', id: msg.id,
+            result: { protocolVersion: '0.1.0', capabilities: {} }
+          }, '*');
+        } else if (msg.method === 'ui/toolResult') {
+          handleToolResult(msg.params);
+        }
+      }
+
+      if (msg.type === 'toolResult') {
+        handleToolResult(msg.data);
+      }
+    });
+
+    window.parent.postMessage({
+      jsonrpc: '2.0', method: 'ui/ready', params: {}
+    }, '*');
+  </script>
+</body>
+</html>

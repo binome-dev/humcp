@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Factorial - Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="app" class="p-8 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 rounded-xl">
+    <div id="loading" class="text-slate-400 text-sm text-center">Waiting for data...</div>
+    <div id="result" class="hidden">
+      <div class="flex items-center justify-center gap-6 mb-4">
+        <span class="font-mono font-bold text-4xl text-slate-800"><span id="val-n"></span><span class="text-emerald-600">!</span></span>
+        <span class="text-slate-400 text-4xl font-light">=</span>
+        <span id="val-result" class="font-mono font-bold text-4xl text-emerald-600 bg-emerald-100 px-6 py-3 rounded-xl shadow-sm"></span>
+      </div>
+      <div id="expansion-container" class="hidden text-center">
+        <button id="toggle-expansion" class="text-sm text-slate-500 hover:text-emerald-600 transition-colors flex items-center gap-1 mx-auto">
+          <svg id="chevron-icon" class="w-4 h-4 transition-transform" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+          <span id="toggle-text">Show expansion</span>
+        </button>
+        <div id="expansion-detail" class="hidden mt-3 text-sm font-mono text-slate-600 bg-white px-4 py-3 rounded-lg border border-emerald-200"></div>
+      </div>
+    </div>
+    <div id="error" class="hidden text-red-600 text-sm font-medium text-center"></div>
+  </div>
+
+  <script type="module">
+    const state = { initialized: false, expanded: false };
+
+    function render(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+
+      const n = data.n;
+      document.getElementById('val-n').textContent = n;
+      document.getElementById('val-result').textContent = data.result.toLocaleString();
+
+      if (n > 0 && n <= 20) {
+        document.getElementById('expansion-container').classList.remove('hidden');
+
+        const shouldTruncate = n > 10;
+        const expansion = shouldTruncate
+          ? `${n} \u00d7 ${n - 1} \u00d7 ${n - 2} \u00d7 ... \u00d7 3 \u00d7 2 \u00d7 1`
+          : Array.from({ length: n }, (_, i) => n - i).join(' \u00d7 ');
+
+        document.getElementById('expansion-detail').textContent = expansion;
+
+        document.getElementById('toggle-expansion').addEventListener('click', () => {
+          state.expanded = !state.expanded;
+          const detail = document.getElementById('expansion-detail');
+          const chevron = document.getElementById('chevron-icon');
+          const text = document.getElementById('toggle-text');
+
+          if (state.expanded) {
+            detail.classList.remove('hidden');
+            chevron.style.transform = 'rotate(90deg)';
+            text.textContent = 'Hide expansion';
+          } else {
+            detail.classList.add('hidden');
+            chevron.style.transform = 'rotate(0deg)';
+            text.textContent = 'Show expansion';
+          }
+        });
+      }
+    }
+
+    function renderError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').textContent = message;
+    }
+
+    function parseToolResult(result) {
+      if (result && result.content) {
+        for (const item of result.content) {
+          if (item.type === 'text' && item.text) {
+            try {
+              return JSON.parse(item.text);
+            } catch {
+              return { raw: item.text };
+            }
+          }
+        }
+      }
+      if (result && result.data) {
+        return result;
+      }
+      return result;
+    }
+
+    function handleToolResult(result) {
+      const parsed = parseToolResult(result);
+      if (parsed && parsed.success === false) {
+        renderError(parsed.error || 'Operation failed');
+        return;
+      }
+      const data = parsed?.data || parsed;
+      if (data && typeof data.n === 'number' && typeof data.result === 'number') {
+        render(data);
+      } else {
+        renderError('Unexpected data format');
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.jsonrpc === '2.0') {
+        if (msg.method === 'ui/initialize') {
+          state.initialized = true;
+          window.parent.postMessage({
+            jsonrpc: '2.0',
+            id: msg.id,
+            result: { protocolVersion: '0.1.0', capabilities: {} }
+          }, '*');
+        } else if (msg.method === 'ui/toolResult') {
+          handleToolResult(msg.params);
+        }
+      }
+
+      if (msg.type === 'toolResult') {
+        handleToolResult(msg.data);
+      }
+    });
+
+    window.parent.postMessage({
+      jsonrpc: '2.0',
+      method: 'ui/ready',
+      params: {}
+    }, '*');
+  </script>
+</body>
+</html>

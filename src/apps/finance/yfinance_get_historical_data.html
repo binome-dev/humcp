@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Historical Price Data</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="app" class="p-6 bg-gradient-to-br from-emerald-50 via-white to-emerald-50 min-h-[120px]">
+    <div id="loading" class="text-slate-400 text-sm text-center py-8">Waiting for data...</div>
+
+    <div id="result" class="hidden space-y-4">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5 text-emerald-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <h2 id="data-header" class="text-lg font-semibold text-slate-800"></h2>
+        </div>
+        <span id="record-count" class="text-xs text-slate-400"></span>
+      </div>
+
+      <div id="empty-state" class="hidden text-center py-8 text-slate-400 text-sm">No price data available</div>
+
+      <div id="table-wrapper" class="border border-emerald-200 rounded-lg overflow-hidden">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-emerald-50 border-b border-emerald-200">
+              <th class="text-left px-4 py-2 font-medium text-emerald-700">Date</th>
+              <th class="text-right px-4 py-2 font-medium text-emerald-700">Open</th>
+              <th class="text-right px-4 py-2 font-medium text-emerald-700">High</th>
+              <th class="text-right px-4 py-2 font-medium text-emerald-700">Low</th>
+              <th class="text-right px-4 py-2 font-medium text-emerald-700">Close</th>
+              <th class="text-right px-4 py-2 font-medium text-emerald-700">Volume</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="error" class="hidden text-red-600 text-sm font-medium text-center py-8"></div>
+  </div>
+
+  <script type="module">
+    const state = { initialized: false };
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = String(text != null ? text : '');
+      return div.innerHTML;
+    }
+
+    function formatPrice(val) {
+      if (val == null) return '-';
+      return Number(val).toFixed(2);
+    }
+
+    function formatVolume(val) {
+      if (val == null) return '-';
+      return Number(val).toLocaleString('en-US');
+    }
+
+    function render(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('result').classList.remove('hidden');
+
+      const label = (data.symbol || '') + (data.period ? ' - ' + data.period : '');
+      document.getElementById('data-header').textContent = label;
+
+      const prices = data.prices || [];
+      document.getElementById('record-count').textContent = prices.length + ' record' + (prices.length !== 1 ? 's' : '');
+
+      if (prices.length === 0) {
+        document.getElementById('table-wrapper').classList.add('hidden');
+        document.getElementById('empty-state').classList.remove('hidden');
+        return;
+      }
+
+      const tbody = document.getElementById('table-body');
+      tbody.innerHTML = prices.map(p =>
+        '<tr class="border-b border-emerald-100 last:border-0 hover:bg-emerald-50/50">' +
+          '<td class="px-4 py-2 text-slate-700 font-medium">' + escapeHtml(p.date) + '</td>' +
+          '<td class="px-4 py-2 text-right text-slate-600">' + formatPrice(p.open) + '</td>' +
+          '<td class="px-4 py-2 text-right text-emerald-600">' + formatPrice(p.high) + '</td>' +
+          '<td class="px-4 py-2 text-right text-red-500">' + formatPrice(p.low) + '</td>' +
+          '<td class="px-4 py-2 text-right font-medium text-slate-700">' + formatPrice(p.close) + '</td>' +
+          '<td class="px-4 py-2 text-right text-slate-500">' + formatVolume(p.volume) + '</td>' +
+        '</tr>'
+      ).join('');
+    }
+
+    function renderError(message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('error').textContent = message;
+    }
+
+    function parseToolResult(result) {
+      if (result && result.content) {
+        for (const item of result.content) {
+          if (item.type === 'text' && item.text) {
+            try { return JSON.parse(item.text); } catch { return { raw: item.text }; }
+          }
+        }
+      }
+      if (result && result.data) { return result; }
+      return result;
+    }
+
+    function handleToolResult(result) {
+      const parsed = parseToolResult(result);
+      if (parsed && parsed.success === false) {
+        renderError(parsed.error || 'Operation failed');
+        return;
+      }
+      const data = parsed?.data || parsed;
+      if (data) {
+        render(data);
+      } else {
+        renderError('Unexpected data format');
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.jsonrpc === '2.0') {
+        if (msg.method === 'ui/initialize') {
+          state.initialized = true;
+          window.parent.postMessage({
+            jsonrpc: '2.0', id: msg.id,
+            result: { protocolVersion: '0.1.0', capabilities: {} }
+          }, '*');
+        } else if (msg.method === 'ui/toolResult') {
+          handleToolResult(msg.params);
+        }
+      }
+
+      if (msg.type === 'toolResult') {
+        handleToolResult(msg.data);
+      }
+    });
+
+    window.parent.postMessage({
+      jsonrpc: '2.0', method: 'ui/ready', params: {}
+    }, '*');
+  </script>
+</body>
+</html>
