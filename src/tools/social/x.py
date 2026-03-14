@@ -9,8 +9,12 @@ import httpx
 
 from src.humcp.decorator import tool
 from src.tools.social.schemas import (
+    XMentionsData,
+    XMentionsResponse,
     XPostTweetData,
     XPostTweetResponse,
+    XReplyTweetData,
+    XReplyTweetResponse,
     XSearchTweetsData,
     XSearchTweetsResponse,
     XTweet,
@@ -397,4 +401,166 @@ async def x_get_user_tweets(
         logger.exception("X get user tweets failed")
         return XUserTweetsResponse(
             success=False, error=f"X get user tweets failed: {e}"
+        )
+
+
+@tool()
+async def x_reply_to_tweet(tweet_id: str, text: str) -> XReplyTweetResponse:
+    """Reply to an existing tweet on X (Twitter).
+
+    Posts a new tweet as a reply to the specified tweet. Requires OAuth 1.0a
+    credentials (same as posting a tweet).
+
+    Args:
+        tweet_id: The ID of the tweet to reply to.
+        text: The text content of the reply (max 280 characters).
+
+    Returns:
+        The created reply tweet details or an error message.
+    """
+    try:
+        url = f"{_BASE_URL}/tweets"
+        headers = _get_oauth_headers("POST", url)
+        if headers is None:
+            return XReplyTweetResponse(
+                success=False,
+                error="X API not configured for posting. Set X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, and X_ACCESS_TOKEN_SECRET.",
+            )
+
+        if len(text) > 280:
+            return XReplyTweetResponse(
+                success=False,
+                error=f"Reply text exceeds 280 characters (got {len(text)}).",
+            )
+
+        logger.info("X reply to tweet_id=%s length=%d", tweet_id, len(text))
+        headers["Content-Type"] = "application/json"
+
+        payload = {
+            "text": text,
+            "reply": {"in_reply_to_tweet_id": tweet_id},
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            data = response.json()
+
+        reply_id = data["data"]["id"]
+        reply_text = data["data"]["text"]
+        reply_url = f"https://x.com/i/status/{reply_id}"
+
+        logger.info("X reply posted id=%s in_reply_to=%s", reply_id, tweet_id)
+        return XReplyTweetResponse(
+            success=True,
+            data=XReplyTweetData(
+                id=reply_id,
+                text=reply_text,
+                in_reply_to_tweet_id=tweet_id,
+                url=reply_url,
+            ),
+        )
+    except httpx.HTTPStatusError as e:
+        logger.exception("X reply to tweet HTTP error")
+        return XReplyTweetResponse(
+            success=False,
+            error=f"X API error ({e.response.status_code}): {e.response.text}",
+        )
+    except Exception as e:
+        logger.exception("X reply to tweet failed")
+        return XReplyTweetResponse(
+            success=False, error=f"X reply to tweet failed: {e}"
+        )
+
+
+@tool()
+async def x_get_mentions(
+    username: str,
+    max_results: int = 10,
+) -> XMentionsResponse:
+    """Get recent tweets mentioning a specific X (Twitter) user.
+
+    First resolves the username to a user ID, then fetches recent mentions
+    using the Twitter API v2 user mentions timeline endpoint.
+
+    Args:
+        username: The X username / handle (without the @ symbol).
+        max_results: Maximum number of mentions to return (5-100, default 10).
+
+    Returns:
+        List of tweets mentioning the user or an error message.
+    """
+    try:
+        headers = _get_bearer_headers()
+        if headers is None:
+            return XMentionsResponse(
+                success=False,
+                error="X API not configured. Set X_BEARER_TOKEN environment variable.",
+            )
+
+        max_results = max(5, min(max_results, 100))
+        logger.info(
+            "X get mentions username=%s max_results=%d", username, max_results
+        )
+
+        async with httpx.AsyncClient() as client:
+            # Resolve username to user ID
+            user_resp = await client.get(
+                f"{_BASE_URL}/users/by/username/{username}",
+                headers=headers,
+                params={"user.fields": "id"},
+            )
+            user_resp.raise_for_status()
+            user_json = user_resp.json()
+
+        user_data = user_json.get("data")
+        if not user_data:
+            return XMentionsResponse(
+                success=False,
+                error=f"User '{username}' not found.",
+            )
+
+        user_id = user_data["id"]
+
+        async with httpx.AsyncClient() as client:
+            mentions_resp = await client.get(
+                f"{_BASE_URL}/users/{user_id}/mentions",
+                headers=headers,
+                params={
+                    "max_results": max_results,
+                    "tweet.fields": "author_id,created_at,text,public_metrics",
+                    "expansions": "author_id",
+                    "user.fields": "username",
+                },
+            )
+            mentions_resp.raise_for_status()
+            data = mentions_resp.json()
+
+        users_map: dict[str, str] = {}
+        for user in data.get("includes", {}).get("users", []):
+            users_map[user["id"]] = user.get("username", "unknown")
+
+        tweets: list[XTweet] = [
+            _parse_tweet(td, users_map) for td in data.get("data", [])
+        ]
+
+        logger.info("X get mentions complete results=%d", len(tweets))
+        return XMentionsResponse(
+            success=True,
+            data=XMentionsData(
+                user_id=user_id,
+                count=len(tweets),
+                tweets=tweets,
+            ),
+        )
+    except httpx.HTTPStatusError as e:
+        logger.exception("X get mentions HTTP error")
+        return XMentionsResponse(
+            success=False,
+            error=f"X API error ({e.response.status_code}): {e.response.text}",
+        )
+    except Exception as e:
+        logger.exception("X get mentions failed")
+        return XMentionsResponse(
+            success=False, error=f"X get mentions failed: {e}"
         )

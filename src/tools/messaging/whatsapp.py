@@ -15,8 +15,11 @@ from src.tools.messaging.schemas import (
     SendMessageResponse,
     SendWhatsAppMediaResponse,
     SendWhatsAppTemplateResponse,
+    WhatsAppInboundMessage,
     WhatsAppMediaSentData,
     WhatsAppTemplateSentData,
+    WhatsAppWebhookData,
+    WhatsAppWebhookResponse,
 )
 
 try:
@@ -308,4 +311,87 @@ async def whatsapp_send_media(
         logger.exception("WhatsApp send_media failed")
         return SendWhatsAppMediaResponse(
             success=False, error=f"Failed to send WhatsApp media: {str(e)}"
+        )
+
+
+@tool()
+async def whatsapp_parse_webhook(payload: str) -> WhatsAppWebhookResponse:
+    """Parse an inbound WhatsApp Cloud API webhook payload to extract messages.
+
+    Processes the JSON payload sent by the WhatsApp Cloud API webhook
+    (Webhooks → messages notification). Extracts inbound text messages and
+    delivery status updates from the payload.
+
+    This tool is intended to be called from a workflow that receives webhook
+    events, passing the raw JSON body as a string.
+
+    Args:
+        payload: The raw JSON string of the webhook payload from the
+                 WhatsApp Cloud API.
+
+    Returns:
+        Parsed inbound messages and delivery status updates.
+    """
+    import json
+
+    try:
+        data = json.loads(payload)
+    except (json.JSONDecodeError, TypeError) as e:
+        return WhatsAppWebhookResponse(
+            success=False,
+            error=f"Invalid JSON payload: {e}",
+        )
+
+    try:
+        messages: list[WhatsAppInboundMessage] = []
+        statuses: list[dict] = []
+
+        for entry in data.get("entry", []):
+            for change in entry.get("changes", []):
+                value = change.get("value", {})
+
+                # Extract inbound messages
+                for msg in value.get("messages", []):
+                    text_body = None
+                    if msg.get("type") == "text":
+                        text_body = msg.get("text", {}).get("body")
+
+                    messages.append(
+                        WhatsAppInboundMessage(
+                            message_id=msg.get("id", ""),
+                            from_number=msg.get("from", ""),
+                            timestamp=msg.get("timestamp", ""),
+                            type=msg.get("type", "text"),
+                            text=text_body,
+                        )
+                    )
+
+                # Extract delivery status updates
+                for status in value.get("statuses", []):
+                    statuses.append(
+                        {
+                            "id": status.get("id"),
+                            "status": status.get("status"),
+                            "timestamp": status.get("timestamp"),
+                            "recipient_id": status.get("recipient_id"),
+                        }
+                    )
+
+        logger.info(
+            "WhatsApp webhook parsed messages=%d statuses=%d",
+            len(messages),
+            len(statuses),
+        )
+        return WhatsAppWebhookResponse(
+            success=True,
+            data=WhatsAppWebhookData(
+                messages=messages,
+                count=len(messages),
+                statuses=statuses,
+            ),
+        )
+    except Exception as e:
+        logger.exception("WhatsApp webhook parsing failed")
+        return WhatsAppWebhookResponse(
+            success=False, error=f"Failed to parse WhatsApp webhook: {str(e)}"
         )

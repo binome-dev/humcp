@@ -396,6 +396,75 @@ class XGetTweetData(BaseModel):
     tweet: XTweet = Field(..., description="The requested tweet")
 
 
+class XReplyTweetData(BaseModel):
+    """Output data for x_reply_to_tweet tool."""
+
+    id: str = Field(..., description="Created reply tweet ID")
+    text: str = Field(..., description="Reply tweet text")
+    in_reply_to_tweet_id: str = Field(
+        ..., description="Tweet ID that was replied to"
+    )
+    url: str = Field(..., description="URL to the reply tweet")
+
+
+class XMentionsData(BaseModel):
+    """Output data for x_get_mentions tool."""
+
+    user_id: str = Field(..., description="User ID whose mentions were fetched")
+    count: int = Field(0, description="Number of mentions returned")
+    tweets: list[XTweet] = Field(
+        default_factory=list, description="List of mention tweets"
+    )
+
+
+# =============================================================================
+# LinkedIn Schemas
+# =============================================================================
+
+
+class LinkedInProfileData(BaseModel):
+    """Output data for linkedin_get_profile tool."""
+
+    urn: str | None = Field(None, description="LinkedIn member URN")
+    first_name: str | None = Field(None, description="First name")
+    last_name: str | None = Field(None, description="Last name")
+    headline: str | None = Field(None, description="Profile headline")
+    vanity_name: str | None = Field(None, description="Vanity/public profile URL slug")
+
+
+class LinkedInShareData(BaseModel):
+    """Output data for linkedin_create_share tool."""
+
+    share_id: str | None = Field(None, description="ID of the created share/post")
+    url: str | None = Field(None, description="URL to the created post")
+
+
+# =============================================================================
+# Instagram Business Schemas
+# =============================================================================
+
+
+class InstagramProfileData(BaseModel):
+    """Output data for instagram_get_profile tool."""
+
+    id: str | None = Field(None, description="Instagram Business account ID")
+    username: str | None = Field(None, description="Instagram username")
+    name: str | None = Field(None, description="Account display name")
+    followers_count: int | None = Field(None, description="Number of followers")
+    media_count: int | None = Field(None, description="Number of media posts")
+    biography: str | None = Field(None, description="Profile biography")
+
+
+class InstagramMediaData(BaseModel):
+    """Output data for instagram_get_recent_media tool."""
+
+    account_id: str = Field(..., description="Instagram Business account ID")
+    count: int = Field(0, description="Number of media items returned")
+    media: list[dict] = Field(
+        default_factory=list, description="List of recent media items"
+    )
+
+
 # =============================================================================
 # Response Wrappers (inheriting from ToolResponse[T])
 # =============================================================================
@@ -541,5 +610,41 @@ class YouTubeCommentsResponse(ToolResponse[YouTubeCommentsData]):
 
 class XGetTweetResponse(ToolResponse[XGetTweetData]):
     """Response schema for x_get_tweet tool."""
+
+    pass
+
+
+class XReplyTweetResponse(ToolResponse[XReplyTweetData]):
+    """Response schema for x_reply_to_tweet tool."""
+
+    pass
+
+
+class XMentionsResponse(ToolResponse[XMentionsData]):
+    """Response schema for x_get_mentions tool."""
+
+    pass
+
+
+class LinkedInProfileResponse(ToolResponse[LinkedInProfileData]):
+    """Response schema for linkedin_get_profile tool."""
+
+    pass
+
+
+class LinkedInShareResponse(ToolResponse[LinkedInShareData]):
+    """Response schema for linkedin_create_share tool."""
+
+    pass
+
+
+class InstagramProfileResponse(ToolResponse[InstagramProfileData]):
+    """Response schema for instagram_get_profile tool."""
+
+    pass
+
+
+class InstagramMediaResponse(ToolResponse[InstagramMediaData]):
+    """Response schema for instagram_get_recent_media tool."""
 
     pass

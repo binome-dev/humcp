@@ -622,3 +622,37 @@ class OperationSuccessResponse(ToolResponse[OperationSuccessData]):
     """Response schema for generic success operations."""
 
     pass
+
+
+# =============================================================================
+# WhatsApp Webhook / Inbound Message Schemas
+# =============================================================================
+
+
+class WhatsAppInboundMessage(BaseModel):
+    """A single inbound WhatsApp message."""
+
+    message_id: str = Field(..., description="WhatsApp message ID")
+    from_number: str = Field(..., description="Sender phone number")
+    timestamp: str = Field(..., description="Message timestamp")
+    type: str = Field("text", description="Message type (text, image, etc.)")
+    text: str | None = Field(None, description="Text body if type is text")
+
+
+class WhatsAppWebhookData(BaseModel):
+    """Data returned when processing a WhatsApp webhook payload."""
+
+    messages: list[WhatsAppInboundMessage] = Field(
+        default_factory=list, description="Parsed inbound messages"
+    )
+    count: int = Field(0, description="Number of messages parsed")
+    statuses: list[dict] = Field(
+        default_factory=list,
+        description="Delivery status updates from the webhook payload",
+    )
+
+
+class WhatsAppWebhookResponse(ToolResponse[WhatsAppWebhookData]):
+    """Response schema for WhatsApp webhook processing."""
+
+    pass
