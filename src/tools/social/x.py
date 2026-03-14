@@ -468,9 +468,7 @@ async def x_reply_to_tweet(tweet_id: str, text: str) -> XReplyTweetResponse:
         )
     except Exception as e:
         logger.exception("X reply to tweet failed")
-        return XReplyTweetResponse(
-            success=False, error=f"X reply to tweet failed: {e}"
-        )
+        return XReplyTweetResponse(success=False, error=f"X reply to tweet failed: {e}")
 
 
 @tool()
@@ -499,9 +497,7 @@ async def x_get_mentions(
             )
 
         max_results = max(5, min(max_results, 100))
-        logger.info(
-            "X get mentions username=%s max_results=%d", username, max_results
-        )
+        logger.info("X get mentions username=%s max_results=%d", username, max_results)
 
         async with httpx.AsyncClient() as client:
             # Resolve username to user ID
@@ -561,6 +557,4 @@ async def x_get_mentions(
         )
     except Exception as e:
         logger.exception("X get mentions failed")
-        return XMentionsResponse(
-            success=False, error=f"X get mentions failed: {e}"
-        )
+        return XMentionsResponse(success=False, error=f"X get mentions failed: {e}")

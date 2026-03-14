@@ -151,9 +151,7 @@ async def linkedin_create_share(text: str) -> LinkedInShareResponse:
                     "shareMediaCategory": "NONE",
                 }
             },
-            "visibility": {
-                "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
-            },
+            "visibility": {"com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"},
         }
 
         logger.info("Creating LinkedIn share length=%d", len(text))
@@ -174,7 +172,9 @@ async def linkedin_create_share(text: str) -> LinkedInShareResponse:
             success=True,
             data=LinkedInShareData(
                 share_id=share_id,
-                url=f"https://www.linkedin.com/feed/update/{share_id}/" if share_id else None,
+                url=f"https://www.linkedin.com/feed/update/{share_id}/"
+                if share_id
+                else None,
             ),
         )
     except httpx.HTTPStatusError as e:

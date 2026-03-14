@@ -401,9 +401,7 @@ class XReplyTweetData(BaseModel):
 
     id: str = Field(..., description="Created reply tweet ID")
     text: str = Field(..., description="Reply tweet text")
-    in_reply_to_tweet_id: str = Field(
-        ..., description="Tweet ID that was replied to"
-    )
+    in_reply_to_tweet_id: str = Field(..., description="Tweet ID that was replied to")
     url: str = Field(..., description="URL to the reply tweet")
 
 
