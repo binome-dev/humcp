@@ -14,7 +14,7 @@ Tools for sending messages and interacting with popular messaging platforms.
 | Slack | Slack | Send messages, list channels, get history, search, reactions, threads |
 | Discord | Discord | Send messages, list guild channels, reactions, threads |
 | Telegram | Telegram Bot API | Send messages, photos, edit messages, get updates, pin messages |
-| WhatsApp | WhatsApp Cloud API | Send text, template, and media messages |
+| WhatsApp | WhatsApp Cloud API | Send text, template, and media messages; parse inbound webhooks |
 
 ## Requirements
 
@@ -75,6 +75,14 @@ result = await telegram_send_message(
 result = await whatsapp_send_message(
     to="1234567890",
     message="Your order has been shipped!"
+)
+```
+
+### Parse a WhatsApp inbound webhook
+
+```python
+result = await whatsapp_parse_webhook(
+    payload='{"entry": [{"changes": [{"value": {"messages": [...]}}]}]}'
 )
 ```
 
